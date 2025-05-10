@@ -65,7 +65,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         studentCount = studentRes.length;
       });
     } catch (e) {
-      debugPrint('Error fetching dashboard stats: \$e');
+      debugPrint('Error fetching dashboard stats: \n$e');
     } finally {
       setState(() => isLoading = false);
     }
@@ -107,8 +107,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final actions = [
       {'label': 'الطلاب', 'icon': Icons.people, 'route': '/students'},
       {'label': 'إضافة طالب', 'icon': Icons.person_add, 'route': '/add-student'},
-      {'label': 'المواد', 'icon': Icons.book, 'route': '/subjects'},
+      {'label': 'المواد', 'icon': Icons.book, 'route': '/classes'},
       {'label': 'الدرجات', 'icon': Icons.score, 'route': '/grades'},
+      
     ];
 
     return GridView.builder(

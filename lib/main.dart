@@ -1,7 +1,13 @@
 
 import 'package:flutter/material.dart';
+import 'package:school_app_flutter/screens/classes_list_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'screens/add_student_screen.dart';
+import 'screens/addclassscreen.dart';
+import 'screens/dashboard_screen.dart';
+import 'screens/edit_class_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/students_list_screen_supabase.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,8 +33,22 @@ class SchoolApp extends StatelessWidget {
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
         ),
+        
       ),
-      home: const LoginScreen(),
+      // home: const LoginScreen(),
+
+         initialRoute: '/',
+      routes: {
+        '/': (context) => const LoginScreen(),
+        '/dashboard': (context) => const DashboardScreen(),
+        '/students': (context) => const StudentsListScreen(),
+        '/add-student': (context) => const AddStudentScreen(),
+        '/classes': (context) => const ClassesListScreen(),
+        '/add-class': (context) => const AddClassScreen(),
+        '/edit-class': (context) => EditClassScreen(
+          classData: ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>,
+        ),
+      },
     );
   }
 }

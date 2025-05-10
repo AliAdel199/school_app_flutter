@@ -1,6 +1,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'edit_student_screen.dart';
+import 'delete_student_dialog.dart';
 
 class StudentsListScreen extends StatefulWidget {
   const StudentsListScreen({super.key});
@@ -23,7 +25,12 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
   Future<void> fetchStudents() async {
     setState(() => isLoading = true);
     try {
-      final profile = await supabase.from('profiles').select('school_id').eq('id', supabase.auth.currentUser!.id).single();
+      final profile = await supabase
+          .from('profiles')
+          .select('school_id')
+          .eq('id', supabase.auth.currentUser!.id)
+          .single();
+
       final schoolId = profile['school_id'];
 
       final res = await supabase
@@ -63,23 +70,23 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('الطلاب'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: ElevatedButton.icon(
-              onPressed: () {
-                Navigator.pushNamed(context, '/add-student')
-                    .then((_) => fetchStudents());
-              },
-              icon: const Icon(Icons.add),
-              label: const Text('إضافة طالب'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.teal,
-                foregroundColor: Colors.white,
-              ),
-            ),
-          ),
-        ],
+        // actions: [
+        //   Padding(
+        //     padding: const EdgeInsets.symmetric(horizontal: 16),
+        //     child: ElevatedButton.icon(
+        //       onPressed: () {
+        //         Navigator.pushNamed(context, '/add-student')
+        //             .then((_) => fetchStudents());
+        //       },
+        //       icon: const Icon(Icons.add),
+        //       label: const Text('إضافة طالب'),
+        //       style: ElevatedButton.styleFrom(
+        //         backgroundColor: Colors.teal,
+        //         foregroundColor: Colors.white,
+        //       ),
+        //     ),
+        //   ),
+        // ],
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -101,53 +108,57 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
                               borderRadius: BorderRadius.circular(12)),
                           child: Padding(
                             padding: const EdgeInsets.all(16),
-                            child: isWide
-                                ? Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(student['full_name'],
-                                          style: const TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold)),
-                                      Text('ID: ${student['student_id'] ?? '-'}'),
-                                      Text('الصف: ${student['class_name'] ?? '-'}'),
-                                      Text('الهوية: ${student['national_id'] ?? '-'}'),
-                                      Chip(
-                                        label: Text(student['status']),
-                                        backgroundColor:
-                                            getStatusColor(student['status'])
-                                                .withOpacity(0.2),
-                                        labelStyle: TextStyle(
-                                            color: getStatusColor(
-                                                student['status'])),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                isWide
+                                    ? Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: _buildStudentInfo(student),
+                                      )
+                                    : Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: _buildStudentInfo(student),
                                       ),
-                                    ],
-                                  )
-                                : Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(student['full_name'],
-                                          style: const TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold)),
-                                      const SizedBox(height: 6),
-                                      Text('ID: ${student['student_id'] ?? '-'}'),
-                                      Text('الصف: ${student['class_name'] ?? '-'}'),
-                                      Text('الهوية: ${student['national_id'] ?? '-'}'),
-                                      const SizedBox(height: 6),
-                                      Chip(
-                                        label: Text(student['status']),
-                                        backgroundColor:
-                                            getStatusColor(student['status'])
-                                                .withOpacity(0.2),
-                                        labelStyle: TextStyle(
-                                            color: getStatusColor(
-                                                student['status'])),
-                                      ),
-                                    ],
-                                  ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    TextButton.icon(
+                                      onPressed: () async {
+                                        await Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => EditStudentScreen(
+                                              student: student,
+                                            ),
+                                          ),
+                                        );
+                                        fetchStudents(); // تحديث
+                                      },
+                                      icon: const Icon(Icons.edit, size: 20),
+                                      label: const Text('تعديل'),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    TextButton.icon(
+                                      onPressed: () async {
+                                        await showDeleteStudentDialog(
+                                          context,
+                                          student,
+                                          fetchStudents,
+                                        );
+                                      },
+                                      icon: const Icon(Icons.delete, size: 20),
+                                      label: const Text('حذف'),
+                                      style: TextButton.styleFrom(
+                                          foregroundColor: Colors.red),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         );
                       },
@@ -157,5 +168,22 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
               },
             ),
     );
+  }
+
+  List<Widget> _buildStudentInfo(Map<String, dynamic> student) {
+    return [
+      Text(student['full_name'],
+          style: const TextStyle(
+              fontSize: 18, fontWeight: FontWeight.bold)),
+      Text('ID: ${student['student_id'] ?? '-'}'),
+      Text('الصف: ${student['class_name'] ?? '-'}'),
+      Text('الهوية: ${student['national_id'] ?? '-'}'),
+      Chip(
+        label: Text(student['status']),
+        backgroundColor:
+            getStatusColor(student['status']).withOpacity(0.2),
+        labelStyle: TextStyle(color: getStatusColor(student['status'])),
+      ),
+    ];
   }
 }

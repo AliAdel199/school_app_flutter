@@ -48,9 +48,9 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
       );
       Navigator.pop(context);
     } catch (e) {
-      debugPrint('خطأ: \$e');
+      debugPrint('خطأ: \n$e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل في إضافة الطالب: \$e')),
+        SnackBar(content: Text('فشل في إضافة الطالب: \n$e')),
       );
     } finally {
       setState(() => isLoading = false);

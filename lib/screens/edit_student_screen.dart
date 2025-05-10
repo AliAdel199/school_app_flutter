@@ -2,14 +2,15 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class AddStudentScreen extends StatefulWidget {
-  const AddStudentScreen({super.key});
+class EditStudentScreen extends StatefulWidget {
+  final Map<String, dynamic> student;
+  const EditStudentScreen({super.key, required this.student});
 
   @override
-  State<AddStudentScreen> createState() => _AddStudentScreenState();
+  State<EditStudentScreen> createState() => _EditStudentScreenState();
 }
 
-class _AddStudentScreenState extends State<AddStudentScreen> {
+class _EditStudentScreenState extends State<EditStudentScreen> {
   final supabase = Supabase.instance.client;
   final _formKey = GlobalKey<FormState>();
 
@@ -32,7 +33,26 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
   @override
   void initState() {
     super.initState();
+    _loadStudentData();
     fetchClasses();
+  }
+
+  void _loadStudentData() {
+    final s = widget.student;
+    fullNameController.text = s['full_name'] ?? '';
+    studentIdController.text = s['student_id'] ?? '';
+    nationalIdController.text = s['national_id'] ?? '';
+    parentNameController.text = s['parent_name'] ?? '';
+    parentPhoneController.text = s['parent_phone'] ?? '';
+    addressController.text = s['address'] ?? '';
+    emailController.text = s['email'] ?? '';
+    phoneController.text = s['phone'] ?? '';
+    gender = s['gender'] ?? 'male';
+    status = s['status'] ?? 'active';
+    selectedClassId = s['class_id'];
+    if (s['birth_date'] != null) {
+      birthDate = DateTime.tryParse(s['birth_date']);
+    }
   }
 
   Future<void> fetchClasses() async {
@@ -53,16 +73,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
 
     setState(() => isLoading = true);
     try {
-      final profile = await supabase
-          .from('profiles')
-          .select('school_id')
-          .eq('id', supabase.auth.currentUser!.id)
-          .single();
-
-      final schoolId = profile['school_id'];
-
-      await supabase.from('students').insert({
-        'school_id': schoolId,
+      await supabase.from('students').update({
         'full_name': fullNameController.text.trim(),
         'student_id': studentIdController.text.trim(),
         'national_id': nationalIdController.text.trim(),
@@ -75,16 +86,16 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
         'gender': gender,
         'status': status,
         'birth_date': birthDate!.toIso8601String(),
-      });
+      }).eq('id', widget.student['id']);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تمت إضافة الطالب بنجاح')),
+        const SnackBar(content: Text('تم تحديث بيانات الطالب')),
       );
       Navigator.pop(context);
     } catch (e) {
       debugPrint('خطأ: \n$e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل في إضافة الطالب: \n$e')),
+        SnackBar(content: Text('فشل في التحديث: \n$e')),
       );
     } finally {
       setState(() => isLoading = false);
@@ -94,7 +105,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('إضافة طالب')),
+      appBar: AppBar(title: const Text('تعديل بيانات الطالب')),
       body: LayoutBuilder(
         builder: (context, constraints) {
           return Center(
@@ -137,7 +148,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                           icon: const Icon(Icons.save),
                           label: isLoading
                               ? const CircularProgressIndicator()
-                              : const Text('حفظ الطالب'),
+                              : const Text('تحديث الطالب'),
                           onPressed: isLoading ? null : submit,
                         ),
                       ),
@@ -189,7 +200,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
         decoration: const InputDecoration(
             labelText: 'الصف الدراسي', border: OutlineInputBorder()),
         items: classes
-            .map((c) => DropdownMenuItem(
+            .map((c) => DropdownMenuItem<String>(
                   value: c['id'] as String,
                   child: Text(c['name'] as String),
                 ))
@@ -208,7 +219,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
         onTap: () async {
           final picked = await showDatePicker(
             context: context,
-            initialDate: DateTime(2010),
+            initialDate: birthDate ?? DateTime(2010),
             firstDate: DateTime(1990),
             lastDate: DateTime.now(),
           );
