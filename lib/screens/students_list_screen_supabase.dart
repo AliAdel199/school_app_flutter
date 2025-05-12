@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'edit_student_screen.dart';
 import 'delete_student_dialog.dart';
+import 'studentpaymentscreen.dart';
 
 class StudentsListScreen extends StatefulWidget {
   const StudentsListScreen({super.key});
@@ -41,9 +42,9 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
 
       students = List<Map<String, dynamic>>.from(res);
     } catch (e) {
-      debugPrint('خطأ في جلب الطلاب: \$e');
+      debugPrint('خطأ في جلب الطلاب: \n$e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل تحميل الطلاب: \$e')),
+        SnackBar(content: Text('فشل تحميل الطلاب: \n$e')),
       );
     } finally {
       setState(() => isLoading = false);
@@ -126,6 +127,26 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
+                                                 TextButton.icon(
+                                      onPressed: () async {
+                                  Navigator.push(
+  context,
+  MaterialPageRoute(
+    builder: (_) => StudentPaymentsScreen(
+      student: {
+        'id': student['id'],
+        'full_name': student['full_name'],
+        'annual_fee': student['annual_fee'], // ضروري للحسابات
+      },
+    ),
+  ),
+);
+
+                                      },
+                                      icon: const Icon(Icons.edit, size: 20),
+                                      label: const Text('دفعات الطالب'),
+                                    ),
+                                    const SizedBox(width: 12),
                                     TextButton.icon(
                                       onPressed: () async {
                                         await Navigator.push(

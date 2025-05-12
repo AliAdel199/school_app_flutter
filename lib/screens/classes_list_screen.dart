@@ -23,19 +23,21 @@ class _ClassesListScreenState extends State<ClassesListScreen> {
     fetchClasses();
   }
 
+
+
   Future<void> fetchClasses() async {
     setState(() => isLoading = true);
     try {
       final response = await supabase
           .from('classes')
-          .select('id, name, grade_id, grades(id,name), students(count)')
+          .select('id, name, grade_id,annual_fee, grades(id,name), students(count)')
           .order('name', ascending: true);
 
       classes = List<Map<String, dynamic>>.from(response);
     } catch (e) {
       debugPrint('خطأ في جلب الصفوف: \n$e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل تحميل الصفوف: \$e')),
+        SnackBar(content: Text('فشل تحميل الصفوف: \n$e')),
       );
     } finally {
       setState(() => isLoading = false);
@@ -80,6 +82,7 @@ class _ClassesListScreenState extends State<ClassesListScreen> {
                     final studentCount = classItem['students'] != null
                         ? classItem['students'][0]['count'] ?? 0
                         : 0;
+                        final annualFee = classItem['annual_fee'];
 
                     return Card(
                       elevation: 4,
@@ -89,14 +92,20 @@ class _ClassesListScreenState extends State<ClassesListScreen> {
                         title: Text(classItem['name'],
                             style: const TextStyle(
                                 fontSize: 18, fontWeight: FontWeight.bold)),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        subtitle: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
                             Text(
                               'المرحلة: ${classItem['grades']['name'] ?? '-'}',
+                               style: const TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold)
                             ),
-                            const SizedBox(height: 4),
-                            Text('عدد الطلاب: $studentCount'),
+                            const SizedBox(width: 25),
+                            Text('عدد الطلاب: $studentCount', style: const TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold)),
+                               const SizedBox(width: 25),
+                            Text('عدد الطلاب: $annualFee', style: const TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold)),
                           ],
                         ),
                         trailing: Row(
@@ -110,6 +119,7 @@ class _ClassesListScreenState extends State<ClassesListScreen> {
                   MaterialPageRoute(
                     builder: (context) => EditClassScreen( classData: {
                       'name': classItem['name'],
+                      'annual_fee': classItem['annual_fee'],
                       'grade_id': classItem['grades']['id'],
                       'gradeName': classItem['grades']['name'],
                       'studentCount': studentCount,
@@ -124,6 +134,11 @@ class _ClassesListScreenState extends State<ClassesListScreen> {
                             IconButton(
                               icon: const Icon(Icons.delete),
                               onPressed: () {
+                                showDeleteClassDialog(
+                                  context,
+                                  classItem,
+                                  fetchClasses, // إعادة تحميل الصفوف بعد الحذف
+                                );
                                 // حذف الصف
                               },
                               color: Colors.red,
@@ -150,4 +165,47 @@ class _ClassesListScreenState extends State<ClassesListScreen> {
             ),
     );
   }
+  
+Future<void> showDeleteClassDialog(BuildContext context, Map<String, dynamic> classData, VoidCallback onDeleted) async {
+  final supabase = Supabase.instance.client;
+
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('تأكيد الحذف'),
+      content: Text('هل أنت متأكد من حذف الصف: ${classData['name']}؟'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('إلغاء'),
+        ),
+        ElevatedButton.icon(
+          icon: const Icon(Icons.delete),
+          label: const Text('حذف'),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          onPressed: () async {
+            try {
+              await supabase
+                  .from('classes')
+                  .delete()
+                  .eq('id', classData['id']);
+
+              Navigator.pop(context); // إغلاق الحوار
+              onDeleted(); // إعادة تحميل القائمة
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('تم حذف الصف بنجاح')),
+              );
+            } catch (e) {
+              debugPrint('Delete error: \n$e');
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('فشل في حذف الصف: \n$e')),
+              );
+            }
+          },
+        ),
+      ],
+    ),
+  );
+}
+
 }

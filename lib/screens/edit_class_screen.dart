@@ -15,6 +15,7 @@ class _EditClassScreenState extends State<EditClassScreen> {
   final _formKey = GlobalKey<FormState>();
 
   final nameController = TextEditingController();
+  final annualFeeController = TextEditingController();
   String? selectedGradeId;
 
   List<Map<String, dynamic>> grades = [];
@@ -26,6 +27,7 @@ class _EditClassScreenState extends State<EditClassScreen> {
     nameController.text = widget.classData['name'];
 setState(() {
       selectedGradeId = widget.classData['grade_id'];
+      annualFeeController.text = widget.classData['annual_fee'].toString();
 
 });    fetchGrades();
     print(widget.classData['name']);
@@ -48,7 +50,7 @@ setState(() {
         }
       });
     } catch (e) {
-      debugPrint('خطأ في جلب المراحل: \$e');
+      debugPrint('خطأ في جلب المراحل: \n$e');
     }
   }
 
@@ -60,6 +62,7 @@ setState(() {
       await supabase.from('classes').update({
         'name': nameController.text.trim(),
         'grade_id': selectedGradeId,
+        'annual_fee': double.tryParse(annualFeeController.text) ?? 0.0,
       }).eq('id', widget.classData['id']);
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -67,9 +70,9 @@ setState(() {
       );
       Navigator.pop(context);
     } catch (e) {
-      debugPrint('خطأ في التعديل: \$e');
+      debugPrint('خطأ في التعديل: \n$e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل في تعديل الصف: \$e')),
+        SnackBar(content: Text('فشل في تعديل الصف: \n$e')),
       );
     } finally {
       setState(() => isLoading = false);
@@ -129,6 +132,16 @@ setState(() {
                         },
                         validator: (value) =>
                             value == null ? 'يرجى اختيار المرحلة' : null,
+                      ),
+                       const SizedBox(height: 24),
+                      TextFormField(
+                        controller: annualFeeController,
+                        decoration: const InputDecoration(
+                          labelText: 'القسط السنوي',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) =>
+                            value!.isEmpty ? 'يرجى إدخال القسط' : null,
                       ),
                       const SizedBox(height: 32),
                       ElevatedButton.icon(

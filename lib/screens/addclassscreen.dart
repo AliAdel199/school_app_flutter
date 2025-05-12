@@ -45,6 +45,7 @@ class _AddClassScreenState extends State<AddClassScreen> {
       await supabase.from('classes').insert({
         'name': nameController.text.trim(),
         'grade_id': selectedGradeId,
+        'annual_fee':  double.tryParse(annualFeeController.text) ?? 0.0,
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -52,9 +53,9 @@ class _AddClassScreenState extends State<AddClassScreen> {
       );
       Navigator.pop(context);
     } catch (e) {
-      debugPrint('خطأ في الإضافة: \$e');
+      debugPrint('خطأ في الإضافة: \n$e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل في إضافة الصف: \$e')),
+        SnackBar(content: Text('فشل في إضافة الصف: \n$e')),
       );
     } finally {
       setState(() => isLoading = false);
@@ -115,6 +116,17 @@ class _AddClassScreenState extends State<AddClassScreen> {
                         },
                         validator: (value) =>
                             value == null ? 'يرجى اختيار المرحلة' : null,
+                      ),
+                      const SizedBox(height: 20),
+
+                         TextFormField(
+                        controller: annualFeeController,keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: ' القسط السنوي',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) =>
+                            value!.isEmpty ? 'يرجى إدخال القسط' : null,
                       ),
                       const SizedBox(height: 32),
                       ElevatedButton.icon(

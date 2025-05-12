@@ -7,6 +7,7 @@ import 'screens/addclassscreen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/edit_class_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/studentpaymentscreen.dart';
 import 'screens/students_list_screen_supabase.dart';
 
 Future<void> main() async {
@@ -47,6 +48,9 @@ class SchoolApp extends StatelessWidget {
         '/add-class': (context) => const AddClassScreen(),
         '/edit-class': (context) => EditClassScreen(
           classData: ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>,
+        ),
+        '/studentpayments': (context) => StudentPaymentsScreen(
+          student: ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>,
         ),
       },
     );
