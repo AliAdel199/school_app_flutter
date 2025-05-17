@@ -1,5 +1,5 @@
-
 import 'package:flutter/material.dart';
+import 'package:school_app_flutter/screens/add_student_screen_supabase.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'edit_student_screen.dart';
 import 'delete_student_dialog.dart';
@@ -15,7 +15,9 @@ class StudentsListScreen extends StatefulWidget {
 class _StudentsListScreenState extends State<StudentsListScreen> {
   final supabase = Supabase.instance.client;
   List<Map<String, dynamic>> students = [];
+  List<Map<String, dynamic>> filteredStudents = [];
   bool isLoading = true;
+  String searchQuery = '';
 
   @override
   void initState() {
@@ -41,6 +43,7 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
           .order('full_name', ascending: true);
 
       students = List<Map<String, dynamic>>.from(res);
+      filterStudents();
     } catch (e) {
       debugPrint('خطأ في جلب الطلاب: \n$e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -49,6 +52,18 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
     } finally {
       setState(() => isLoading = false);
     }
+  }
+
+  void filterStudents() {
+    setState(() {
+      filteredStudents = students
+          .where((student) =>
+              student['full_name']
+                  .toString()
+                  .toLowerCase()
+                  .contains(searchQuery.toLowerCase()))
+          .toList();
+    });
   }
 
   Color getStatusColor(String status) {
@@ -71,23 +86,36 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('الطلاب'),
-        // actions: [
-        //   Padding(
-        //     padding: const EdgeInsets.symmetric(horizontal: 16),
-        //     child: ElevatedButton.icon(
-        //       onPressed: () {
-        //         Navigator.pushNamed(context, '/add-student')
-        //             .then((_) => fetchStudents());
-        //       },
-        //       icon: const Icon(Icons.add),
-        //       label: const Text('إضافة طالب'),
-        //       style: ElevatedButton.styleFrom(
-        //         backgroundColor: Colors.teal,
-        //         foregroundColor: Colors.white,
-        //       ),
-        //     ),
-        //   ),
-        // ],
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.pushNamed(context, '/add-student')
+                  .then((_) => fetchStudents());
+            },
+            icon: const Icon(Icons.add),
+            tooltip: 'إضافة طالب',
+          )
+        ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(60),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'ابحث عن طالب بالاسم...',
+                filled: true,
+                fillColor: Colors.white,
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+              onChanged: (val) {
+                searchQuery = val;
+                filterStudents();
+              },
+            ),
+          ),
+        ),
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -99,10 +127,10 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
                     constraints: const BoxConstraints(maxWidth: 1000),
                     child: ListView.separated(
                       padding: const EdgeInsets.all(16),
-                      itemCount: students.length,
+                      itemCount: filteredStudents.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 10),
                       itemBuilder: (context, index) {
-                        final student = students[index];
+                        final student = filteredStudents[index];
                         return Card(
                           elevation: 4,
                           shape: RoundedRectangleBorder(
@@ -127,23 +155,22 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
-                                                 TextButton.icon(
-                                      onPressed: () async {
-                                  Navigator.push(
-  context,
-  MaterialPageRoute(
-    builder: (_) => StudentPaymentsScreen(
-      student: {
-        'id': student['id'],
-        'full_name': student['full_name'],
-        'annual_fee': student['annual_fee'], // ضروري للحسابات
-      },
-    ),
-  ),
-);
-
+                                    TextButton.icon(
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => StudentPaymentsScreen(
+                                              student: {
+                                                'id': student['id'],
+                                                'full_name': student['full_name'],
+                                                'annual_fee': student['annual_fee'],
+                                              },
+                                            ),
+                                          ),
+                                        );
                                       },
-                                      icon: const Icon(Icons.edit, size: 20),
+                                      icon: const Icon(Icons.payment, size: 20),
                                       label: const Text('دفعات الطالب'),
                                     ),
                                     const SizedBox(width: 12),
@@ -152,12 +179,12 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
                                         await Navigator.push(
                                           context,
                                           MaterialPageRoute(
-                                            builder: (_) => EditStudentScreen(
+                                            builder: (_) => AddEditStudentScreen(
                                               student: student,
                                             ),
                                           ),
                                         );
-                                        fetchStudents(); // تحديث
+                                        fetchStudents(); // إعادة تحميل بعد التعديل
                                       },
                                       icon: const Icon(Icons.edit, size: 20),
                                       label: const Text('تعديل'),
@@ -194,15 +221,13 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
   List<Widget> _buildStudentInfo(Map<String, dynamic> student) {
     return [
       Text(student['full_name'],
-          style: const TextStyle(
-              fontSize: 18, fontWeight: FontWeight.bold)),
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
       Text('ID: ${student['student_id'] ?? '-'}'),
       Text('الصف: ${student['class_name'] ?? '-'}'),
       Text('الهوية: ${student['national_id'] ?? '-'}'),
       Chip(
         label: Text(student['status']),
-        backgroundColor:
-            getStatusColor(student['status']).withOpacity(0.2),
+        backgroundColor: getStatusColor(student['status']).withOpacity(0.2),
         labelStyle: TextStyle(color: getStatusColor(student['status'])),
       ),
     ];

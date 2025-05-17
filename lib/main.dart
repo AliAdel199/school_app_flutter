@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:school_app_flutter/screens/classes_list_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'screens/add_student_screen.dart';
+import 'screens/add_student_screen_supabase.dart';
 import 'screens/addclassscreen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/edit_class_screen.dart';
@@ -43,7 +43,7 @@ class SchoolApp extends StatelessWidget {
         '/': (context) => const LoginScreen(),
         '/dashboard': (context) => const DashboardScreen(),
         '/students': (context) => const StudentsListScreen(),
-        '/add-student': (context) => const AddStudentScreen(),
+        '/add-student': (context) => const AddEditStudentScreen(),
         '/classes': (context) => const ClassesListScreen(),
         '/add-class': (context) => const AddClassScreen(),
         '/edit-class': (context) => EditClassScreen(

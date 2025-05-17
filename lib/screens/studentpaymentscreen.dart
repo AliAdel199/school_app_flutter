@@ -1,8 +1,7 @@
-
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
-import 'add_student_payment_screen.dart';
+import '../dialogs/payment_dialog_ui.dart';
 
 class StudentPaymentsScreen extends StatefulWidget {
   final Map<String, dynamic> student;
@@ -15,7 +14,8 @@ class StudentPaymentsScreen extends StatefulWidget {
 
 class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
   final supabase = Supabase.instance.client;
-  Map<String, List<Map<String, dynamic>>> paymentsByYear = {};
+  List<Map<String, dynamic>> payments = [];
+  Map<String, dynamic>? feeStatus;
   bool isLoading = true;
 
   @override
@@ -27,139 +27,117 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
   Future<void> fetchPayments() async {
     setState(() => isLoading = true);
     try {
-      final res = await supabase
-          .from('student_fee_status')
+      final paymentRes = await supabase
+          .from('student_payments')
           .select()
           .eq('student_id', widget.student['id'])
           .order('paid_at', ascending: false);
 
-      final all = List<Map<String, dynamic>>.from(res);
+      final feeRes = await supabase
+          .from('student_fee_status')
+          .select()
+          .eq('student_id', widget.student['id'])
+          .maybeSingle();
 
-      paymentsByYear.clear();
-      for (var p in all) {
-        final year = p['academic_year'] ?? 'غير محدد';
-        paymentsByYear.putIfAbsent(year, () => []).add(p);
-      }
+      payments = List<Map<String, dynamic>>.from(paymentRes);
+      feeStatus = feeRes;
     } catch (e) {
-      debugPrint('خطأ في جلب الدفعات: \n$e');
+      debugPrint('فشل في تحميل الدفعات: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('خطأ أثناء تحميل البيانات: $e')),
+      );
     } finally {
       setState(() => isLoading = false);
     }
   }
 
-  Widget buildInfoCard({required String label, required String value, required Color color}) {
-    return Expanded(
-      child: Card(
-        elevation: 3,
-        color: color.withOpacity(0.1),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-          child: Column(
-            children: [
-              Text(label, style: const TextStyle(fontSize: 14, color: Colors.black54)),
-              const SizedBox(height: 8),
-              Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final annualFee = widget.student['annual_fee'] ?? 0;
-    final allPayments = paymentsByYear.values.expand((e) => e).toList();
-    final totalPaid = allPayments.fold<num>(0, (sum, item) => sum + (item['paid_amount'] ?? 0));
-    final remaining = annualFee - totalPaid;
-
-    final isWide = MediaQuery.of(context).size.width > 700;
+    final formatter = NumberFormat('#,###');
+    final fee = feeStatus?['annual_fee'] ?? 0;
+    final paid = feeStatus?['paid_amount'] ?? 0;
+    final due = feeStatus?['due_amount'] ?? 0;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('دفعات ${widget.student['full_name']}'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => AddStudentFeeStatusScreen(
-                    student: widget.student,
-                    onSaved: fetchPayments,
-                  ),
-                ),
-              );
-            },
-          )
-        ],
+      appBar: AppBar(title: Text('دفعات الطالب: ${widget.student['full_name']}')),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          await showAddPaymentDialog(
+            context: context,
+            studentId: widget.student['id'],
+            academicYear: feeStatus?['academic_year'] ?? 'غير معروف',
+            onSuccess: fetchPayments,
+          );
+        },
+        child: const Icon(Icons.add),
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1100),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (isWide)
-                      Row(
+          : LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth > 700;
+                return Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
                         children: [
-                          buildInfoCard(label: 'القسط السنوي', value: '$annualFee د.ع', color: Colors.teal),
-                          const SizedBox(width: 12),
-                          buildInfoCard(label: 'المدفوع', value: '$totalPaid د.ع', color: Colors.green),
-                          const SizedBox(width: 12),
-                          buildInfoCard(
-                              label: 'المتبقي',
-                              value: '$remaining د.ع',
-                              color: remaining > 0 ? Colors.red : Colors.green),
-                        ],
-                      )
-                    else
-                      Column(
-                        children: [
-                          buildInfoCard(label: 'القسط السنوي', value: '$annualFee د.ع', color: Colors.teal),
-                          const SizedBox(height: 12),
-                          buildInfoCard(label: 'المدفوع', value: '$totalPaid د.ع', color: Colors.green),
-                          const SizedBox(height: 12),
-                          buildInfoCard(
-                              label: 'المتبقي',
-                              value: '$remaining د.ع',
-                              color: remaining > 0 ? Colors.red : Colors.green),
+                          _buildStatCard('القسط السنوي', '${formatter.format(fee)} د.ع', Colors.blue),
+                          _buildStatCard('المدفوع', '${formatter.format(paid)} د.ع', Colors.green),
+                          _buildStatCard('المتبقي', '${formatter.format(due)} د.ع', Colors.red),
                         ],
                       ),
-                    const SizedBox(height: 24),
-                    const Text('الدفعات حسب السنة الدراسية:',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 12),
-                    ...paymentsByYear.entries.map((entry) {
-                      final year = entry.key;
-                      final items = entry.value;
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 12),
-                          Text('السنة: $year',
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 8),
-                          ...items.map((p) => Card(
-                                child: ListTile(
-                                  leading: const Icon(Icons.monetization_on),
-                                  title: Text('${p['amount']} د.ع'),
-                                  subtitle: Text(
-                                      'بتاريخ ${p['paid_at']?.toString().split("T").first ?? '-'} ${p['notes'] ?? ''}'),
-                                ),
-                              )),
-                        ],
-                      );
-                    }),
-                  ],
-                ),
-              ),
+                      const SizedBox(height: 20),
+                      const Align(
+                        alignment: Alignment.centerRight,
+                        child: Text('سجل الدفعات', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      ),
+                      const SizedBox(height: 10),
+                      Expanded(
+                        child: payments.isEmpty
+                            ? const Center(child: Text('لا توجد دفعات مسجلة'))
+                            : ListView.separated(
+                                itemCount: payments.length,
+                                separatorBuilder: (_, __) => const Divider(),
+                                itemBuilder: (context, index) {
+                                  final p = payments[index];
+                                  return ListTile(
+                                    title: Text('${formatter.format(p['amount'])} د.ع'),
+                                    subtitle: Text('تاريخ: ${p['paid_at'].toString().split('T').first}'),
+                                    trailing: Text(p['receipt_number'] ?? 'بدون رقم'),
+                                  );
+                                },
+                              ),
+                      )
+                    ],
+                  ),
+                );
+              },
             ),
+    );
+  }
+
+  Widget _buildStatCard(String title, String value, Color color) {
+    return Container(
+      width: 200,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 6),
+          Text(value,
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color)),
+        ],
+      ),
     );
   }
 }
