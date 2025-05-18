@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:flutter_expandable_fab/flutter_expandable_fab.dart';
 import 'package:school_app_flutter/screens/edit_class_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -23,6 +24,7 @@ class _ClassesListScreenState extends State<ClassesListScreen> {
     fetchClasses();
   }
 
+  List<Map<String, dynamic>> grades = [];
 
 
   Future<void> fetchClasses() async {
@@ -35,13 +37,75 @@ class _ClassesListScreenState extends State<ClassesListScreen> {
 
       classes = List<Map<String, dynamic>>.from(response);
     } catch (e) {
-      debugPrint('خطأ في جلب الصفوف: \n$e');
+      debugPrint('خطأ في جلب الصفوف: \n\n$e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل تحميل الصفوف: \n$e')),
+        SnackBar(content: Text('فشل تحميل الصفوف: \n\n$e')),
       );
     } finally {
       setState(() => isLoading = false);
     }
+  }
+   Future<void> fetchGrades() async {
+    try {
+      final res = await supabase.from('grades').select().order('name');
+      setState(() {
+        grades = List<Map<String, dynamic>>.from(res);
+      });
+    } catch (e) {
+      debugPrint('خطأ في جلب المراحل: \n\n$e');
+    }
+  }
+
+Future<void> showAddGradeDialog() async {
+  final gradeController = TextEditingController();
+  final formKey = GlobalKey<FormState>();
+
+  await showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('إضافة مرحلة دراسية'),
+      content: Form(
+        key: formKey,
+        child: TextFormField(
+          controller: gradeController,
+          decoration: const InputDecoration(labelText: 'اسم المرحلة'),
+          validator: (val) => val == null || val.isEmpty ? 'مطلوب' : null,
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('إلغاء'),
+        ),
+        ElevatedButton(
+          onPressed: () async {
+            if (!formKey.currentState!.validate()) return;
+            final user = supabase.auth.currentUser;
+            final profile = await supabase
+                .from('profiles')
+                .select('school_id')
+                .eq('id', user!.id)
+                .single();
+            final schoolId = profile['school_id'];
+
+            await supabase.from('grades').insert({
+              'name': gradeController.text.trim(),
+              'school_id': schoolId,
+            });
+
+            Navigator.pop(context);
+            fetchGrades();
+          },
+          child: const Text('إضافة'),
+        ),
+      ],
+    ),
+  );
+}
+initialState() {
+    super.initState();
+    fetchClasses();
+    fetchGrades();
   }
 
   @override
@@ -151,18 +215,50 @@ class _ClassesListScreenState extends State<ClassesListScreen> {
                 ),
               ),
             ),
-            floatingActionButton: FloatingActionButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AddClassScreen(),
-                  ),
-                );
-                // إضافة صف جديد
-              },
-              child: const Icon(Icons.add),
-            ),
+            floatingActionButtonLocation: ExpandableFab.location,
+            floatingActionButton: ExpandableFab(
+              children: [
+            
+           
+              FloatingActionButton.extended( 
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AddClassScreen(),
+                    ),
+                  );
+                },
+                label: const Text('إضافة صف'),
+                icon: const Icon(Icons.add),
+              ),
+                    FloatingActionButton.extended(
+                onPressed: () {
+                  showAddGradeDialog();
+                },
+                label: const Text('إضافة مرحلة'),
+                icon: const Icon(Icons.add),
+              ),
+              // FloatingActionButton.extended(
+              //   onPressed: () {
+              //     // إضافة شاشة جديدة
+              //   },
+              //   label: const Text('إضافة مادة'),
+              //   icon: const Icon(Icons.add),
+              // ),
+            ]),
+            // FloatingActionButton(
+            //   onPressed: () {
+            //     Navigator.push(
+            //       context,
+            //       MaterialPageRoute(
+            //         builder: (context) => const AddClassScreen(),
+            //       ),
+            //     );
+            //     // إضافة صف جديد
+            //   },
+            //   child: const Icon(Icons.add),
+            // ),
     );
   }
   
@@ -196,9 +292,9 @@ Future<void> showDeleteClassDialog(BuildContext context, Map<String, dynamic> cl
                 const SnackBar(content: Text('تم حذف الصف بنجاح')),
               );
             } catch (e) {
-              debugPrint('Delete error: \n$e');
+              debugPrint('Delete error: \n\n$e');
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('فشل في حذف الصف: \n$e')),
+                SnackBar(content: Text('فشل في حذف الصف: \n\n$e')),
               );
             }
           },

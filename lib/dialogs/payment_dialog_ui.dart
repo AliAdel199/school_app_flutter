@@ -83,7 +83,7 @@ Future<void> showAddPaymentDialog({
                         Navigator.pop(context);
                         onSuccess();
                       } catch (e) {
-                        debugPrint('خطأ: $e');
+                        debugPrint('خطأ: \n$e');
                       } finally {
                         setState(() => isLoading = false);
                       }
@@ -152,7 +152,7 @@ Future<void> showWithdrawStudentDialog({
                         Navigator.pop(context);
                         onSuccess();
                       } catch (e) {
-                        debugPrint('خطأ: $e');
+                        debugPrint('خطأ: \n$e');
                       } finally {
                         setState(() => isLoading = false);
                       }
@@ -226,7 +226,7 @@ Future<void> showUpdateFeeDialog({
                         Navigator.pop(context);
                         onSuccess();
                       } catch (e) {
-                        debugPrint('خطأ: $e');
+                        debugPrint('خطأ: \n$e');
                       } finally {
                         setState(() => isLoading = false);
                       }

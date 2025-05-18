@@ -33,7 +33,7 @@ class _AddClassScreenState extends State<AddClassScreen> {
         grades = List<Map<String, dynamic>>.from(res);
       });
     } catch (e) {
-      debugPrint('خطأ في جلب المراحل: \n$e');
+      debugPrint('خطأ في جلب المراحل: \n\n$e');
     }
   }
 
@@ -53,14 +53,63 @@ class _AddClassScreenState extends State<AddClassScreen> {
       );
       Navigator.pop(context);
     } catch (e) {
-      debugPrint('خطأ في الإضافة: \n$e');
+      debugPrint('خطأ في الإضافة: \n\n$e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل في إضافة الصف: \n$e')),
+        SnackBar(content: Text('فشل في إضافة الصف: \n\n$e')),
       );
     } finally {
       setState(() => isLoading = false);
     }
   }
+
+Future<void> showAddGradeDialog() async {
+  final gradeController = TextEditingController();
+  final formKey = GlobalKey<FormState>();
+
+  await showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('إضافة مرحلة دراسية'),
+      content: Form(
+        key: formKey,
+        child: TextFormField(
+          controller: gradeController,
+          decoration: const InputDecoration(labelText: 'اسم المرحلة'),
+          validator: (val) => val == null || val.isEmpty ? 'مطلوب' : null,
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('إلغاء'),
+        ),
+        ElevatedButton(
+          onPressed: () async {
+            if (!formKey.currentState!.validate()) return;
+            final user = supabase.auth.currentUser;
+            final profile = await supabase
+                .from('profiles')
+                .select('school_id')
+                .eq('id', user!.id)
+                .single();
+            final schoolId = profile['school_id'];
+
+            await supabase.from('grades').insert({
+              'name': gradeController.text.trim(),
+              'school_id': schoolId,
+            });
+
+            Navigator.pop(context);
+            fetchGrades();
+          },
+          child: const Text('إضافة'),
+        ),
+      ],
+    ),
+  );
+}
+
+
 
   @override
   Widget build(BuildContext context) {

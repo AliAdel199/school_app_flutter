@@ -34,7 +34,7 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> {
         hasFeeStatus = res != null;
       });
     } catch (e) {
-      debugPrint('خطأ في التحقق من حالة القسط: $e');
+      debugPrint('خطأ في التحقق من حالة القسط: \n$e');
     } finally {
       setState(() => isLoading = false);
     }

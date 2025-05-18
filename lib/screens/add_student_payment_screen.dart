@@ -44,9 +44,9 @@ class _AddStudentPaymentScreenState extends State<AddStudentPaymentScreen> {
 
       Navigator.pop(context); // الرجوع بعد النجاح
     } catch (e) {
-      debugPrint('فشل إضافة الدفع: $e');
+      debugPrint('فشل إضافة الدفع: \n$e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('خطأ أثناء الإضافة: $e')),
+        SnackBar(content: Text('خطأ أثناء الإضافة: \n$e')),
       );
     } finally {
       setState(() => isLoading = false);

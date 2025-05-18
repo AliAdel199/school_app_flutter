@@ -42,9 +42,9 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
       payments = List<Map<String, dynamic>>.from(paymentRes);
       feeStatus = feeRes;
     } catch (e) {
-      debugPrint('فشل في تحميل الدفعات: $e');
+      debugPrint('فشل في تحميل الدفعات: \n$e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('خطأ أثناء تحميل البيانات: $e')),
+        SnackBar(content: Text('خطأ أثناء تحميل البيانات: \n$e')),
       );
     } finally {
       setState(() => isLoading = false);

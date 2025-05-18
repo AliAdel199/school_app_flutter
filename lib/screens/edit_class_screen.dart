@@ -50,7 +50,7 @@ setState(() {
         }
       });
     } catch (e) {
-      debugPrint('خطأ في جلب المراحل: \n$e');
+      debugPrint('خطأ في جلب المراحل: \n\n$e');
     }
   }
 
@@ -70,9 +70,9 @@ setState(() {
       );
       Navigator.pop(context);
     } catch (e) {
-      debugPrint('خطأ في التعديل: \n$e');
+      debugPrint('خطأ في التعديل: \n\n$e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل في تعديل الصف: \n$e')),
+        SnackBar(content: Text('فشل في تعديل الصف: \n\n$e')),
       );
     } finally {
       setState(() => isLoading = false);

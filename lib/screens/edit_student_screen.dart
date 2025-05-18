@@ -93,9 +93,9 @@ class _EditStudentScreenState extends State<EditStudentScreen> {
       );
       Navigator.pop(context);
     } catch (e) {
-      debugPrint('خطأ: \n$e');
+      debugPrint('خطأ: \n\n$e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل في التحديث: \n$e')),
+        SnackBar(content: Text('فشل في التحديث: \n\n$e')),
       );
     } finally {
       setState(() => isLoading = false);

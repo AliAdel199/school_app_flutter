@@ -32,9 +32,9 @@ Future<void> showDeleteStudentDialog(BuildContext context, Map<String, dynamic> 
                 const SnackBar(content: Text('تم حذف الطالب بنجاح')),
               );
             } catch (e) {
-              debugPrint('Delete error: \n$e');
+              debugPrint('Delete error: \n\n$e');
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('فشل في الحذف: \n$e')),
+                SnackBar(content: Text('فشل في الحذف: \n\n$e')),
               );
             }
           },

@@ -33,36 +33,45 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
 
   bool isLoading = false;
   List<Map<String, dynamic>> classOptions = [];
+  List<Map<String, dynamic>> classes = [];
+  
 
-Future<void> fetchClasses() async {
-  try {
-    final user = Supabase.instance.client.auth.currentUser;
-    final profile = await Supabase.instance.client
-        .from('profiles')
-        .select('school_id')
-        .eq('id', user!.id)
-        .single();
-
-    final schoolId = profile['school_id'];
-
-    final response = await Supabase.instance.client
-        .from('classes')
-        .select('id, name')
-        .eq('school_id', schoolId)
-        .order('name');
-
+  Future<void> fetchClasses() async {
+    final result = await supabase.from('classes').select('id, name');
     setState(() {
-      classOptions = List<Map<String, dynamic>>.from(response);
+      classes = List<Map<String, dynamic>>.from(result);
     });
-  } catch (e) {
-    debugPrint('Error fetching classes: $e');
   }
-}
+// Future<void> fetchClasses() async {
+//   try {
+//     final user = Supabase.instance.client.auth.currentUser;
+//     final profile = await Supabase.instance.client
+//         .from('profiles')
+//         .select('school_id')
+//         .eq('id', user!.id)
+//         .single();
+
+//     final schoolId = profile['school_id'];
+
+//     final response = await Supabase.instance.client
+//         .from('classes')
+//         .select('id, name')
+//         .eq('school_id', schoolId)
+//         .order('name');
+
+//     setState(() {
+//       classOptions = List<Map<String, dynamic>>.from(response);
+//     });
+//   } catch (e) {
+//     debugPrint('Error fetching classes: \n$e');
+//   }
+// }
 
 
   @override
   void initState() {
     super.initState();
+    fetchClasses();
     if (widget.student != null) {
       final s = widget.student!;
       fullNameController.text = s['full_name'] ?? '';
@@ -115,9 +124,9 @@ Future<void> fetchClasses() async {
       }
       Navigator.pop(context);
     } catch (e) {
-      debugPrint('Error: $e');
+      debugPrint('Error: \n$e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('خطأ أثناء الحفظ: $e')),
+        SnackBar(content: Text('خطأ أثناء الحفظ: \n$e')),
       );
     } finally {
       setState(() => isLoading = false);
@@ -219,9 +228,9 @@ Future<void> fetchClasses() async {
                             onChanged: (val) => setState(() => gender = val!),
                           )),
                                   buildInputField(DropdownButtonFormField<String>(
-                            value: status,
-                            decoration: const InputDecoration(labelText: 'الحالة'),
-                            items: classOptions
+                            value: selectedClassId,
+                            decoration: const InputDecoration(labelText: 'الصف'),
+                            items: classes
                                 .map((c) => DropdownMenuItem<String>(
                                       value: c['id'].toString(),
                                       child: Text(c['name'] ?? ''),

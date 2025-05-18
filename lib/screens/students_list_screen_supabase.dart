@@ -45,12 +45,17 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
       students = List<Map<String, dynamic>>.from(res);
       filterStudents();
     } catch (e) {
-      debugPrint('خطأ في جلب الطلاب: \n$e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل تحميل الطلاب: \n$e')),
-      );
+      debugPrint('خطأ في جلب الطلاب: \n\n$e');
+  if (mounted) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text('فشل تحميل الطلاب: \n\n$e')),
+  );
+}
+
     } finally {
-      setState(() => isLoading = false);
+if(mounted){
+        setState(() => isLoading = false);
+}
     }
   }
 

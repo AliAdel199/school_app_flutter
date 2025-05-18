@@ -9,6 +9,7 @@ import 'screens/edit_class_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/studentpaymentscreen.dart';
 import 'screens/students_list_screen_supabase.dart';
+import 'screens/subjectslistscreen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,6 +50,7 @@ class SchoolApp extends StatelessWidget {
         '/edit-class': (context) => EditClassScreen(
           classData: ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>,
         ),
+        '/subjects': (context) => const SubjectsListScreen(),
         '/studentpayments': (context) => StudentPaymentsScreen(
           student: ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>,
         ),
