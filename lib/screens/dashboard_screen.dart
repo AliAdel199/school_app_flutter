@@ -16,6 +16,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String subscriptionAlert = '';
   bool isLoading = true;
 
+
+
   @override
   void initState() {
     super.initState();
@@ -65,11 +67,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         studentCount = studentRes.length;
       });
     } catch (e) {
-      debugPrint('Error fetching dashboard stats: \n\n$e');
+      debugPrint('Error fetching dashboard stats: \n$e');
     } finally {
       setState(() => isLoading = false);
     }
   }
+  
 
   @override
   Widget build(BuildContext context) {

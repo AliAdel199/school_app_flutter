@@ -25,17 +25,42 @@ class _AddClassScreenState extends State<AddClassScreen> {
     super.initState();
     fetchGrades();
   }
-
   Future<void> fetchGrades() async {
-    try {
-      final res = await supabase.from('grades').select().order('name');
-      setState(() {
-        grades = List<Map<String, dynamic>>.from(res);
-      });
-    } catch (e) {
-      debugPrint('خطأ في جلب المراحل: \n\n$e');
-    }
+  try {
+    final user = supabase.auth.currentUser;
+
+    final profile = await supabase
+        .from('profiles')
+        .select('school_id')
+        .eq('id', user!.id)
+        .single();
+
+    final schoolId = profile['school_id'];
+
+    final res = await supabase
+        .from('grades')
+        .select()
+        .eq('school_id', schoolId)
+        .order('name');
+
+    setState(() {
+      grades = List<Map<String, dynamic>>.from(res);
+    });
+  } catch (e) {
+    debugPrint('خطأ في جلب المراحل: \n\n$e');
   }
+}
+
+  // Future<void> fetchGrades() async {
+  //   try {
+  //     final res = await supabase.from('grades').select().order('name');
+  //     setState(() {
+  //       grades = List<Map<String, dynamic>>.from(res);
+  //     });
+  //   } catch (e) {
+  //     debugPrint('خطأ في جلب المراحل: \n\n$e');
+  //   }
+  // }
 
   Future<void> submit() async {
     if (!_formKey.currentState!.validate()) return;

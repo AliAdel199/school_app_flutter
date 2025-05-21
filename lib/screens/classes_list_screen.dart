@@ -45,16 +45,43 @@ class _ClassesListScreenState extends State<ClassesListScreen> {
       setState(() => isLoading = false);
     }
   }
-   Future<void> fetchGrades() async {
-    try {
-      final res = await supabase.from('grades').select().order('name');
-      setState(() {
-        grades = List<Map<String, dynamic>>.from(res);
-      });
-    } catch (e) {
-      debugPrint('خطأ في جلب المراحل: \n\n$e');
-    }
+  //  Future<void> fetchGrades() async {
+  //   try {
+  //     final res = await supabase.from('grades').select().order('name');
+  //     setState(() {
+  //       grades = List<Map<String, dynamic>>.from(res);
+  //     });
+  //   } catch (e) {
+  //     debugPrint('خطأ في جلب المراحل: \n\n$e');
+  //   }
+  // }
+
+  Future<void> fetchGrades() async {
+  try {
+    final user = supabase.auth.currentUser;
+
+    final profile = await supabase
+        .from('profiles')
+        .select('school_id')
+        .eq('id', user!.id)
+        .single();
+
+    final schoolId = profile['school_id'];
+
+    final res = await supabase
+        .from('grades')
+        .select()
+        .eq('school_id', schoolId)
+        .order('name');
+
+    setState(() {
+      grades = List<Map<String, dynamic>>.from(res);
+    });
+  } catch (e) {
+    debugPrint('خطأ في جلب المراحل: \n\n$e');
   }
+}
+
 
 Future<void> showAddGradeDialog() async {
   final gradeController = TextEditingController();
@@ -217,28 +244,52 @@ initialState() {
             ),
             floatingActionButtonLocation: ExpandableFab.location,
             floatingActionButton: ExpandableFab(
+                type: ExpandableFabType.up,
+  pos: ExpandableFabPos.center,
+  fanAngle: 180,
               children: [
             
-           
-              FloatingActionButton.extended( 
-                onPressed: () {
-                  Navigator.push(
+                 FloatingActionButton.extended(
+        heroTag: null,
+        label: const Text('إضافة صف'),
+        icon: const Icon(Icons.edit),
+        onPressed: () {
+            Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => const AddClassScreen(),
                     ),
                   );
-                },
-                label: const Text('إضافة صف'),
-                icon: const Icon(Icons.add),
-              ),
-                    FloatingActionButton.extended(
-                onPressed: () {
-                  showAddGradeDialog();
-                },
-                label: const Text('إضافة مرحلة'),
-                icon: const Icon(Icons.add),
-              ),
+        },
+      ),
+                     FloatingActionButton.extended(
+        heroTag: null,
+        label: const Text('إضافة مرحلة'),
+        icon: const Icon(Icons.edit),
+        onPressed: () {
+          showAddGradeDialog();
+        },
+      ),
+              // FloatingActionButton.extended( 
+              //   onPressed: () {
+              //     Navigator.push(
+              //       context,
+              //       MaterialPageRoute(
+              //         builder: (context) => const AddClassScreen(),
+              //       ),
+              //     );
+              //   },
+              //   label: const Text('إضافة صف'),
+              //   icon: const Icon(Icons.add),
+              // ),
+              //       FloatingActionButton.extended(
+              //   onPressed: () {
+              //     showAddGradeDialog();
+              //   },
+              //   label: const Text('إضافة مرحلة'),
+              //   icon: const Icon(Icons.add),
+              // ),
+           
               // FloatingActionButton.extended(
               //   onPressed: () {
               //     // إضافة شاشة جديدة

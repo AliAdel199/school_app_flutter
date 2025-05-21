@@ -1,4 +1,8 @@
+import 'dart:typed_data';
+
+import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
+import 'package:printing/printing.dart';
 import 'package:school_app_flutter/screens/add_student_screen_supabase.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'edit_student_screen.dart';
@@ -24,52 +28,131 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
     super.initState();
     fetchStudents();
   }
+List<Map<String, dynamic>> classOptions = [];
 
-  Future<void> fetchStudents() async {
-    setState(() => isLoading = true);
-    try {
-      final profile = await supabase
-          .from('profiles')
-          .select('school_id')
-          .eq('id', supabase.auth.currentUser!.id)
-          .single();
 
-      final schoolId = profile['school_id'];
+String? selectedClassId;
+String? selectedStatus;
 
-      final res = await supabase
-          .from('students')
-          .select()
-          .eq('school_id', schoolId)
-          .order('full_name', ascending: true);
+void filterStudents() {
+  setState(() {
+    final query = searchQuery.toLowerCase();
 
-      students = List<Map<String, dynamic>>.from(res);
-      filterStudents();
-    } catch (e) {
-      debugPrint('خطأ في جلب الطلاب: \n\n$e');
-  if (mounted) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text('فشل تحميل الطلاب: \n\n$e')),
-  );
+    filteredStudents = students.where((student) {
+      final fullName = student['full_name']?.toString().toLowerCase() ?? '';
+      final studentId = student['student_id']?.toString().toLowerCase() ?? '';
+      final nationalId = student['national_id']?.toString().toLowerCase() ?? '';
+      final className = student['classes']?['name']?.toString();
+      final status = student['status']?.toString();
+
+      final matchesQuery = fullName.contains(query) ||
+          studentId.contains(query) ||
+          nationalId.contains(query);
+
+      final matchesClass = selectedClassId == null || selectedClassId == className;
+      final matchesStatus = selectedStatus == null || selectedStatus == status;
+
+      return matchesQuery && matchesClass && matchesStatus;
+    }).toList();
+  });
 }
 
-    } finally {
-if(mounted){
-        setState(() => isLoading = false);
+
+Future<void> exportToExcel() async {
+  final excel = Excel.createExcel();
+  final sheet = excel['الطلاب'];
+sheet.appendRow([
+  TextCellValue('الاسم الكامل'),
+  TextCellValue('الرقم الوطني'),
+  TextCellValue('رقم الطالب'),
+  TextCellValue('الجنس'),
+  TextCellValue('تاريخ الميلاد'),
+  TextCellValue('اسم ولي الأمر'),
+  TextCellValue('هاتف ولي الأمر'),
+  TextCellValue('الهاتف'),
+  TextCellValue('البريد الإلكتروني'),
+  TextCellValue('العنوان'),
+  TextCellValue('الصف'),
+  TextCellValue('الحالة'),
+  TextCellValue('سنة التسجيل'),
+  TextCellValue('الرسوم السنوية'),
+  TextCellValue('تاريخ الإنشاء'),
+]);
+
+for (final student in filteredStudents) {
+  sheet.appendRow([
+    TextCellValue(student['full_name'] ?? ''),
+    TextCellValue(student['national_id'] ?? ''),
+    TextCellValue(student['student_id'] ?? ''),
+    TextCellValue(student['gender'] ?? ''),
+    TextCellValue(student['birth_date']?.toString().split('T').first ?? ''),
+    TextCellValue(student['parent_name'] ?? ''),
+    TextCellValue(student['parent_phone'] ?? ''),
+    TextCellValue(student['phone'] ?? ''),
+    TextCellValue(student['email'] ?? ''),
+    TextCellValue(student['address'] ?? ''),
+    TextCellValue(student['classes']?['name'] ?? ''),
+    TextCellValue(student['status'] ?? ''),
+    TextCellValue(student['registration_year'] ?? ''),
+    TextCellValue(student['annual_fee']?.toString() ?? ''),
+    TextCellValue(student['created_at']?.toString().split('T').first ?? ''),
+  ]);
 }
+
+
+  
+
+  final fileBytes = excel.encode();
+  if (fileBytes != null) {
+    await Printing.sharePdf(
+      bytes: Uint8List.fromList(fileBytes),
+      filename: 'students_list.xlsx',
+    );
+  }
+}
+
+
+
+Future<void> fetchStudents() async {
+  setState(() => isLoading = true);
+  try {
+    final classRes = await supabase
+    .from('classes')
+    .select('id, name');
+
+classOptions = List<Map<String, dynamic>>.from(classRes);
+
+    // جلب school_id من ملف التعريف للمستخدم الحالي
+    final profile = await supabase
+        .from('profiles')
+        .select('school_id')
+        .eq('id', supabase.auth.currentUser!.id)
+        .single();
+
+    final schoolId = profile['school_id'];
+
+    // جلب الطلاب المرتبطين فقط بهذه المدرسة
+ final res = await supabase
+    .from('students')
+    .select('*, classes(name)')
+    .eq('school_id', schoolId)
+    .order('full_name', ascending: true);
+
+    students = List<Map<String, dynamic>>.from(res);
+    filterStudents(); // لتطبيق البحث إذا كان هناك استعلام
+  } catch (e) {
+    debugPrint('خطأ في جلب الطلاب: \n\n$e');
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('فشل تحميل الطلاب: \n\n$e')),
+      );
+    }
+  } finally {
+    if (mounted) {
+      setState(() => isLoading = false);
     }
   }
-
-  void filterStudents() {
-    setState(() {
-      filteredStudents = students
-          .where((student) =>
-              student['full_name']
-                  .toString()
-                  .toLowerCase()
-                  .contains(searchQuery.toLowerCase()))
-          .toList();
-    });
-  }
+}
 
   Color getStatusColor(String status) {
     switch (status) {
@@ -99,30 +182,122 @@ if(mounted){
             },
             icon: const Icon(Icons.add),
             tooltip: 'إضافة طالب',
-          )
+          ),
+ 
+
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(60),
           child: Padding(
             padding: const EdgeInsets.all(12),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'ابحث عن طالب بالاسم...',
-                filled: true,
-                fillColor: Colors.white,
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12)),
-              ),
-              onChanged: (val) {
-                searchQuery = val;
+            child:
+              Wrap(alignment: WrapAlignment.spaceAround,runAlignment: WrapAlignment.spaceAround,
+    spacing: 12,
+    runSpacing: 12,
+    children: [
+               Padding(
+                 padding: const EdgeInsets.only(top: 8.0),
+                 child: Expanded(flex: 2,
+                   child: SizedBox(width: 200,
+                     child: ElevatedButton.icon(
+                       onPressed: exportToExcel,
+                       icon: const Icon(Icons.file_download),
+                       label: const Text('تصدير Excel'),
+                     ),
+                   ),
+                 ),
+               ),
+      SizedBox(width: 250,
+        child: Card(elevation: 2,
+          child: DropdownButton<String>(elevation: 5,isExpanded: true,borderRadius: BorderRadius.circular(12),underline: const SizedBox(),
+            hint: const Text('تصفية حسب الصف'),
+            value: selectedClassId,
+            onChanged: (val) {
+              setState(() {
+                selectedClassId = val;
                 filterStudents();
-              },
-            ),
+              });
+            },
+            items: [
+    const DropdownMenuItem(
+      value: null,
+      child: Text('إظهار الجميع'),
+    ),
+    ...classOptions.map((c) {
+      return DropdownMenuItem(
+        value: c['name'].toString(),
+        child: Text(c['name'] ?? '_'),
+      );
+    }).toList(),
+  ],
           ),
         ),
       ),
-      body: isLoading
+        Padding(
+           padding: const EdgeInsets.only(top: 7.0),
+           child: SizedBox(width: 400,
+                    child: TextField(
+                      decoration: InputDecoration(
+                        hintText: 'ابحث عن طالب بالاسم...',
+                        filled: true,
+                        fillColor: Colors.white,
+                        prefixIcon: const Icon(Icons.search),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onChanged: (val) {
+                        searchQuery = val;
+                        filterStudents();
+                      },
+                    ),
+                  ),
+         ),
+      SizedBox(width: 250,
+        child:  Card(elevation: 2,
+          child: DropdownButton<String>(elevation: 5,isExpanded: true,borderRadius: BorderRadius.circular(12),underline: const SizedBox(),
+            hint: const Text('تصفية حسب الحالة'),
+            value: selectedStatus,
+            onChanged: (val) {
+              setState(() {
+                selectedStatus = val;
+                filterStudents();
+              });
+            },
+            items: const [
+                DropdownMenuItem(
+      value: null,
+      child: Text('إظهار الجميع'),
+    ),
+              DropdownMenuItem(value: 'active', child: Text('فعال')),
+              DropdownMenuItem(value: 'inactive', child: Text('غير فعال')),
+              DropdownMenuItem(value: 'graduated', child: Text('متخرج')),
+              DropdownMenuItem(value: 'transferred', child: Text('منقول')),
+            ],
+          ),
+        ),
+      ),
+       
+              
+    ],
+  ),
+
+         
+          ),
+        ),
+      ),
+      body:
+      
+  Column(children: [
+//     Expanded(flex: 1,
+//       child: Padding(
+//   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+//   child: 
+  
+
+// ),
+// ),
+    Expanded(flex: 9,
+      child:  isLoading
           ? const Center(child: CircularProgressIndicator())
           : LayoutBuilder(
               builder: (context, constraints) {
@@ -219,7 +394,8 @@ if(mounted){
                   ),
                 );
               },
-            ),
+            ),)
+  ],)
     );
   }
 
@@ -228,7 +404,7 @@ if(mounted){
       Text(student['full_name'],
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
       Text('ID: ${student['student_id'] ?? '-'}'),
-      Text('الصف: ${student['class_name'] ?? '-'}'),
+      Text('الصف: ${student['classes']?['name'] ?? '-'}'),
       Text('الهوية: ${student['national_id'] ?? '-'}'),
       Chip(
         label: Text(student['status']),
