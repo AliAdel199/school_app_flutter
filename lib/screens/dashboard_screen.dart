@@ -112,6 +112,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       {'label': 'إضافة طالب', 'icon': Icons.person_add, 'route': '/add-student'},
       {'label': 'المواد', 'icon': Icons.book, 'route': '/subjects'},
       {'label': 'المراحل', 'icon': Icons.score, 'route': '/classes'},
+      {'label': 'إضافة مرحلة', 'icon': Icons.add, 'route': '/add-class'},
+      {'label': 'التقارير المالية', 'icon': Icons.monetization_on, 'route': '/financial-reports'},
       // {'label': 'المدفوعات', 'icon': Icons.score, 'route': '/studentpayments'},
    
 

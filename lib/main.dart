@@ -6,6 +6,7 @@ import 'screens/add_student_screen_supabase.dart';
 import 'screens/addclassscreen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/edit_class_screen.dart';
+import 'screens/financialreportsscreen.dart';
 import 'screens/login_screen.dart';
 import 'screens/studentpaymentscreen.dart';
 import 'screens/students_list_screen_supabase.dart';
@@ -54,6 +55,7 @@ class SchoolApp extends StatelessWidget {
         '/studentpayments': (context) => StudentPaymentsScreen(
           student: ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>,
         ),
+        '/financial-reports': (context) => const FinancialReportsScreen(),
       },
     );
   }
