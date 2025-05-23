@@ -18,7 +18,7 @@ Future<void> showAddPaymentDialog({
 
   await showDialog(
     context: context,
-    builder: (ctx) {
+    builder: (ctx) { 
       return StatefulBuilder(builder: (context, setState) {
         return AlertDialog(
           title: const Text('إضافة دفعة جديدة'),
