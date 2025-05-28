@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -15,8 +14,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int classCount = 0;
   String subscriptionAlert = '';
   bool isLoading = true;
-
-
 
   @override
   void initState() {
@@ -42,7 +39,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       final classRes = await supabase
           .from('classes')
-          .select('id');
+          .select('id')
+          .eq('school_id', schoolId);
 
       final subscriptionRes = await supabase
           .from('schools')
@@ -65,6 +63,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       setState(() {
         studentCount = studentRes.length;
+        classCount = classRes.length;
       });
     } catch (e) {
       debugPrint('Error fetching dashboard stats: \n$e');
@@ -72,7 +71,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       setState(() => isLoading = false);
     }
   }
-  
 
   @override
   Widget build(BuildContext context) {
@@ -114,10 +112,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       {'label': 'المراحل', 'icon': Icons.score, 'route': '/classes'},
       {'label': 'إضافة مرحلة', 'icon': Icons.add, 'route': '/add-class'},
       {'label': 'التقارير المالية', 'icon': Icons.monetization_on, 'route': '/financial-reports'},
-      // {'label': 'المدفوعات', 'icon': Icons.score, 'route': '/studentpayments'},
-   
-
-      
+      {'label': 'التقارير العامة', 'icon': Icons.bar_chart, 'route': '/reportsscreen'},
     ];
 
     return GridView.builder(

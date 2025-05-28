@@ -1,6 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:school_app_flutter/screens/classes_list_screen.dart';
+import 'package:school_app_flutter/screens/reportsscreen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'screens/add_student_screen_supabase.dart';
 import 'screens/addclassscreen.dart';
@@ -56,6 +57,7 @@ class SchoolApp extends StatelessWidget {
           student: ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>,
         ),
         '/financial-reports': (context) => const FinancialReportsScreen(),
+        '/reportsscreen': (context) => const ReportsScreen(),
       },
     );
   }
