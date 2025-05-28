@@ -54,6 +54,159 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
     }
   }
 
+  Future<void> printAllStudentPaymentsReport({
+    required String studentName,
+    required String studentId,
+    required String className,
+    required String academicYear,
+    required double annualFee,
+    required double totalPaid,
+    required double remaining,
+    required List<Map<String, dynamic>> payments,
+  }) async {
+    final arabicFont = await PdfGoogleFonts.cairoRegular();
+    final boldFont = await PdfGoogleFonts.cairoBold();
+
+    final pdf = pw.Document();
+
+    // Sort payments by date ascending (oldest to newest)
+    final sortedPayments = List<Map<String, dynamic>>.from(payments)
+      ..sort((a, b) {
+        final aDate = DateTime.tryParse(a['paid_at'].toString()) ?? DateTime(1970);
+        final bDate = DateTime.tryParse(b['paid_at'].toString()) ?? DateTime(1970);
+        return aDate.compareTo(bDate);
+      });
+
+    pdf.addPage(
+      pw.Page(
+        theme: pw.ThemeData.withFont(
+          base: arabicFont,
+          bold: boldFont,
+        ),
+        pageFormat: PdfPageFormat.a4,
+        build: (context) => pw.Directionality(
+          textDirection: pw.TextDirection.rtl,
+          child: pw.Container(
+            padding: const pw.EdgeInsets.all(24),
+            decoration: pw.BoxDecoration(
+              border: pw.Border.all(color: PdfColors.grey, width: 1.5),
+              borderRadius: pw.BorderRadius.circular(16),
+            ),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+              children: [
+                pw.Center(
+                  child: pw.Text(
+                    'تقرير مدفوعات الطالب',
+                    style: pw.TextStyle(
+                      fontSize: 24,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.blue800,
+                    ),
+                  ),
+                ),
+                pw.SizedBox(height: 18),
+                pw.Divider(thickness: 1.2, color: PdfColors.blueGrey400),
+                pw.SizedBox(height: 12),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text('اسم الطالب:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    pw.Text(studentName),
+                  ],
+                ),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text('رقم الطالب:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    pw.Text(studentId),
+                  ],
+                ),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text('الصف:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    pw.Text(className),
+                  ],
+                ),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text('السنة الدراسية:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    pw.Text(academicYear),
+                  ],
+                ),
+                pw.SizedBox(height: 18),
+                pw.Container(
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.grey200,
+                    borderRadius: pw.BorderRadius.circular(8),
+                  ),
+                  padding: const pw.EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                  child: pw.Column(
+                    children: [
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text('القسط السنوي:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                          pw.Text('${annualFee.toStringAsFixed(0)} د.ع'),
+                        ],
+                      ),
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text('إجمالي المدفوع:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                          pw.Text('${totalPaid.toStringAsFixed(0)} د.ع'),
+                        ],
+                      ),
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text('المتبقي:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.red800)),
+                          pw.Text('${remaining.toStringAsFixed(0)} د.ع', style: pw.TextStyle(color: PdfColors.red800)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                pw.SizedBox(height: 20),
+                pw.Text('سجل الدفعات:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 16)),
+                pw.SizedBox(height: 12),
+                pw.Table.fromTextArray(
+                  headers: ['#', 'التاريخ', 'المبلغ', 'رقم الوصل', 'ملاحظات'],
+                  data: List.generate(sortedPayments.length, (index) {
+                    final p = sortedPayments[index];
+                    return [
+                      '${index + 1}',
+                      p['paid_at']?.toString().split('T').first ?? '',
+                      '${p['amount'].toString()} د.ع',
+                      p['receipt_number'] ?? '-',
+                      p['notes'] ?? '',
+                    ];
+                  }),
+                  border: pw.TableBorder.all(),
+                  headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                  cellAlignment: pw.Alignment.centerLeft,
+                  cellPadding: const pw.EdgeInsets.all(6),
+                ),
+                pw.Spacer(),
+                pw.Divider(thickness: 1, color: PdfColors.grey400),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.end,
+                  children: [
+                    pw.Text('توقيع الإدارة', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    pw.SizedBox(width: 40),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await Printing.layoutPdf(onLayout: (format) => pdf.save());
+  }
 
 Future<void> printSinglePaymentReceipt({
   required String studentName,
@@ -245,9 +398,29 @@ Future<void> printSinglePaymentReceipt({
                         ],
                       ),
                       const SizedBox(height: 20),
-                      const Align(
-                        alignment: Alignment.centerRight,
-                        child: Text('سجل الدفعات', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      Row(crossAxisAlignment: CrossAxisAlignment.start,mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                      
+                               IconButton(
+                                            icon: const Icon(Icons.print, color: Colors.blue),
+                                            onPressed: () async {
+                                              await printAllStudentPaymentsReport(
+                                                studentName: widget.student['full_name'],
+                                                studentId: widget.student['id'],
+                                                className: widget.student['class_name'] ?? 'غير معروف',
+                                                academicYear: feeStatus?['academic_year'] ?? 'غير معروف',
+                                                annualFee: fee.toDouble(),
+                                                totalPaid: paid.toDouble(),
+                                                remaining: due.toDouble(),
+                                                payments: payments,
+                                              );
+                                            },
+                                          ),
+                                              const Align(
+                            alignment: Alignment.centerRight,
+                            child: Text('سجل الدفعات', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 10),
                       Expanded(
@@ -283,6 +456,7 @@ Text('تاريخ: ${p['paid_at'].toString().split('T').first}'),
                                               );
                                             },
                                           ),
+                                     
                                       ],
                                   
                                     ),
