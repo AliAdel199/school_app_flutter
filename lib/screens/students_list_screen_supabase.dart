@@ -40,7 +40,7 @@ void filterStudents() {
 
     filteredStudents = students.where((student) {
       final fullName = student['full_name']?.toString().toLowerCase() ?? '';
-      final studentId = student['student_id']?.toString().toLowerCase() ?? '';
+      final studentId = student['id']?.toString().toLowerCase() ?? '';
       final nationalId = student['national_id']?.toString().toLowerCase() ?? '';
       final className = student['classes']?['name']?.toString();
       final status = student['status']?.toString();
@@ -83,7 +83,7 @@ for (final student in filteredStudents) {
   sheet.appendRow([
     TextCellValue(student['full_name'] ?? ''),
     TextCellValue(student['national_id'] ?? ''),
-    TextCellValue(student['student_id'] ?? ''),
+    TextCellValue(student['id'] ?? ''),
     TextCellValue(student['gender'] ?? ''),
     TextCellValue(student['birth_date']?.toString().split('T').first ?? ''),
     TextCellValue(student['parent_name'] ?? ''),
@@ -141,7 +141,7 @@ classOptions = List<Map<String, dynamic>>.from(classRes);
     students = List<Map<String, dynamic>>.from(res);
     filterStudents(); // لتطبيق البحث إذا كان هناك استعلام
   } catch (e) {
-    debugPrint('خطأ في جلب الطلاب: \n\n$e');
+    debugPrint('خطأ في جلب الطلاب: \n$e');
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('فشل تحميل الطلاب: \n\n$e')),
@@ -186,7 +186,116 @@ classOptions = List<Map<String, dynamic>>.from(classRes);
  
 
         ],
-        bottom: PreferredSize(
+  //       bottom: PreferredSize(
+  //         preferredSize: const Size.fromHeight(60),
+  //         child: Padding(
+  //           padding: const EdgeInsets.all(12),
+  //           child:
+  //             Wrap(alignment: WrapAlignment.spaceAround,runAlignment: WrapAlignment.spaceAround,
+  //   spacing: 12,
+  //   runSpacing: 12,
+  //   children: [
+  //              Padding(
+  //                padding: const EdgeInsets.only(top: 8.0),
+  //                child: SizedBox(
+  //                  width: 200,
+  //                  child: ElevatedButton.icon(
+  //                    onPressed: exportToExcel,
+  //                    icon: const Icon(Icons.file_download),
+  //                    label: const Text('تصدير Excel'),
+  //                  ),
+  //                ),
+  //              ),
+  //     SizedBox(width: 250,
+  //       child: Card(elevation: 2,
+  //         child: DropdownButton<String>(elevation: 5,isExpanded: true,borderRadius: BorderRadius.circular(12),underline: const SizedBox(),
+  //           hint: const Text('تصفية حسب الصف'),
+  //           value: selectedClassId,
+  //           onChanged: (val) {
+  //             setState(() {
+  //               selectedClassId = val;
+  //               filterStudents();
+  //             });
+  //           },
+  //           items: [
+  //   const DropdownMenuItem(
+  //     value: null,
+  //     child: Text('إظهار الجميع'),
+  //   ),
+  //   ...classOptions.map((c) {
+  //     return DropdownMenuItem(
+  //       value: c['name'].toString(),
+  //       child: Text(c['name'] ?? '_'),
+  //     );
+  //   }).toList(),
+  // ],
+  //         ),
+  //       ),
+  //     ),
+  //       Padding(
+  //          padding: const EdgeInsets.only(top: 7.0),
+  //          child: SizedBox(width: 400,
+  //                   child: TextField(
+  //                     decoration: InputDecoration(
+  //                       hintText: 'ابحث عن طالب بالاسم...',
+  //                       filled: true,
+  //                       fillColor: Colors.white,
+  //                       prefixIcon: const Icon(Icons.search),
+  //                       border: OutlineInputBorder(
+  //                           borderRadius: BorderRadius.circular(12)),
+  //                     ),
+  //                     onChanged: (val) {
+  //                       searchQuery = val;
+  //                       filterStudents();
+  //                     },
+  //                   ),
+  //                 ),
+  //        ),
+  //     SizedBox(width: 250,
+  //       child:  Card(elevation: 2,
+  //         child: DropdownButton<String>(elevation: 5,isExpanded: true,borderRadius: BorderRadius.circular(12),underline: const SizedBox(),
+  //           hint: const Text('تصفية حسب الحالة'),
+  //           value: selectedStatus,
+  //           onChanged: (val) {
+  //             setState(() {
+  //               selectedStatus = val;
+  //               filterStudents();
+  //             });
+  //           },
+  //           items: const [
+  //               DropdownMenuItem(
+  //     value: null,
+  //     child: Text('إظهار الجميع'),
+  //   ),
+  //             DropdownMenuItem(value: 'active', child: Text('فعال')),
+  //             DropdownMenuItem(value: 'inactive', child: Text('غير فعال')),
+  //             DropdownMenuItem(value: 'graduated', child: Text('متخرج')),
+  //             DropdownMenuItem(value: 'transferred', child: Text('منقول')),
+  //           ],
+  //         ),
+  //       ),
+  //     ),
+       
+              
+  //   ],
+  // ),
+
+         
+  //         ),
+  //       ),
+      ),
+      body:
+      
+  Column(children: [
+//     Expanded(flex: 1,
+//       child: Padding(
+//   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+//   child: 
+  
+
+// ),
+// ),
+ PreferredSize(
           preferredSize: const Size.fromHeight(60),
           child: Padding(
             padding: const EdgeInsets.all(12),
@@ -197,13 +306,12 @@ classOptions = List<Map<String, dynamic>>.from(classRes);
     children: [
                Padding(
                  padding: const EdgeInsets.only(top: 8.0),
-                 child: Expanded(flex: 2,
-                   child: SizedBox(width: 200,
-                     child: ElevatedButton.icon(
-                       onPressed: exportToExcel,
-                       icon: const Icon(Icons.file_download),
-                       label: const Text('تصدير Excel'),
-                     ),
+                 child: SizedBox(
+                   width: 200,
+                   child: ElevatedButton.icon(
+                     onPressed: exportToExcel,
+                     icon: const Icon(Icons.file_download),
+                     label: const Text('تصدير Excel'),
                    ),
                  ),
                ),
@@ -284,18 +392,6 @@ classOptions = List<Map<String, dynamic>>.from(classRes);
          
           ),
         ),
-      ),
-      body:
-      
-  Column(children: [
-//     Expanded(flex: 1,
-//       child: Padding(
-//   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-//   child: 
-  
-
-// ),
-// ),
     Expanded(flex: 9,
       child:  isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -401,15 +497,38 @@ classOptions = List<Map<String, dynamic>>.from(classRes);
 
   List<Widget> _buildStudentInfo(Map<String, dynamic> student) {
     return [
-      Text(student['full_name'],
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-      Text('ID: ${student['student_id'] ?? '-'}'),
-      Text('الصف: ${student['classes']?['name'] ?? '-'}'),
-      Text('الهوية: ${student['national_id'] ?? '-'}'),
-      Chip(
-        label: Text(student['status']),
-        backgroundColor: getStatusColor(student['status']).withOpacity(0.2),
-        labelStyle: TextStyle(color: getStatusColor(student['status'])),
+      // استخدم Flexible بدل Expanded أو فقط Text إذا لم تكن داخل Row
+      Flexible(
+        flex: 3,
+        child: Text(
+          student['full_name'],
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+      Flexible(
+        flex: 2,
+        child: Text(
+          'الصف: ${student['classes']?['name'] ?? '-'}',
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+      Flexible(
+        flex: 2,
+        child: Text(
+          'الهوية: ${student['national_id'] ?? '-'}',
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+      Flexible(
+        child: Align(
+          alignment: Alignment.centerRight,
+          child: Chip(
+            label: Text(student['status']),
+            backgroundColor: getStatusColor(student['status']).withOpacity(0.2),
+            labelStyle: TextStyle(color: getStatusColor(student['status'])),
+          ),
+        ),
       ),
     ];
   }

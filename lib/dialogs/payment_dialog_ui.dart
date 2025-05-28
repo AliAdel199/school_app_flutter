@@ -13,12 +13,13 @@ Future<void> showAddPaymentDialog({
   final amountController = TextEditingController();
   final notesController = TextEditingController();
   DateTime paidAt = DateTime.now();
+  DateTime? nextDueDate;
   final formKey = GlobalKey<FormState>();
   bool isLoading = false;
 
   await showDialog(
     context: context,
-    builder: (ctx) { 
+    builder: (ctx) {
       return StatefulBuilder(builder: (context, setState) {
         return AlertDialog(
           title: const Text('إضافة دفعة جديدة'),
@@ -56,6 +57,22 @@ Future<void> showAddPaymentDialog({
                   },
                   child: Text('تاريخ الدفع: ${DateFormat('yyyy-MM-dd').format(paidAt)}'),
                 ),
+                TextButton(
+                  onPressed: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now().add(const Duration(days: 30)),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2100),
+                    );
+                    if (picked != null) setState(() => nextDueDate = picked);
+                  },
+                  child: Text(
+                    nextDueDate == null
+                        ? 'اختيار تاريخ الدفعة القادمة'
+                        : 'تاريخ الدفعة القادمة: ${DateFormat('yyyy-MM-dd').format(nextDueDate!)}',
+                  ),
+                ),
               ],
             ),
           ),
@@ -80,147 +97,41 @@ Future<void> showAddPaymentDialog({
                           'receipt_number': receiptNumber,
                         });
 
-                        Navigator.pop(context);
-                        onSuccess();
-                      } catch (e) {
-                        debugPrint('خطأ: \n$e');
-                      } finally {
-                        setState(() => isLoading = false);
-                      }
-                    },
-              child: isLoading ? const CircularProgressIndicator() : const Text('إضافة'),
-            ),
-          ],
-        );
-      });
-    },
-  );
-}
-
-Future<void> showWithdrawStudentDialog({
-  required BuildContext context,
-  required String studentId,
-  required String academicYear,
-  required VoidCallback onSuccess,
-}) async {
-  final refundController = TextEditingController();
-  final formKey = GlobalKey<FormState>();
-  bool isLoading = false;
-
-  await showDialog(
-    context: context,
-    builder: (ctx) {
-      return StatefulBuilder(builder: (context, setState) {
-        return AlertDialog(
-          title: const Text('انسحاب الطالب'),
-          content: Form(
-            key: formKey,
-            child: TextFormField(
-              controller: refundController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'مبلغ الاسترجاع'),
-              validator: (val) {
-                if (val == null || double.tryParse(val) == null) {
-                  return 'أدخل مبلغًا صالحًا';
-                }
-                return null;
-              },
-            ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
-            ElevatedButton(
-              onPressed: isLoading
-                  ? null
-                  : () async {
-                      if (!formKey.currentState!.validate()) return;
-                      setState(() => isLoading = true);
-                      try {
-                        final refund = double.parse(refundController.text);
-                        final now = DateTime.now();
-
-                        await supabase.from('student_payments').insert({
-                          'student_id': studentId,
-                          'amount': -refund,
-                          'paid_at': now.toIso8601String(),
-                          'notes': 'استرجاع عند الانسحاب',
-                          'academic_year': academicYear,
-                        });
-
-                        await supabase.from('students').update({'status': 'منسحب'}).eq('id', studentId);
-
-                        Navigator.pop(context);
-                        onSuccess();
-                      } catch (e) {
-                        debugPrint('خطأ: \n$e');
-                      } finally {
-                        setState(() => isLoading = false);
-                      }
-                    },
-              child: isLoading ? const CircularProgressIndicator() : const Text('تنفيذ'),
-            ),
-          ],
-        );
-      });
-    },
-  );
-}
-
-Future<void> showUpdateFeeDialog({
-  required BuildContext context,
-  required String feeStatusId,
-  required double currentAnnualFee,
-  required VoidCallback onSuccess,
-}) async {
-  final feeController = TextEditingController(text: currentAnnualFee.toString());
-  final formKey = GlobalKey<FormState>();
-  bool isLoading = false;
-
-  await showDialog(
-    context: context,
-    builder: (ctx) {
-      return StatefulBuilder(builder: (context, setState) {
-        return AlertDialog(
-          title: const Text('تعديل القسط السنوي'),
-          content: Form(
-            key: formKey,
-            child: TextFormField(
-              controller: feeController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'القسط الجديد'),
-              validator: (val) {
-                if (val == null || double.tryParse(val) == null) {
-                  return 'أدخل رقمًا صالحًا';
-                }
-                return null;
-              },
-            ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
-            ElevatedButton(
-              onPressed: isLoading
-                  ? null
-                  : () async {
-                      if (!formKey.currentState!.validate()) return;
-                      setState(() => isLoading = true);
-                      try {
-                        final newFee = double.parse(feeController.text);
-
-                        final record = await supabase
+                        final feeStatus = await supabase
                             .from('student_fee_status')
                             .select()
-                            .eq('id', feeStatusId)
+                            .eq('student_id', studentId)
+                            .eq('academic_year', academicYear)
                             .maybeSingle();
 
-                        if (record != null) {
-                          final paid = record['paid_amount'] ?? 0;
-                          final due = newFee - paid;
+                        if (feeStatus != null) {
+                          final payments = await supabase
+                              .from('student_payments')
+                              .select('amount, paid_at')
+                              .eq('student_id', studentId)
+                              .eq('academic_year', academicYear);
+
+                          double totalPaid = 0;
+                          DateTime? lastDate;
+
+                          for (final p in payments) {
+                            totalPaid += (p['amount'] as num).toDouble();
+                            final paidAt = DateTime.tryParse(p['paid_at']);
+                            if (paidAt != null) {
+                              if (lastDate == null || paidAt.isAfter(lastDate)) {
+                                lastDate = paidAt;
+                              }
+                            }
+                          }
+
+                          final due = (feeStatus['annual_fee'] as num).toDouble() - totalPaid;
 
                           await supabase.from('student_fee_status').update({
-                            'annual_fee': newFee,
+                            'paid_amount': totalPaid,
                             'due_amount': due,
-                          }).eq('id', feeStatusId);
+                            'last_payment_date': lastDate?.toIso8601String(),
+                            'next_due_date': nextDueDate?.toIso8601String(),
+                          }).eq('id', feeStatus['id']);
                         }
 
                         Navigator.pop(context);
@@ -231,7 +142,7 @@ Future<void> showUpdateFeeDialog({
                         setState(() => isLoading = false);
                       }
                     },
-              child: isLoading ? const CircularProgressIndicator() : const Text('تعديل'),
+              child: isLoading ? const CircularProgressIndicator() : const Text('إضافة'),
             ),
           ],
         );
