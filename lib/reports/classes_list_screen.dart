@@ -1,7 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_expandable_fab/flutter_expandable_fab.dart';
-import 'package:school_app_flutter/screens/edit_class_screen.dart';
+import 'package:school_app_flutter/reports/edit_class_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'addclassscreen.dart';

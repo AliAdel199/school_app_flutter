@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
-import 'package:school_app_flutter/screens/add_student_screen_supabase.dart';
+import 'package:school_app_flutter/student/add_student_screen_supabase.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'edit_student_screen.dart';
 import 'delete_student_dialog.dart';

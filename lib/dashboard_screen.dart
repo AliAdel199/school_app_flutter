@@ -113,6 +113,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       {'label': 'إضافة مرحلة', 'icon': Icons.add, 'route': '/add-class'},
       {'label': 'التقارير المالية', 'icon': Icons.monetization_on, 'route': '/financial-reports'},
       {'label': 'التقارير العامة', 'icon': Icons.bar_chart, 'route': '/reportsscreen'},
+      {'label': 'إضافة موظف', 'icon': Icons.person_add_alt, 'route': '/add-edit-employee'},
+    {'label': 'قائمة الموظفين', 'icon': Icons.work, 'route': '/employee-list'},
+    {'label': 'الرواتب الشهرية', 'icon': Icons.payments, 'route': '/monthly-salary'},
     ];
 
     return GridView.builder(

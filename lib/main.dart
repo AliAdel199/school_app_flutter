@@ -1,17 +1,21 @@
 
 import 'package:flutter/material.dart';
-import 'package:school_app_flutter/screens/classes_list_screen.dart';
-import 'package:school_app_flutter/screens/reportsscreen.dart';
+import 'package:school_app_flutter/employee/employee_list_screen.dart';
+import 'package:school_app_flutter/reports/classes_list_screen.dart';
+import 'package:school_app_flutter/reports/reportsscreen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'screens/add_student_screen_supabase.dart';
-import 'screens/addclassscreen.dart';
-import 'screens/dashboard_screen.dart';
-import 'screens/edit_class_screen.dart';
-import 'screens/financialreportsscreen.dart';
-import 'screens/login_screen.dart';
-import 'screens/studentpaymentscreen.dart';
-import 'screens/students_list_screen_supabase.dart';
-import 'screens/subjectslistscreen.dart';
+import 'employee/add_edit_employee.dart';
+import 'employee/monthlysalaryscreen.dart';
+import 'student/add_student_screen_supabase.dart';
+import 'reports/addclassscreen.dart';
+import 'dashboard_screen.dart';
+import 'reports/edit_class_screen.dart';
+import 'reports/financialreportsscreen.dart';
+import 'reports/login_screen.dart';
+import 'student/studentpaymentscreen.dart';
+import 'student/students_list_screen_supabase.dart';
+import 'reports/subjectslistscreen.dart';
+
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -58,6 +62,11 @@ class SchoolApp extends StatelessWidget {
         ),
         '/financial-reports': (context) => const FinancialReportsScreen(),
         '/reportsscreen': (context) => const ReportsScreen(),
+        '/add-edit-employee': (context) => AddEditEmployeeScreen(
+          employee: ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?,
+        ),
+        '/employee-list': (context) => const EmployeeListScreen(),
+        '/monthly-salary': (context) => const MonthlySalaryScreen(),
       },
     );
   }
