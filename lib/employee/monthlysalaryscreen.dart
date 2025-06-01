@@ -136,15 +136,15 @@ class _MonthlySalaryScreenState extends State<MonthlySalaryScreen> {
                   }),
                   onChanged: (val) => setState(() => selectedMonth = val!),
                 ),
-                // const SizedBox(width: 16),
-                // const Text('إعداد الرواتب'),
-                // SizedBox(
-                //   height: 40,
-                //   child: ElevatedButton(
-                //     onPressed: isLoading ? null : generateSalaries,
-                //     child: const Text('إعداد الرواتب'),
-                //   ),
-                // ),
+                const SizedBox(width: 16),
+                const Text('إعداد الرواتب'),
+                SizedBox(
+                  height: 40,width: 120,
+                  child: ElevatedButton(
+                    onPressed: isLoading ? null : generateSalaries,
+                    child: const Text('إعداد الرواتب'),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 16),
