@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:intl/date_symbol_data_local.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MonthlySalaryScreen extends StatefulWidget {
@@ -16,17 +15,22 @@ class _MonthlySalaryScreenState extends State<MonthlySalaryScreen> {
 
   List<Map<String, dynamic>> salaries = [];
   bool isLoading = false;
+  String searchQuery = '';
+  List<TextEditingController> extraDeductionControllers = [];
+List<TextEditingController> extraAllowanceControllers = [];
+List<TextEditingController> notesControllers = [];
 
-  @override
-  void initState() {
-    super.initState();
-    initializeDateFormatting('ar', null);
-  }
 
   Future<void> generateSalaries() async {
     setState(() => isLoading = true);
 
     try {
+      final salaryMonth = DateFormat('yyyy-MM-01').format(selectedMonth);
+      final existingSalaries = await supabase
+          .from('employee_salaries')
+          .select()
+          .eq('salary_month', salaryMonth);
+
       final employeeResponse = await supabase.from('employees').select();
       final List employees = employeeResponse;
 
@@ -35,6 +39,7 @@ class _MonthlySalaryScreenState extends State<MonthlySalaryScreen> {
       for (final emp in employees) {
         final employeeId = emp['id'];
         final baseSalary = (emp['base_salary'] as num?)?.toDouble() ?? 0.0;
+        final fullName = emp['full_name'] ?? '';
 
         final allowanceData = await supabase
             .from('employee_allowances')
@@ -52,23 +57,35 @@ class _MonthlySalaryScreenState extends State<MonthlySalaryScreen> {
         final totalDeductions = (deductionData as List)
             .fold<double>(0, (sum, item) => sum + (item['amount'] as num).toDouble());
 
+        final existing = (existingSalaries as List).firstWhere(
+          (e) => e['employee_id'] == employeeId,
+          orElse: () => <String, dynamic>{},
+        );
+
         newSalaries.add({
           'employee_id': employeeId,
-          'full_name': emp['full_name'],
-          'base_salary': baseSalary,
-          'total_allowances': totalAllowances,
-          'total_deductions': totalDeductions,
-          'extra_deduction': 0.0,
-          'extra_allowance': 0.0,
-          'notes': '',
+          'full_name': fullName,
+          'base_salary': existing.containsKey('base_salary') ? existing['base_salary'] : baseSalary,
+          'total_allowances': existing.containsKey('total_allowances') ? existing['total_allowances'] : totalAllowances,
+          'total_deductions': existing.containsKey('total_deductions') ? existing['total_deductions'] : totalDeductions,
+          'extra_deduction': existing.containsKey('extra_deduction') ? existing['extra_deduction'] : 0.0,
+          'extra_allowance': existing.containsKey('extra_allowance') ? existing['extra_allowance'] : 0.0,
+          'notes': existing.containsKey('notes') ? existing['notes'] : '',
+          'isExisting': existing.isNotEmpty,
         });
+        extraDeductionControllers.add(TextEditingController(text: newSalaries.last['extra_deduction'].toString()));
+extraAllowanceControllers.add(TextEditingController(text: newSalaries.last['extra_allowance'].toString()));
+notesControllers.add(TextEditingController(text: newSalaries.last['notes']));
       }
 
       setState(() => salaries = newSalaries);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل إعداد الرواتب: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('فشل إعداد الرواتب: $e')),
+        );
+      }
+      debugPrint('فشل إعداد الرواتب: $e');
     } finally {
       setState(() => isLoading = false);
     }
@@ -83,27 +100,50 @@ class _MonthlySalaryScreenState extends State<MonthlySalaryScreen> {
     return net;
   }
 
-  Future<void> saveSalary(int index) async {
+  Future<void> saveSalaryByEmployeeId(String employeeId) async {
+    final index = salaries.indexWhere((s) => s['employee_id'] == employeeId);
+    if (index == -1) return;
+
     final data = salaries[index];
     final net = calculateNetSalary(data);
     final salaryMonth = DateFormat('yyyy-MM-01').format(selectedMonth);
 
     try {
-      await supabase.from('employee_salaries').upsert({
-        'employee_id': data['employee_id'],
-        'salary_month': salaryMonth,
-        'base_salary': data['base_salary'],
-        'total_allowances': data['total_allowances'],
-        'total_deductions': data['total_deductions'],
-        'extra_deduction': data['extra_deduction'],
-        'extra_allowance': data['extra_allowance'],
-        'notes': data['notes'],
-        'net_salary': net,
-      });
+      final existing = await supabase
+          .from('employee_salaries')
+          .select('id')
+          .eq('salary_month', salaryMonth)
+          .eq('employee_id', data['employee_id'])
+          .maybeSingle();
+
+      if (existing != null) {
+        await supabase.from('employee_salaries').update({
+          'base_salary': data['base_salary'],
+          'total_allowances': data['total_allowances'],
+          'total_deductions': data['total_deductions'],
+          'extra_deduction': data['extra_deduction'],
+          'extra_allowance': data['extra_allowance'],
+          'notes': data['notes'],
+          'net_salary': net,
+        }).eq('id', existing['id']);
+      } else {
+        await supabase.from('employee_salaries').insert({
+          'employee_id': data['employee_id'],
+          'salary_month': salaryMonth,
+          'base_salary': data['base_salary'],
+          'total_allowances': data['total_allowances'],
+          'total_deductions': data['total_deductions'],
+          'extra_deduction': data['extra_deduction'],
+          'extra_allowance': data['extra_allowance'],
+          'notes': data['notes'],
+          'net_salary': net,
+        });
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('تم حفظ الراتب')),
       );
+      setState(() {});
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('فشل حفظ الراتب: $e')),
@@ -111,216 +151,147 @@ class _MonthlySalaryScreenState extends State<MonthlySalaryScreen> {
     }
   }
 
-  Widget _buildHeader() {
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-        child: Row(
-          children: [
-            const Icon(Icons.calendar_month, color: Colors.blueAccent),
-            const SizedBox(width: 8),
-            const Text('الشهر:', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(width: 8),
-            DropdownButton<DateTime>(
-              value: selectedMonth,
-              borderRadius: BorderRadius.circular(12),
-              items: List.generate(12, (index) {
-                final date = DateTime(DateTime.now().year, index + 1);
-                return DropdownMenuItem(
-                  value: date,
-                  child: Text(DateFormat('MMMM yyyy', 'ar').format(date)),
-                );
-              }),
-              onChanged: (val) => setState(() => selectedMonth = val!),
-            ),
-            const Spacer(),
-            SizedBox(
-              height: 40,width: 160,
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.refresh),
-                label: const Text('إعداد الرواتب'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white10,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                onPressed: isLoading ? null : generateSalaries,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSalaryCard(Map<String, dynamic> s, int index) {
-    return Card(
-      elevation: 3,
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: Colors.blue[100],
-                  child: Text(
-                    s['full_name'].toString().substring(0, 1),
-                    style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    s['full_name'],
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
-                ),
-              ],
-            ),
-            const Divider(height: 24, thickness: 1.2),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _infoTile('الراتب الاسمي', s['base_salary']),
-                _infoTile('المخصصات', s['total_allowances']),
-                _infoTile('الاستقطاعات', s['total_deductions']),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    initialValue: s['extra_deduction'].toString(),
-                    decoration: InputDecoration(
-                      labelText: 'خصم إضافي',
-                      prefixIcon: const Icon(Icons.remove_circle_outline),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    ),
-                    keyboardType: TextInputType.number,
-                    onChanged: (val) => setState(() {
-                      salaries[index]['extra_deduction'] = double.tryParse(val) ?? 0;
-                    }),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextFormField(
-                    initialValue: s['extra_allowance'].toString(),
-                    decoration: InputDecoration(
-                      labelText: 'مكافأة',
-                      prefixIcon: const Icon(Icons.add_circle_outline),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    ),
-                    keyboardType: TextInputType.number,
-                    onChanged: (val) => setState(() {
-                      salaries[index]['extra_allowance'] = double.tryParse(val) ?? 0;
-                    }),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            TextFormField(
-              initialValue: s['notes'],
-              decoration: InputDecoration(
-                labelText: 'ملاحظات',
-                prefixIcon: const Icon(Icons.note_alt_outlined),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              ),
-              onChanged: (val) => setState(() {
-                salaries[index]['notes'] = val;
-              }),
-              maxLines: 2,
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'الصافي: ${calculateNetSalary(s).toStringAsFixed(2)} د.ع',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.save),
-                    label: const Text('حفظ'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    onPressed: () => saveSalary(index),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _infoTile(String label, dynamic value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 13, color: Colors.grey)),
-        const SizedBox(height: 2),
-        Text(
-          value.toString(),
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-        ),
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final filteredSalaries = salaries.where((s) {
+      final name = (s['full_name'] ?? '').toLowerCase();
+      return name.contains(searchQuery);
+    }).toList();
+
     return Scaffold(
-      backgroundColor: Colors.grey[100],
-      appBar: AppBar(
-        title: const Text('إعداد الرواتب الشهرية'),
-        backgroundColor: Colors.blueAccent,
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text('إعداد الرواتب الشهرية')),
       body: Padding(
-        padding: const EdgeInsets.all(12.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            _buildHeader(),
-            if (isLoading)
-              const Expanded(
-                child: Center(child: CircularProgressIndicator()),
+            Row(
+              children: [
+                const Text('الشهر:'),
+                const SizedBox(width: 8),
+                DropdownButton<DateTime>(
+                  value: selectedMonth,
+                  items: List.generate(12, (index) {
+                    final date = DateTime(DateTime.now().year, index + 1);
+                    return DropdownMenuItem(
+                      value: date,
+                      child: Text(DateFormat('MMMM yyyy', 'ar').format(date)),
+                    );
+                  }),
+                  onChanged: (val) => setState(() => selectedMonth = val!),
+                ),
+                const Spacer(),
+                SizedBox(
+                  height: 40,
+                  width: 150,
+                  child: ElevatedButton(
+                    onPressed: isLoading ? null : generateSalaries,
+                    child: const Text('إعداد الرواتب'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              decoration: const InputDecoration(
+                labelText: 'ابحث عن اسم الموظف',
+                prefixIcon: Icon(Icons.search),
               ),
+              onChanged: (val) => setState(() => searchQuery = val.toLowerCase()),
+            ),
+            const SizedBox(height: 16),
+            if (isLoading)
+              const Center(child: CircularProgressIndicator()),
             if (!isLoading && salaries.isNotEmpty)
               Expanded(
                 child: ListView.builder(
-                  itemCount: salaries.length,
-                  itemBuilder: (context, index) => _buildSalaryCard(salaries[index], index),
-                ),
-              ),
-            if (!isLoading && salaries.isEmpty)
-              const Expanded(
-                child: Center(
-                  child: Text(
-                    'لا توجد بيانات للعرض.\nيرجى اختيار شهر ثم الضغط على "إعداد الرواتب".',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey, fontSize: 16),
-                  ),
+                  itemCount: filteredSalaries.length,
+                  itemBuilder: (context, index) {
+                    final s = filteredSalaries[index];
+                    final realIndex = salaries.indexWhere((e) => e['employee_id'] == s['employee_id']);
+                    final real = salaries[realIndex];
+
+                    return Card(
+                      color: real['isExisting'] == true ? Colors.green[50] : Colors.white,
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              real['full_name'] + (real['isExisting'] == true ? ' ✅' : ''),
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Text('الراتب الاسمي: ${real['base_salary']}'),
+                                const SizedBox(width: 16),
+                                Text('المخصصات: ${real['total_allowances']}'),
+                                const SizedBox(width: 16),
+                                Text('الاستقطاعات: ${real['total_deductions']}'),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextFormField(
+                                    controller:  extraDeductionControllers[realIndex],
+                                    decoration: const InputDecoration(labelText: 'خصم إضافي'),
+                                    keyboardType: TextInputType.number,
+                                    onChanged: (val) => real['extra_deduction'] = double.tryParse(val) ?? 0,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: TextFormField(
+                                    controller:  extraAllowanceControllers[realIndex],
+                                    decoration: const InputDecoration(labelText: 'مكافأة'),
+                                    keyboardType: TextInputType.number,
+                                    onChanged: (val) => real['extra_allowance'] = double.tryParse(val) ?? 0,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              // initialValue: real['notes'],4
+                              controller:  notesControllers[realIndex],
+                              decoration: const InputDecoration(labelText: 'ملاحظات'),
+                              onChanged: (val) => real['notes'] = val,
+                            ),
+                            const SizedBox(height: 15),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    'الصافي: ${calculateNetSalary(real).toStringAsFixed(2)} د.ع',
+                                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Align(
+                                    alignment: Alignment.centerRight,
+                                    child: ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(8)),
+                                        backgroundColor: Colors.teal,
+                                        foregroundColor: Colors.white,
+                                      ),
+                                      onPressed: () => saveSalaryByEmployeeId(real['employee_id']),
+                                      child: const Text('حفظ'),
+                                    ),
+                                  ),
+                                )
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
           ],
