@@ -20,10 +20,59 @@ class _MonthlySalaryScreenState extends State<MonthlySalaryScreen> {
 List<TextEditingController> extraAllowanceControllers = [];
 List<TextEditingController> notesControllers = [];
 
+Future<void> copyFromPreviousMonth() async {
+  final previousMonth = DateTime(selectedMonth.year, selectedMonth.month - 1);
+  final salaryMonth = DateFormat('yyyy-MM-01').format(selectedMonth);
+  final prevSalaryMonth = DateFormat('yyyy-MM-01').format(previousMonth);
+
+  try {
+    final previousSalaries = await supabase
+        .from('employee_salaries')
+        .select()
+        .eq('salary_month', prevSalaryMonth);
+
+    if (previousSalaries == null || (previousSalaries is List && previousSalaries.isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('لا يوجد رواتب في الشهر السابق')),
+      );
+      return;
+    }
+
+    for (final salary in previousSalaries) {
+      final employeeId = salary['employee_id'];
+
+      final existing = await supabase
+          .from('employee_salaries')
+          .select('id')
+          .eq('salary_month', salaryMonth)
+          .eq('employee_id', employeeId)
+          .maybeSingle();
+
+      if (existing == null) {
+        final copiedSalary = Map<String, dynamic>.from(salary);
+        copiedSalary.remove('id');
+        copiedSalary['salary_month'] = salaryMonth;
+        await supabase.from('employee_salaries').insert(copiedSalary);
+      }
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('تم النسخ من الشهر السابق')),
+    );
+    await generateSalaries();
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('فشل النسخ من الشهر السابق: $e')),
+    );
+  }
+}
+
 
   Future<void> generateSalaries() async {
     setState(() => isLoading = true);
-
+extraDeductionControllers.clear();
+extraAllowanceControllers.clear();      
+notesControllers.clear();
     try {
       final salaryMonth = DateFormat('yyyy-MM-01').format(selectedMonth);
       final existingSalaries = await supabase
@@ -65,17 +114,20 @@ List<TextEditingController> notesControllers = [];
         newSalaries.add({
           'employee_id': employeeId,
           'full_name': fullName,
-          'base_salary': existing.containsKey('base_salary') ? existing['base_salary'] : baseSalary,
-          'total_allowances': existing.containsKey('total_allowances') ? existing['total_allowances'] : totalAllowances,
-          'total_deductions': existing.containsKey('total_deductions') ? existing['total_deductions'] : totalDeductions,
-          'extra_deduction': existing.containsKey('extra_deduction') ? existing['extra_deduction'] : 0.0,
-          'extra_allowance': existing.containsKey('extra_allowance') ? existing['extra_allowance'] : 0.0,
-          'notes': existing.containsKey('notes') ? existing['notes'] : '',
+          'base_salary': existing['base_salary'] ?? baseSalary,
+          'total_allowances': existing['total_allowances'] ?? totalAllowances,
+          'total_deductions': existing['total_deductions'] ?? totalDeductions,
+          'extra_deduction': existing['extra_deduction'] ?? 0.0,
+          'extra_allowance': existing['extra_allowance'] ?? 0.0,
+          'notes': existing['notes'] ?? '',
           'isExisting': existing.isNotEmpty,
         });
+        //         extraDeductionControllers.add(TextEditingController(text: newSalaries.last['extra_deduction'].toString()));
+// extraAllowanceControllers.add(TextEditingController(text: newSalaries.last['extra_allowance'].toString()));
+// notesControllers.add(TextEditingController(text: newSalaries.last['notes']));
         extraDeductionControllers.add(TextEditingController(text: newSalaries.last['extra_deduction'].toString()));
-extraAllowanceControllers.add(TextEditingController(text: newSalaries.last['extra_allowance'].toString()));
-notesControllers.add(TextEditingController(text: newSalaries.last['notes']));
+        extraAllowanceControllers.add(TextEditingController(text: newSalaries.last['extra_allowance'].toString()));
+        notesControllers.add(TextEditingController(text: newSalaries.last['notes']));
       }
 
       setState(() => salaries = newSalaries);
@@ -91,6 +143,76 @@ notesControllers.add(TextEditingController(text: newSalaries.last['notes']));
     }
   }
 
+//   Future<void> generateSalaries() async {
+//     setState(() => isLoading = true);
+
+//     try {
+//       final salaryMonth = DateFormat('yyyy-MM-01').format(selectedMonth);
+//       final existingSalaries = await supabase
+//           .from('employee_salaries')
+//           .select()
+//           .eq('salary_month', salaryMonth);
+
+//       final employeeResponse = await supabase.from('employees').select();
+//       final List employees = employeeResponse;
+
+//       final List<Map<String, dynamic>> newSalaries = [];
+
+//       for (final emp in employees) {
+//         final employeeId = emp['id'];
+//         final baseSalary = (emp['base_salary'] as num?)?.toDouble() ?? 0.0;
+//         final fullName = emp['full_name'] ?? '';
+
+//         final allowanceData = await supabase
+//             .from('employee_allowances')
+//             .select('amount')
+//             .eq('employee_id', employeeId);
+
+//         final totalAllowances = (allowanceData as List)
+//             .fold<double>(0, (sum, item) => sum + (item['amount'] as num).toDouble());
+
+//         final deductionData = await supabase
+//             .from('employee_deductions')
+//             .select('amount')
+//             .eq('employee_id', employeeId);
+
+//         final totalDeductions = (deductionData as List)
+//             .fold<double>(0, (sum, item) => sum + (item['amount'] as num).toDouble());
+
+//         final existing = (existingSalaries as List).firstWhere(
+//           (e) => e['employee_id'] == employeeId,
+//           orElse: () => <String, dynamic>{},
+//         );
+
+//         newSalaries.add({
+//           'employee_id': employeeId,
+//           'full_name': fullName,
+//           'base_salary': existing.containsKey('base_salary') ? existing['base_salary'] : baseSalary,
+//           'total_allowances': existing.containsKey('total_allowances') ? existing['total_allowances'] : totalAllowances,
+//           'total_deductions': existing.containsKey('total_deductions') ? existing['total_deductions'] : totalDeductions,
+//           'extra_deduction': existing.containsKey('extra_deduction') ? existing['extra_deduction'] : 0.0,
+//           'extra_allowance': existing.containsKey('extra_allowance') ? existing['extra_allowance'] : 0.0,
+//           'notes': existing.containsKey('notes') ? existing['notes'] : '',
+//           'isExisting': existing.isNotEmpty,
+//         });
+//         extraDeductionControllers.add(TextEditingController(text: newSalaries.last['extra_deduction'].toString()));
+// extraAllowanceControllers.add(TextEditingController(text: newSalaries.last['extra_allowance'].toString()));
+// notesControllers.add(TextEditingController(text: newSalaries.last['notes']));
+//       }
+
+//       setState(() => salaries = newSalaries);
+//     } catch (e) {
+//       if (mounted) {
+//         ScaffoldMessenger.of(context).showSnackBar(
+//           SnackBar(content: Text('فشل إعداد الرواتب: $e')),
+//         );
+//       }
+//       debugPrint('فشل إعداد الرواتب: $e');
+//     } finally {
+//       setState(() => isLoading = false);
+//     }
+//   }
+
   double calculateNetSalary(Map<String, dynamic> salary) {
     final net = (salary['base_salary'] ?? 0) +
         (salary['total_allowances'] ?? 0) +
@@ -99,6 +221,23 @@ notesControllers.add(TextEditingController(text: newSalaries.last['notes']));
         (salary['extra_deduction'] ?? 0);
     return net;
   }
+  Future<List<Map<String, dynamic>>> getEmployeesWithoutSalaryForMonth() async {
+  final salaryMonth = DateFormat('yyyy-MM-01').format(selectedMonth);
+
+  final employees = await supabase.from('employees').select('id, full_name');
+  final salaries = await supabase
+      .from('employee_salaries')
+      .select('employee_id')
+      .eq('salary_month', salaryMonth);
+
+  final paidEmployeeIds = (salaries as List).map((s) => s['employee_id']).toSet();
+
+  return (employees as List)
+      .where((emp) => !paidEmployeeIds.contains(emp['id']))
+      .map((e) => {'id': e['id'], 'full_name': e['full_name']})
+      .toList();
+}
+
 
   Future<void> saveSalaryByEmployeeId(String employeeId) async {
     final index = salaries.indexWhere((s) => s['employee_id'] == employeeId);
@@ -168,24 +307,62 @@ notesControllers.add(TextEditingController(text: newSalaries.last['notes']));
               children: [
                 const Text('الشهر:'),
                 const SizedBox(width: 8),
-                DropdownButton<DateTime>(
-                  value: selectedMonth,
-                  items: List.generate(12, (index) {
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.teal, width: 1),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                  child: DropdownButton<DateTime>(
+                    value: selectedMonth,
+                    icon: const Icon(Icons.arrow_drop_down, color: Colors.teal),
+                    style: const TextStyle(fontSize: 16, color: Colors.black),
+                    items: List.generate(12, (index) {
                     final date = DateTime(DateTime.now().year, index + 1);
                     return DropdownMenuItem(
                       value: date,
-                      child: Text(DateFormat('MMMM yyyy', 'ar').format(date)),
+                      child: Text(
+                      DateFormat('MMMM yyyy', 'ar').format(date),
+                      style: const TextStyle(fontWeight: FontWeight.w500),
+                      ),
                     );
-                  }),
-                  onChanged: (val) => setState(() => selectedMonth = val!),
+                    }),
+                    onChanged: (val) => setState(() {
+                    selectedMonth = val ?? DateTime.now();
+                    salaries.clear();
+                    extraDeductionControllers.clear();
+                    extraAllowanceControllers.clear();
+                    notesControllers.clear();
+                    generateSalaries();
+                    }),
+                  ),
+                  ),
                 ),
                 const Spacer(),
+                // SizedBox(
+                //   height: 40,
+                //   width: 150,
+                //   child: ElevatedButton(
+                //     onPressed: isLoading ? null : generateSalaries,
+                //     child: const Text('إعداد الرواتب'),
+                //   ),
+                // ),
+                
                 SizedBox(
                   height: 40,
-                  width: 150,
+                  width: 200,
+
                   child: ElevatedButton(
-                    onPressed: isLoading ? null : generateSalaries,
-                    child: const Text('إعداد الرواتب'),
+                    style: ElevatedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                      backgroundColor: Colors.teal,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: isLoading ? null : copyFromPreviousMonth,
+                    child: const Text('نسخ من الشهر السابق'),
                   ),
                 ),
               ],

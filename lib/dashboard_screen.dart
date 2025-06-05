@@ -116,6 +116,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       {'label': 'إضافة موظف', 'icon': Icons.person_add_alt, 'route': '/add-edit-employee'},
     {'label': 'قائمة الموظفين', 'icon': Icons.work, 'route': '/employee-list'},
     {'label': 'الرواتب الشهرية', 'icon': Icons.payments, 'route': '/monthly-salary'},
+    {'label': 'تقرير الرواتب', 'icon': Icons.receipt, 'route': '/salary-report'},
     ];
 
     return GridView.builder(
