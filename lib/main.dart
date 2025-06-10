@@ -5,7 +5,9 @@ import 'package:school_app_flutter/employee/employee_list_screen.dart';
 import 'package:school_app_flutter/reports/classes_list_screen.dart';
 import 'package:school_app_flutter/reports/reportsscreen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'employee/SalaryReportScreen.dart';
+import 'income_expeness/ExpenseListScreen.dart';
+import 'income_expeness/addexpenesscreen.dart';
+import 'reports/SalaryReportScreen.dart';
 import 'employee/add_edit_employee.dart';
 import 'employee/monthlysalaryscreen.dart';
 import 'student/add_student_screen_supabase.dart';
@@ -72,6 +74,10 @@ class SchoolApp extends StatelessWidget {
         '/employee-list': (context) => const EmployeeListScreen(),
         '/monthly-salary': (context) => const MonthlySalaryScreen(),
         '/salary-report': (context) => const SalaryReportScreen(),
+        '/expense-list': (context) => const ExpensesListScreen(),
+        '/add-expense': (context) => AddEditExpenseScreen(
+          expense: ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?,
+        ),
       },
     );
   }
