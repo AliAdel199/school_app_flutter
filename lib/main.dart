@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:school_app_flutter/employee/employee_list_screen.dart';
+import 'package:school_app_flutter/income_expeness/incomes.dart';
 import 'package:school_app_flutter/reports/classes_list_screen.dart';
 import 'package:school_app_flutter/reports/reportsscreen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -78,7 +79,9 @@ class SchoolApp extends StatelessWidget {
         '/add-expense': (context) => AddEditExpenseScreen(
           expense: ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?,
         ),
+        '/income': (context) => const IncomesListScreen()
       },
+
     );
   }
 }

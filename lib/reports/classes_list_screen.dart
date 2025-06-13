@@ -244,60 +244,34 @@ initialState() {
             ),
             floatingActionButtonLocation: ExpandableFab.location,
             floatingActionButton: ExpandableFab(
-                type: ExpandableFabType.up,
-  pos: ExpandableFabPos.center,
-  fanAngle: 180,
+              type: ExpandableFabType.up,
+              pos: ExpandableFabPos.center,
+              fanAngle: 180,
+              distance: 70, // تأكد من وجود مسافة كافية لظهور الأزرار
               children: [
-            
-                 FloatingActionButton.extended(
-        heroTag: null,
-        label: const Text('إضافة صف'),
-        icon: const Icon(Icons.edit),
-        onPressed: () {
-            Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AddClassScreen(),
-                    ),
-                  );
-        },
-      ),
-                     FloatingActionButton.extended(
-        heroTag: null,
-        label: const Text('إضافة مرحلة'),
-        icon: const Icon(Icons.edit),
-        onPressed: () {
-          showAddGradeDialog();
-        },
-      ),
-              // FloatingActionButton.extended( 
-              //   onPressed: () {
-              //     Navigator.push(
-              //       context,
-              //       MaterialPageRoute(
-              //         builder: (context) => const AddClassScreen(),
-              //       ),
-              //     );
-              //   },
-              //   label: const Text('إضافة صف'),
-              //   icon: const Icon(Icons.add),
-              // ),
-              //       FloatingActionButton.extended(
-              //   onPressed: () {
-              //     showAddGradeDialog();
-              //   },
-              //   label: const Text('إضافة مرحلة'),
-              //   icon: const Icon(Icons.add),
-              // ),
-           
-              // FloatingActionButton.extended(
-              //   onPressed: () {
-              //     // إضافة شاشة جديدة
-              //   },
-              //   label: const Text('إضافة مادة'),
-              //   icon: const Icon(Icons.add),
-              // ),
-            ]),
+                FloatingActionButton.extended(
+                  heroTag: 'add_class',
+                  label: const Text('إضافة صف'),
+                  icon: const Icon(Icons.edit),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AddClassScreen(),
+                      ),
+                    );
+                  },
+                ),
+                FloatingActionButton.extended(
+                  heroTag: 'add_grade',
+                  label: const Text('إضافة مرحلة'),
+                  icon: const Icon(Icons.edit),
+                  onPressed: () {
+                    showAddGradeDialog();
+                  },
+                ),
+              ],
+            ),
             // FloatingActionButton(
             //   onPressed: () {
             //     Navigator.push(

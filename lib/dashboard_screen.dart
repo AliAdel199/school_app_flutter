@@ -111,13 +111,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       {'label': 'المواد', 'icon': Icons.book, 'route': '/subjects'},
       {'label': 'المراحل', 'icon': Icons.score, 'route': '/classes'},
       {'label': 'إضافة مرحلة', 'icon': Icons.add, 'route': '/add-class'},
-      {'label': 'التقارير المالية', 'icon': Icons.monetization_on, 'route': '/financial-reports'},
+      // {'label': 'التقارير المالية', 'icon': Icons.monetization_on, 'route': '/financial-reports'},
       {'label': 'التقارير العامة', 'icon': Icons.bar_chart, 'route': '/reportsscreen'},
       {'label': 'إضافة موظف', 'icon': Icons.person_add_alt, 'route': '/add-edit-employee'},
     {'label': 'قائمة الموظفين', 'icon': Icons.work, 'route': '/employee-list'},
     {'label': 'الرواتب الشهرية', 'icon': Icons.payments, 'route': '/monthly-salary'},
     {'label': 'تقرير الرواتب', 'icon': Icons.receipt, 'route': '/salary-report'},
     {'label': 'قائمة المصروفات', 'icon': Icons.money_off, 'route': '/expense-list'},
+    {'label': 'قائمة الدخل', 'icon': Icons.account_balance_wallet, 'route': '/income'},
     // {'label': 'إضافة مصروف', 'icon': Icons.add_circle, 'route': '/add-expense'},
     
     ];

@@ -9,19 +9,19 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class ExpensesListScreen extends StatefulWidget {
-  const ExpensesListScreen({super.key});
+class IncomesListScreen extends StatefulWidget {
+  const IncomesListScreen({super.key});
 
   @override
-  State<ExpensesListScreen> createState() => _ExpensesListScreenState();
+  State<IncomesListScreen> createState() => _IncomesListScreenState();
 }
 
-class _ExpensesListScreenState extends State<ExpensesListScreen> {
+class _IncomesListScreenState extends State<IncomesListScreen> {
   final supabase = Supabase.instance.client;
-  List expenses = [];
+  List incomes = [];
   List categories = [];
   bool isLoading = true;
-  
+
   // متغيرات الفلترة
   String? selectedFilterCategory; // null أو "all" يعني الكل
   DateTime? filterStartDate;
@@ -35,8 +35,7 @@ class _ExpensesListScreenState extends State<ExpensesListScreen> {
 
   Future<void> fetchData() async {
     setState(() => isLoading = true);
-
-final userId = supabase.auth.currentUser!.id;
+    final userId = supabase.auth.currentUser!.id;
 
     // جلب school_id من جدول profiles
     final profileResponse = await supabase
@@ -48,44 +47,38 @@ final userId = supabase.auth.currentUser!.id;
     if (profileResponse == null || profileResponse['school_id'] == null) {
       throw Exception('لم يتم العثور على معرف المدرسة.');
     }
-
     final schoolId = profileResponse['school_id'];
-    final exp = await supabase
-  .from('expenses')
+    final inc = await supabase
+  .from('incomes')
   .select()
   .eq('school_id', schoolId)
-  .order('expense_date', ascending: false);
-
-
-    // final exp = await supabase
-    //     .from('expenses')
-    //     .select().eq('school_id', supabase.auth.currentUser!.id)
-    //     .order('expense_date', ascending: false);
-    final cats = await supabase.from('expense_categories').select();
+  .order('income_date', ascending: false);
+   
+    final cats = await supabase.from('income_categories').select();
     setState(() {
-      expenses = exp;
+      incomes = inc;
       categories = cats;
       isLoading = false;
     });
   }
 
-  List getFilteredExpenses() {
-    return expenses.where((expense) {
+  List getFilteredIncomes() {
+    return incomes.where((income) {
       bool matchesCategory = selectedFilterCategory == null ||
           selectedFilterCategory == 'all' ||
-          expense['type'].toString() == selectedFilterCategory;
-      DateTime expenseDate =
-          DateTime.tryParse(expense['expense_date']) ?? DateTime.now();
+          income['type'].toString() == selectedFilterCategory;
+      DateTime incomeDate =
+          DateTime.tryParse(income['income_date']) ?? DateTime.now();
       bool matchesStart = filterStartDate == null ||
-          expenseDate.isAfter(filterStartDate!.subtract(const Duration(days: 1)));
+          incomeDate.isAfter(filterStartDate!.subtract(const Duration(days: 1)));
       bool matchesEnd = filterEndDate == null ||
-          expenseDate.isBefore(filterEndDate!.add(const Duration(days: 1)));
+          incomeDate.isBefore(filterEndDate!.add(const Duration(days: 1)));
       return matchesCategory && matchesStart && matchesEnd;
     }).toList();
   }
 
-  double getTotalAmount(List filteredExpenses) {
-    return filteredExpenses.fold(0, (sum, item) {
+  double getTotalAmount(List filteredIncomes) {
+    return filteredIncomes.fold(0, (sum, item) {
       double amt = 0;
       if (item['amount'] is num) {
         amt = (item['amount'] as num).toDouble();
@@ -102,11 +95,10 @@ final userId = supabase.auth.currentUser!.id;
     return cat.isNotEmpty ? cat['name'] : '-';
   }
 
-  // دالة لتصدير البيانات إلى Excel
-  Future<void> exportExpensesToExcel(List filteredExpenses) async {
+  // تصدير البيانات إلى Excel
+  Future<void> exportIncomesToExcel(List filteredIncomes) async {
     var excel = Excel.createExcel();
-    Sheet sheetObject = excel['Expenses'];
-    // كتابة header
+    Sheet sheetObject = excel['Incomes'];
     sheetObject.appendRow([
       TextCellValue('العنوان'),
       TextCellValue('المبلغ'),
@@ -114,31 +106,27 @@ final userId = supabase.auth.currentUser!.id;
       TextCellValue('التاريخ'),
       TextCellValue('الملاحظات'),
     ]);
-    // كتابة البيانات
-    for (var exp in filteredExpenses) {
+    for (var inc in filteredIncomes) {
       sheetObject.appendRow([
-        TextCellValue(exp['title'].toString()),
-        TextCellValue(exp['amount'].toString()),
-        TextCellValue(getCategoryName(exp['type'].toString())),
-        TextCellValue(exp['expense_date'].toString()),
-        TextCellValue(exp['note']?.toString() ?? '')
+        TextCellValue(inc['title'].toString()),
+        TextCellValue(inc['amount'].toString()),
+        TextCellValue(getCategoryName(inc['type'].toString())),
+        TextCellValue(inc['income_date'].toString()),
+        TextCellValue(inc['note']?.toString() ?? '')
       ]);
     }
-    // حفظ الملف
     final bytes = excel.encode();
     final directory = await getApplicationDocumentsDirectory();
-    final file = File('${directory.path}/ExpensesReport.xlsx');
+    final file = File('${directory.path}/IncomesReport.xlsx');
     await file.writeAsBytes(bytes!);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('تم حفظ التقرير: ${file.path}')),
     );
   }
 
-  // دالة لطباعة التقرير عبر إنشاء PDF مع دعم اللغة العربية وتحسين التصميم
-  Future<void> printExpensesReport(List filteredExpenses) async {
+  // طباعة PDF
+  Future<void> printIncomesReport(List filteredIncomes) async {
     final pdf = pw.Document();
-
-    // إعداد خط يدعم العربية
     final arabicFont = await PdfGoogleFonts.cairoRegular();
     final arabicBoldFont = await PdfGoogleFonts.cairoBold();
 
@@ -153,7 +141,7 @@ final userId = supabase.auth.currentUser!.id;
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
                 pw.Text(
-                  'تقرير المصروفات',
+                  'تقرير الإيرادات',
                   style: pw.TextStyle(
                     font: arabicBoldFont,
                     fontSize: 24,
@@ -169,12 +157,12 @@ final userId = supabase.auth.currentUser!.id;
                     'التاريخ',
                     'الملاحظات'
                   ],
-                  data: filteredExpenses.map((e) {
+                  data: filteredIncomes.map((e) {
                     return [
                       e['title'] ?? '',
                       e['amount']?.toString() ?? '',
                       getCategoryName(e['type'].toString()),
-                      e['expense_date'] ?? '',
+                      e['income_date'] ?? '',
                       e['note'] ?? ''
                     ];
                   }).toList(),
@@ -208,12 +196,12 @@ final userId = supabase.auth.currentUser!.id;
                 pw.Container(
                   alignment: pw.Alignment.centerRight,
                   child: pw.Text(
-                    'إجمالي المصروفات: ${getTotalAmount(filteredExpenses)}',
+                    'إجمالي الإيرادات: ${getTotalAmount(filteredIncomes)}',
                     style: pw.TextStyle(
                       font: arabicBoldFont,
                       fontSize: 16,
                       fontWeight: pw.FontWeight.bold,
-                      color: PdfColors.blue800,
+                      color: PdfColors.green800,
                     ),
                   ),
                 ),
@@ -226,14 +214,14 @@ final userId = supabase.auth.currentUser!.id;
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
 
-  Future<void> showAddExpenseCategoryDialog(BuildContext context, void Function() onSuccess) async {
+  Future<void> showAddIncomeCategoryDialog(BuildContext context, void Function() onSuccess) async {
     final TextEditingController categoryController = TextEditingController();
 
     await showDialog(
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          title: const Text('إضافة نوع مصروف جديد'),
+          title: const Text('إضافة نوع إيراد جديد'),
           content: TextField(
             controller: categoryController,
             decoration: const InputDecoration(labelText: 'اسم النوع'),
@@ -248,8 +236,9 @@ final userId = supabase.auth.currentUser!.id;
               onPressed: () async {
                 final name = categoryController.text.trim();
                 if (name.isEmpty) return;
-final userId = supabase.auth.currentUser!.id;
-                 // جلب school_id من جدول profiles
+                 final userId = supabase.auth.currentUser!.id;
+
+    // جلب school_id من جدول profiles
     final profileResponse = await supabase
         .from('profiles')
         .select('school_id')
@@ -259,11 +248,10 @@ final userId = supabase.auth.currentUser!.id;
     if (profileResponse == null || profileResponse['school_id'] == null) {
       throw Exception('لم يتم العثور على معرف المدرسة.');
     }
-
     final schoolId = profileResponse['school_id'];
                 await Supabase.instance.client
-                    .from('expense_categories')
-                    .insert({'name': name, 'school_id':schoolId});
+                    .from('income_categories')
+                    .insert({'name': name,'school_id':schoolId});
                 Navigator.pop(ctx);
                 onSuccess();
               },
@@ -275,7 +263,7 @@ final userId = supabase.auth.currentUser!.id;
     );
   }
 
-  Future<void> showAddExpenseDialog(BuildContext context, List categories, void Function() onSuccess) async {
+  Future<void> showAddIncomeDialog(BuildContext context, List categories, void Function() onSuccess) async {
     final titleController = TextEditingController();
     final amountController = TextEditingController();
     final noteController = TextEditingController();
@@ -287,14 +275,14 @@ final userId = supabase.auth.currentUser!.id;
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setState) => AlertDialog(
-            title: const Text('إضافة مصروف'),
+            title: const Text('إضافة إيراد'),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
                     controller: titleController,
-                    decoration: const InputDecoration(labelText: 'عنوان المصروف'),
+                    decoration: const InputDecoration(labelText: 'عنوان الإيراد'),
                   ),
                   TextField(
                     controller: amountController,
@@ -308,7 +296,7 @@ final userId = supabase.auth.currentUser!.id;
                             DropdownMenuItem(value: cat['id'].toString(), child: Text(cat['name'])))
                         .toList(),
                     onChanged: (val) => setState(() => selectedCategory = val),
-                    decoration: const InputDecoration(labelText: 'نوع المصروف'),
+                    decoration: const InputDecoration(labelText: 'نوع الإيراد'),
                   ),
                   ListTile(
                     title: Text('التاريخ: ${selectedDate.toString().split(' ')[0]}'),
@@ -342,7 +330,7 @@ final userId = supabase.auth.currentUser!.id;
                   if (titleController.text.trim().isEmpty ||
                       amountController.text.trim().isEmpty ||
                       selectedCategory == null) return;
-final userId = supabase.auth.currentUser!.id;
+                       final userId = supabase.auth.currentUser!.id;
 
     // جلب school_id من جدول profiles
     final profileResponse = await supabase
@@ -354,15 +342,14 @@ final userId = supabase.auth.currentUser!.id;
     if (profileResponse == null || profileResponse['school_id'] == null) {
       throw Exception('لم يتم العثور على معرف المدرسة.');
     }
-
     final schoolId = profileResponse['school_id'];
 
-                  await Supabase.instance.client.from('expenses').insert({
+                  await Supabase.instance.client.from('incomes').insert({
                     'title': titleController.text.trim(),
                     'amount': double.tryParse(amountController.text) ?? 0,
                     'type': selectedCategory,
-                    'school_id': schoolId,
-                    'expense_date': selectedDate.toIso8601String().split('T').first,
+                    'school_id':schoolId,
+                    'income_date': selectedDate.toIso8601String().split('T').first,
                     'note': noteController.text,
                   });
                   Navigator.pop(ctx);
@@ -377,31 +364,31 @@ final userId = supabase.auth.currentUser!.id;
     );
   }
 
-  Future<void> showEditExpenseDialog(
+  Future<void> showEditIncomeDialog(
     BuildContext context,
-    Map expense,
+    Map income,
     List categories,
     void Function() onSuccess,
   ) async {
-    final titleController = TextEditingController(text: expense['title']);
-    final amountController = TextEditingController(text: expense['amount'].toString());
-    final noteController = TextEditingController(text: expense['note'] ?? '');
-    DateTime selectedDate = DateTime.tryParse(expense['expense_date']) ?? DateTime.now();
-    String? selectedCategory = expense['type'];
+    final titleController = TextEditingController(text: income['title']);
+    final amountController = TextEditingController(text: income['amount'].toString());
+    final noteController = TextEditingController(text: income['note'] ?? '');
+    DateTime selectedDate = DateTime.tryParse(income['income_date']) ?? DateTime.now();
+    String? selectedCategory = income['type'];
 
     await showDialog(
       context: context,
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setState) => AlertDialog(
-            title: const Text('تعديل مصروف'),
+            title: const Text('تعديل إيراد'),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
                     controller: titleController,
-                    decoration: const InputDecoration(labelText: 'عنوان المصروف'),
+                    decoration: const InputDecoration(labelText: 'عنوان الإيراد'),
                   ),
                   TextField(
                     controller: amountController,
@@ -415,7 +402,7 @@ final userId = supabase.auth.currentUser!.id;
                             DropdownMenuItem(value: cat['id'].toString(), child: Text(cat['name'])))
                         .toList(),
                     onChanged: (val) => setState(() => selectedCategory = val),
-                    decoration: const InputDecoration(labelText: 'نوع المصروف'),
+                    decoration: const InputDecoration(labelText: 'نوع الإيراد'),
                   ),
                   ListTile(
                     title: Text('التاريخ: ${selectedDate.toString().split(' ')[0]}'),
@@ -450,13 +437,13 @@ final userId = supabase.auth.currentUser!.id;
                       amountController.text.trim().isEmpty ||
                       selectedCategory == null) return;
 
-                  await Supabase.instance.client.from('expenses').update({
+                  await Supabase.instance.client.from('incomes').update({
                     'title': titleController.text.trim(),
                     'amount': double.tryParse(amountController.text) ?? 0,
                     'type': selectedCategory,
-                    'expense_date': selectedDate.toIso8601String().split('T').first,
+                    'income_date': selectedDate.toIso8601String().split('T').first,
                     'note': noteController.text,
-                  }).eq('id', expense['id']);
+                  }).eq('id', income['id']);
                   Navigator.pop(ctx);
                   onSuccess();
                 },
@@ -469,16 +456,16 @@ final userId = supabase.auth.currentUser!.id;
     );
   }
 
-  Future<void> showDeleteExpenseDialog(
+  Future<void> showDeleteIncomeDialog(
     BuildContext context,
-    Map expense,
+    Map income,
     void Function() onSuccess,
   ) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('تأكيد الحذف'),
-        content: const Text('هل أنت متأكد من حذف هذا المصروف؟'),
+        content: const Text('هل أنت متأكد من حذف هذا الإيراد؟'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -492,53 +479,51 @@ final userId = supabase.auth.currentUser!.id;
       ),
     );
     if (confirm == true) {
-      await supabase.from('expenses').delete().eq('id', expense['id']);
+      await supabase.from('incomes').delete().eq('id', income['id']);
       onSuccess();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    List filteredExpenses = getFilteredExpenses();
-    double totalAmount = getTotalAmount(filteredExpenses);
+    List filteredIncomes = getFilteredIncomes();
+    double totalAmount = getTotalAmount(filteredIncomes);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('المصروفات'),
+        title: const Text('الإيرادات'),
         actions: [
           IconButton(
             icon: const Icon(Icons.print),
             tooltip: 'طباعة التقرير',
-            onPressed: () => printExpensesReport(filteredExpenses),
+            onPressed: () => printIncomesReport(filteredIncomes),
           ),
           IconButton(
             icon: const Icon(Icons.file_download),
             tooltip: 'تصدير Excel',
-            onPressed: () => exportExpensesToExcel(filteredExpenses),
+            onPressed: () => exportIncomesToExcel(filteredIncomes),
           ),
         ],
       ),
       floatingActionButtonLocation: ExpandableFab.location,
       floatingActionButton: ExpandableFab(
-      type: ExpandableFabType.up,
-  pos: ExpandableFabPos.center,
-  fanAngle: 180,
-        // fanAngle: 180,
+        type: ExpandableFabType.up,
+        pos: ExpandableFabPos.center,
+        fanAngle: 180,
         children: [
           FloatingActionButton.extended(
             heroTag: null,
-            label: const Text('إضافة نوع مصروف'),
+            label: const Text('إضافة نوع إيراد'),
             icon: const Icon(Icons.edit),
             onPressed: () {
-              showAddExpenseCategoryDialog(context, fetchData);
+              showAddIncomeCategoryDialog(context, fetchData);
             },
           ),
           FloatingActionButton.extended(
             heroTag: null,
-            label: const Text('إضافة مصروف'),
+            label: const Text('إضافة إيراد'),
             icon: const Icon(Icons.edit),
             onPressed: () {
-              // تأكد من أن التصنيفات موجودة
-              showAddExpenseDialog(context, categories, fetchData);
+              showAddIncomeDialog(context, categories, fetchData);
             },
           ),
         ],
@@ -635,7 +620,6 @@ final userId = supabase.auth.currentUser!.id;
                             ),
                           ],
                         ),
-                        // زر لتحديث الفلترة وعرض إجمالي المصروفات
                         ElevatedButton(
                           onPressed: () {
                             setState(() {});
@@ -645,7 +629,7 @@ final userId = supabase.auth.currentUser!.id;
                         Padding(
                           padding: const EdgeInsets.only(top: 4.0),
                           child: Text(
-                            'إجمالي المصروفات: $totalAmount',
+                            'إجمالي الإيرادات: $totalAmount',
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ),
@@ -653,15 +637,15 @@ final userId = supabase.auth.currentUser!.id;
                     ),
                   ),
                 ),
-                // عرض قائمة المصروفات المفلترة
+                // عرض قائمة الإيرادات المفلترة
                 Expanded(
-                  child: filteredExpenses.isEmpty
-                      ? const Center(child: Text('لا توجد مصروفات'))
+                  child: filteredIncomes.isEmpty
+                      ? const Center(child: Text('لا توجد إيرادات'))
                       : ListView.separated(
-                          itemCount: filteredExpenses.length,
+                          itemCount: filteredIncomes.length,
                           separatorBuilder: (_, __) => const Divider(height: 1),
                           itemBuilder: (context, index) {
-                            final exp = filteredExpenses[index];
+                            final inc = filteredIncomes[index];
                             return Card(
                               margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                               elevation: 2,
@@ -675,20 +659,20 @@ final userId = supabase.auth.currentUser!.id;
                                       children: [
                                         Expanded(
                                           child: Text(
-                                            exp['title'],
+                                            inc['title'],
                                             style: const TextStyle(fontWeight: FontWeight.w600),
                                           ),
                                         ),
                                         Expanded(
                                           child: Text(
-                                            '${exp['amount']}',
-                                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+                                            '${inc['amount']}',
+                                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
                                           ),
                                         ),
-                                        Expanded(child: Text(getCategoryName(exp['type'].toString()))),
+                                        Expanded(child: Text(getCategoryName(inc['type'].toString()))),
                                         Expanded(
                                           child: Text(
-                                            exp['expense_date'],
+                                            inc['income_date'],
                                             style: const TextStyle(fontSize: 12, color: Colors.grey),
                                           ),
                                         ),
@@ -697,9 +681,9 @@ final userId = supabase.auth.currentUser!.id;
                                           child: Padding(
                                             padding: const EdgeInsets.only(top: 4.0),
                                             child: Text(
-                                              exp['note'] == null || exp['note'].toString().isEmpty
+                                              inc['note'] == null || inc['note'].toString().isEmpty
                                                   ? 'لا توجد ملاحظات'
-                                                  : exp['note'],
+                                                  : inc['note'],
                                               style: const TextStyle(fontSize: 12, color: Colors.black54),
                                               overflow: TextOverflow.ellipsis,
                                               maxLines: 2,
@@ -714,9 +698,9 @@ final userId = supabase.auth.currentUser!.id;
                                               IconButton(
                                                 icon: const Icon(Icons.edit, color: Colors.blue),
                                                 onPressed: () async {
-                                                  await showEditExpenseDialog(
+                                                  await showEditIncomeDialog(
                                                     context,
-                                                    exp,
+                                                    inc,
                                                     categories,
                                                     fetchData,
                                                   );
@@ -725,9 +709,9 @@ final userId = supabase.auth.currentUser!.id;
                                               IconButton(
                                                 icon: const Icon(Icons.delete, color: Colors.red),
                                                 onPressed: () async {
-                                                  await showDeleteExpenseDialog(
+                                                  await showDeleteIncomeDialog(
                                                     context,
-                                                    exp,
+                                                    inc,
                                                     fetchData,
                                                   );
                                                 },

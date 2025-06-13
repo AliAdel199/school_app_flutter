@@ -1,0 +1,13 @@
+ final userId = supabase.auth.currentUser!.id;
+
+    // جلب school_id من جدول profiles
+    final profileResponse = await supabase
+        .from('profiles')
+        .select('school_id')
+        .eq('id', userId)
+        .single();
+
+    if (profileResponse == null || profileResponse['school_id'] == null) {
+      throw Exception('لم يتم العثور على معرف المدرسة.');
+    }
+    final schoolId = profileResponse['school_id'];
