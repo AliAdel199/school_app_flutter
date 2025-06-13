@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:school_app_flutter/datamangermodel.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // شاشة إضافة أو تعديل طالب
@@ -377,7 +378,43 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
                               : SizedBox(
                                   width: double.infinity,
                                   child: ElevatedButton.icon(
-                                    onPressed: saveStudent,
+                                    onPressed: () async {
+                                      DataController dataController = DataController();
+                                      
+    final user = supabase.auth.currentUser;
+    final profile = await supabase.from('profiles').select('school_id').eq('id', user!.id).single();
+
+                                      dataController.addStudent({
+                                        // 'full_name': fullNameController.text.trim(),
+                                        // 'status': status,
+                                        // 'birth_date': birthDate,
+                                        // 'national_id': nationalIdController.text.trim(),
+                                        // 'class_id': selectedClassId,
+                                        // 'parent_name': parentNameController.text.trim(),
+                                        // 'parent_phone': parentPhoneController.text.trim(),
+                                        // 'address': addressController.text.trim(),
+                                        // 'email': emailController.text.trim(), 
+                                        // 'phone': phoneController.text.trim(),
+                                        // 'registration_year': registrationYearController.text.trim(),
+                                        
+                                             'school_id': profile['school_id'],
+      'full_name': fullNameController.text.trim(),
+      'gender': gender,
+      'birth_date': birthDate?.toIso8601String(),
+      'national_id': nationalIdController.text.trim(),
+      // 'student_id': annualFeeController.text.trim(),
+      'class_id': selectedClassId,
+      'parent_name': parentNameController.text.trim(),
+      'parent_phone': parentPhoneController.text.trim(),
+      'address': addressController.text.trim(),
+      'email': emailController.text.trim(),
+      'phone': phoneController.text.trim(),
+      'status': status,
+      'registration_year': registrationYearController.text.trim(),
+                                        
+                                      });
+                                      print('Student data saved successfully');
+                                    },
                                     icon: const Icon(Icons.save),
                                     label: const Text('حفظ الطالب'),
                                     style: ElevatedButton.styleFrom(
