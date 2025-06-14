@@ -2,9 +2,13 @@ import 'dart:typed_data';
 
 import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
+import 'package:isar/isar.dart';
 import 'package:printing/printing.dart';
+import 'package:school_app_flutter/localdatabase/StudentService.dart';
 import 'package:school_app_flutter/student/add_student_screen_supabase.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../localdatabase/student.dart';
+import '../main.dart';
 import 'edit_student_screen.dart';
 import 'delete_student_dialog.dart';
 import 'studentpaymentscreen.dart';
@@ -18,15 +22,15 @@ class StudentsListScreen extends StatefulWidget {
 
 class _StudentsListScreenState extends State<StudentsListScreen> {
   final supabase = Supabase.instance.client;
-  List<Map<String, dynamic>> students = [];
-  List<Map<String, dynamic>> filteredStudents = [];
+  List<Student> students = [];
+  List<Student> filteredStudents = [];
   bool isLoading = true;
   String searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    fetchStudents();
+    fetchStudentsFromIsar();
   }
 List<Map<String, dynamic>> classOptions = [];
 
@@ -34,28 +38,69 @@ List<Map<String, dynamic>> classOptions = [];
 String? selectedClassId;
 String? selectedStatus;
 
-void filterStudents() {
-  setState(() {
-    final query = searchQuery.toLowerCase();
 
+Future<void> fetchStudentsFromIsar() async {
+  setState(() => isLoading = true);
+  try {
+   StudentService studentService = StudentService(isar);
+    final isarStudents = await studentService.getAllStudents();
+    students = isarStudents;
     filteredStudents = students.where((student) {
-      final fullName = student['full_name']?.toString().toLowerCase() ?? '';
-      final studentId = student['id']?.toString().toLowerCase() ?? '';
-      final nationalId = student['national_id']?.toString().toLowerCase() ?? '';
-      final className = student['classes']?['name']?.toString();
-      final status = student['status']?.toString();
+      final fullName = student.fullName?.toLowerCase() ?? '';
+      final studentId = student.id?.toString().toLowerCase() ?? '';
+      final nationalId = student.nationalId?.toLowerCase() ?? '';
+      final className = student.classId?.toString();
+      final status = student.status?.toString();
 
-      final matchesQuery = fullName.contains(query) ||
-          studentId.contains(query) ||
-          nationalId.contains(query);
+      final matchesQuery = fullName.contains(searchQuery.toLowerCase()) ||
+          studentId.contains(searchQuery.toLowerCase()) ||
+          nationalId.contains(searchQuery.toLowerCase());
 
       final matchesClass = selectedClassId == null || selectedClassId == className;
       final matchesStatus = selectedStatus == null || selectedStatus == status;
 
       return matchesQuery && matchesClass && matchesStatus;
     }).toList();
-  });
+    filteredStudents.forEach((e) {
+  print( 'Student: ${e.fullName}, ID: ${e.serverId}, Class: ${e.classId}, Status: ${e.status}');
+    });
+    // تحويل الطلاب من Isar إلى Map<String, dynamic> لتسهيل التصفية
+    // filterStudents();
+  } catch (e) {
+    debugPrint('خطأ في جلب الطلاب من Isar: \n$e');
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('فشل تحميل الطلاب من Isar: \n\n$e')),
+      );
+    }
+  } finally {
+    if (mounted) {
+      setState(() => isLoading = false);
+    }
+  }
 }
+// void filterStudents() {
+//   setState(() {
+//     final query = searchQuery.toLowerCase();
+
+//     filteredStudents = students.where((student) {
+//       final fullName = student.fullName?.toLowerCase() ?? '';
+//       final studentId = student.id?.toString().toLowerCase() ?? '';
+//       final nationalId = student.nationalId?.toLowerCase() ?? '';
+//       final className = student.classId?.toString();
+//       final status = student.status?.toString();
+
+//       final matchesQuery = fullName.contains(query) ||
+//           studentId.contains(query) ||
+//           nationalId.contains(query);
+
+//       final matchesClass = selectedClassId == null || selectedClassId == className;
+//       final matchesStatus = selectedStatus == null || selectedStatus == status;
+
+//       return matchesQuery && matchesClass && matchesStatus;
+//     }).toList();
+//   });
+// }
 
 
 Future<void> exportToExcel() async {
@@ -81,21 +126,21 @@ sheet.appendRow([
 
 for (final student in filteredStudents) {
   sheet.appendRow([
-    TextCellValue(student['full_name'] ?? ''),
-    TextCellValue(student['national_id'] ?? ''),
-    TextCellValue(student['id'] ?? ''),
-    TextCellValue(student['gender'] ?? ''),
-    TextCellValue(student['birth_date']?.toString().split('T').first ?? ''),
-    TextCellValue(student['parent_name'] ?? ''),
-    TextCellValue(student['parent_phone'] ?? ''),
-    TextCellValue(student['phone'] ?? ''),
-    TextCellValue(student['email'] ?? ''),
-    TextCellValue(student['address'] ?? ''),
-    TextCellValue(student['classes']?['name'] ?? ''),
-    TextCellValue(student['status'] ?? ''),
-    TextCellValue(student['registration_year'] ?? ''),
-    TextCellValue(student['annual_fee']?.toString() ?? ''),
-    TextCellValue(student['created_at']?.toString().split('T').first ?? ''),
+    TextCellValue(student.fullName ?? ''),
+    TextCellValue(student.nationalId ?? ''),
+    TextCellValue(student.id?.toString() ?? ''),
+    TextCellValue(student.gender ?? ''),
+    TextCellValue(student.birthDate?.toString().split(' ').first ?? ''),
+    TextCellValue(student.parentName ?? ''),
+    TextCellValue(student.parentPhone ?? ''),
+    TextCellValue(student.phone ?? ''),
+    TextCellValue(student.email ?? ''),
+    TextCellValue(student.address ?? ''),
+    TextCellValue(student.classId ?? ''), // Ensure you have a className property or adjust accordingly
+    TextCellValue(student.status ?? ''),
+    TextCellValue(student.registrationYear?.toString() ?? ''),
+    TextCellValue(student.annualFee?.toString() ?? ''),
+    TextCellValue(student.createdAt?.toString().split(' ').first ?? ''),
   ]);
 }
 
@@ -113,46 +158,46 @@ for (final student in filteredStudents) {
 
 
 
-Future<void> fetchStudents() async {
-  setState(() => isLoading = true);
-  try {
-    final classRes = await supabase
-    .from('classes')
-    .select('id, name');
+// Future<void> fetchStudents() async {
+//   setState(() => isLoading = true);
+//   try {
+//     final classRes = await supabase
+//     .from('classes')
+//     .select('id, name');
 
-classOptions = List<Map<String, dynamic>>.from(classRes);
+// classOptions = List<Map<String, dynamic>>.from(classRes);
 
-    // جلب school_id من ملف التعريف للمستخدم الحالي
-    final profile = await supabase
-        .from('profiles')
-        .select('school_id')
-        .eq('id', supabase.auth.currentUser!.id)
-        .single();
+//     // جلب school_id من ملف التعريف للمستخدم الحالي
+//     final profile = await supabase
+//         .from('profiles')
+//         .select('school_id')
+//         .eq('id', supabase.auth.currentUser!.id)
+//         .single();
 
-    final schoolId = profile['school_id'];
+//     final schoolId = profile['school_id'];
 
-    // جلب الطلاب المرتبطين فقط بهذه المدرسة
- final res = await supabase
-    .from('students')
-    .select('*, classes(name)')
-    .eq('school_id', schoolId)
-    .order('full_name', ascending: true);
+//     // جلب الطلاب المرتبطين فقط بهذه المدرسة
+//  final res = await supabase
+//     .from('students')
+//     .select('*, classes(name)')
+//     .eq('school_id', schoolId)
+//     .order('full_name', ascending: true);
 
-    students = List<Map<String, dynamic>>.from(res);
-    filterStudents(); // لتطبيق البحث إذا كان هناك استعلام
-  } catch (e) {
-    debugPrint('خطأ في جلب الطلاب: \n$e');
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل تحميل الطلاب: \n\n$e')),
-      );
-    }
-  } finally {
-    if (mounted) {
-      setState(() => isLoading = false);
-    }
-  }
-}
+//     students = List<Map<String, dynamic>>.from(res);
+//     filterStudents(); // لتطبيق البحث إذا كان هناك استعلام
+//   } catch (e) {
+//     debugPrint('خطأ في جلب الطلاب: \n$e');
+//     if (mounted) {
+//       ScaffoldMessenger.of(context).showSnackBar(
+//         SnackBar(content: Text('فشل تحميل الطلاب: \n\n$e')),
+//       );
+//     }
+//   } finally {
+//     if (mounted) {
+//       setState(() => isLoading = false);
+//     }
+//   }
+// }
 
   Color getStatusColor(String status) {
     switch (status) {
@@ -178,7 +223,7 @@ classOptions = List<Map<String, dynamic>>.from(classRes);
           IconButton(
             onPressed: () {
               Navigator.pushNamed(context, '/add-student')
-                  .then((_) => fetchStudents());
+                  .then((_) => fetchStudentsFromIsar());
             },
             icon: const Icon(Icons.add),
             tooltip: 'إضافة طالب',
@@ -323,7 +368,7 @@ classOptions = List<Map<String, dynamic>>.from(classRes);
             onChanged: (val) {
               setState(() {
                 selectedClassId = val;
-                filterStudents();
+                fetchStudentsFromIsar();
               });
             },
             items: [
@@ -355,7 +400,7 @@ classOptions = List<Map<String, dynamic>>.from(classRes);
                       ),
                       onChanged: (val) {
                         searchQuery = val;
-                        filterStudents();
+                        fetchStudentsFromIsar();
                       },
                     ),
                   ),
@@ -368,7 +413,7 @@ classOptions = List<Map<String, dynamic>>.from(classRes);
             onChanged: (val) {
               setState(() {
                 selectedStatus = val;
-                filterStudents();
+                fetchStudentsFromIsar();
               });
             },
             items: const [
@@ -438,9 +483,9 @@ classOptions = List<Map<String, dynamic>>.from(classRes);
                                           MaterialPageRoute(
                                             builder: (_) => StudentPaymentsScreen(
                                               student: {
-                                                'id': student['id'],
-                                                'full_name': student['full_name'],
-                                                'annual_fee': student['annual_fee'],
+                                                'id': student.id,
+                                                'full_name': student.fullName,
+                                                'annual_fee': student.annualFee,
                                               },
                                             ),
                                           ),
@@ -456,11 +501,11 @@ classOptions = List<Map<String, dynamic>>.from(classRes);
                                           context,
                                           MaterialPageRoute(
                                             builder: (_) => AddEditStudentScreen(
-                                              student: student,
+                                              student: student
                                             ),
                                           ),
                                         );
-                                        fetchStudents(); // إعادة تحميل بعد التعديل
+                                        fetchStudentsFromIsar(); // إعادة تحميل بعد التعديل
                                       },
                                       icon: const Icon(Icons.edit, size: 20),
                                       label: const Text('تعديل'),
@@ -471,7 +516,7 @@ classOptions = List<Map<String, dynamic>>.from(classRes);
                                         await showDeleteStudentDialog(
                                           context,
                                           student,
-                                          fetchStudents,
+                                          fetchStudentsFromIsar,
                                         );
                                       },
                                       icon: const Icon(Icons.delete, size: 20),
@@ -495,13 +540,13 @@ classOptions = List<Map<String, dynamic>>.from(classRes);
     );
   }
 
-  List<Widget> _buildStudentInfo(Map<String, dynamic> student) {
+  List<Widget> _buildStudentInfo(Student student) {
     return [
       // استخدم Flexible بدل Expanded أو فقط Text إذا لم تكن داخل Row
       Flexible(
         flex: 3,
         child: Text(
-          student['full_name'],
+          student.fullName ?? '',
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           overflow: TextOverflow.ellipsis,
         ),
@@ -509,14 +554,14 @@ classOptions = List<Map<String, dynamic>>.from(classRes);
       Flexible(
         flex: 2,
         child: Text(
-          'الصف: ${student['classes']?['name'] ?? '-'}',
+          'الصف: ${student.classId ?? '-'}',
           overflow: TextOverflow.ellipsis,
         ),
       ),
       Flexible(
         flex: 2,
         child: Text(
-          'الهوية: ${student['national_id'] ?? '-'}',
+          'الهوية: ${student.nationalId ?? '-'}',
           overflow: TextOverflow.ellipsis,
         ),
       ),
@@ -524,9 +569,9 @@ classOptions = List<Map<String, dynamic>>.from(classRes);
         child: Align(
           alignment: Alignment.centerRight,
           child: Chip(
-            label: Text(student['status']),
-            backgroundColor: getStatusColor(student['status']).withOpacity(0.2),
-            labelStyle: TextStyle(color: getStatusColor(student['status'])),
+            label: Text(student.status ?? ''),
+            backgroundColor: getStatusColor(student.status ?? '').withOpacity(0.2),
+            labelStyle: TextStyle(color: getStatusColor(student.status ?? '')),
           ),
         ),
       ),

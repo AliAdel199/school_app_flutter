@@ -1,14 +1,21 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:isar/isar.dart';
 import 'package:school_app_flutter/datamangermodel.dart';
+import 'package:school_app_flutter/localdatabase/StudentService.dart';
+import 'package:school_app_flutter/main.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../localdatabase/student.dart';
 
 // شاشة إضافة أو تعديل طالب
 class AddEditStudentScreen extends StatefulWidget {
-  final Map<String, dynamic>? student;
+  Student? student;
 
   // إذا تم تمرير student، سيتم تعديل بياناته، وإلا سيتم إضافة طالب جديد
-  const AddEditStudentScreen({super.key, this.student});
+   AddEditStudentScreen({super.key, this.student});
 
   @override
   State<AddEditStudentScreen> createState() => _AddEditStudentScreenState();
@@ -67,26 +74,26 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
     // إذا كان هناك طالب موجود، قم بملء الحقول  
     if (widget.student != null) {
       final s = widget.student!;
-      fullNameController.text = s['full_name'] ?? '';
-      nationalIdController.text = s['national_id'] ?? '';
-      // annualFeeController.text = s['student_id'] ?? '';
-      parentNameController.text = s['parent_name'] ?? '';
-      parentPhoneController.text = s['parent_phone'] ?? '';
-      addressController.text = s['address'] ?? '';
-      emailController.text = s['email'] ?? '';
-      phoneController.text = s['phone'] ?? '';
-      registrationYearController.text = s['registration_year'] ?? '';
-      gender = s['gender'] ?? 'male';
-      status = s['status'] ?? 'active';
-      selectedClassId = s['class_id'];
-      if (s['birth_date'] != null) {
-        birthDate = DateTime.tryParse(s['birth_date']);
+      fullNameController.text = s.fullName ?? '';
+      nationalIdController.text = s.nationalId ?? '';
+      // annualFeeController.text = s.studentId ?? '';
+      parentNameController.text = s.parentName ?? '';
+      parentPhoneController.text = s.parentPhone ?? '';
+      addressController.text = s.address ?? '';
+      emailController.text = s.email ?? '';
+      phoneController.text = s.phone ?? '';
+      registrationYearController.text = s.registrationYear ?? '';
+      gender = s.gender ?? 'male';
+      status = s.status ?? 'active';
+      selectedClassId = s.classId;
+      if (s.birthDate != null) {
+        birthDate = DateTime.tryParse(s.birthDate!);
       }
     }
   }
 
   // إنشاء سجل حالة القسط إذا لم يكن موجودًا
-  Future<void> createFeeStatusIfNotExists({
+  Future<String?> createFeeStatusIfNotExists({
     required String studentId,
     required String academicYear,
   }) async {
@@ -100,7 +107,7 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
         .eq('academic_year', academicYear)
         .maybeSingle();
 
-    if (existing != null) return; // موجود مسبقًا
+    if (existing != null) return existing['id']?.toString(); // موجود مسبقًا
 
     // جلب الصف الخاص بالطالب
     final student = await supabase
@@ -123,14 +130,16 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
     final fee = (classData?['annual_fee'] ?? 0) as num;
 
     // إدراج سجل جديد
-    await supabase.from('student_fee_status').insert({
+    final insertResult = await supabase.from('student_fee_status').insert({
       'student_id': studentId,
       'academic_year': academicYear,
       'annual_fee': fee.toDouble(),
       'paid_amount': 0,
       'due_amount': fee.toDouble(),
       'next_due_date': DateTime.now().add(const Duration(days: 30)).toIso8601String(),
-    });
+    }).select('id').single();
+
+    return insertResult['id']?.toString();
   }
 
   // قائمة المراحل الدراسية
@@ -180,11 +189,15 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
         final insertResult = await supabase.from('students').insert(studentData).select('id').single();
         final studentId = insertResult['id'];
         print( 'Inserted student ID: $studentId');
-        createFeeStatusIfNotExists(studentId: studentId, academicYear: registrationYearController.text.trim());
+        final feeStatusId = await createFeeStatusIfNotExists(
+          studentId: studentId,
+          academicYear: registrationYearController.text.trim(),
+        );
+        print('Created/Found fee status ID: $feeStatusId');
         
       } else {
         // تعديل بيانات طالب موجود
-        await supabase.from('students').update(studentData).eq('id', widget.student!['id']);
+        await supabase.from('students').update(studentData).eq('id', widget.student!.id);
       }
       Navigator.pop(context);
     } catch (e) {
@@ -379,42 +392,75 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
                                   width: double.infinity,
                                   child: ElevatedButton.icon(
                                     onPressed: () async {
-                                      DataController dataController = DataController();
-                                      
-    final user = supabase.auth.currentUser;
-    final profile = await supabase.from('profiles').select('school_id').eq('id', user!.id).single();
+                                        DataController dataController = DataController();
+final storage = StudentService(isar);
+if (!formKey.currentState!.validate()) return;
+if(widget.student == null) {
+  // إضافة طالب جديد    
+  storage.addStudent(student:  Student()
+..address=addressController.text.trim()
+..gender=gender
+..annualFee=annualFee.toInt()
 
-                                      dataController.addStudent({
-                                        // 'full_name': fullNameController.text.trim(),
-                                        // 'status': status,
-                                        // 'birth_date': birthDate,
-                                        // 'national_id': nationalIdController.text.trim(),
-                                        // 'class_id': selectedClassId,
-                                        // 'parent_name': parentNameController.text.trim(),
-                                        // 'parent_phone': parentPhoneController.text.trim(),
-                                        // 'address': addressController.text.trim(),
-                                        // 'email': emailController.text.trim(), 
-                                        // 'phone': phoneController.text.trim(),
-                                        // 'registration_year': registrationYearController.text.trim(),
-                                        
-                                             'school_id': profile['school_id'],
-      'full_name': fullNameController.text.trim(),
-      'gender': gender,
-      'birth_date': birthDate?.toIso8601String(),
-      'national_id': nationalIdController.text.trim(),
-      // 'student_id': annualFeeController.text.trim(),
-      'class_id': selectedClassId,
-      'parent_name': parentNameController.text.trim(),
-      'parent_phone': parentPhoneController.text.trim(),
-      'address': addressController.text.trim(),
-      'email': emailController.text.trim(),
-      'phone': phoneController.text.trim(),
-      'status': status,
-      'registration_year': registrationYearController.text.trim(),
-                                        
-                                      });
-                                      print('Student data saved successfully');
-                                    },
+..status=status
+..birthDate=birthDate?.toIso8601String()
+..classId=selectedClassId
+..email=emailController.text.trim() 
+..fullName=fullNameController.text.trim()
+..nationalId=nationalIdController.text.trim()
+..parentName=parentNameController.text.trim() 
+..parentPhone=parentPhoneController.text.trim()
+..phone=phoneController.text.trim()
+..registrationYear=registrationYearController.text.trim()
+..createdAt=DateTime.now(),context: context
+ 
+);
+
+fullNameController.clear();
+nationalIdController.clear();
+annualFeeController.clear();
+parentNameController.clear();
+parentPhoneController.clear();
+addressController.clear();
+emailController.clear();
+phoneController.clear();
+registrationYearController.clear();
+setState(() {
+  gender = 'male';
+  status = 'active';
+  birthDate = null;
+  selectedClassId = null;
+  selectedGradeId = null;
+  annualFee = 0;
+});}else {
+  Student student=widget.student!;
+  student
+..address = addressController.text.trim()
+..fullName = fullNameController.text.trim()
+..gender = gender
+..annualFee = annualFee.toInt()
+..status = status
+..birthDate = birthDate?.toIso8601String()
+..classId = selectedClassId
+..email = emailController.text.trim()
+..nationalId = nationalIdController.text.trim()
+..parentName = parentNameController.text.trim()
+..parentPhone = parentPhoneController.text.trim()
+..phone = phoneController.text.trim()
+// استخدام ID الطالب الموجود
+..registrationYear = registrationYearController.text.trim();
+  // تعديل بيانات طالب موجود  
+
+
+  storage.updateStudent(
+    student: student,
+// ..id = widget.student!['id'] // استخدام ID الطالب الموجود
+
+  context: context,
+  );
+  // print( 'تم تحديث بيانات الطالب بنجاح' );
+}
+},
                                     icon: const Icon(Icons.save),
                                     label: const Text('حفظ الطالب'),
                                     style: ElevatedButton.styleFrom(

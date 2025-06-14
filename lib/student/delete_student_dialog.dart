@@ -1,15 +1,18 @@
 
 import 'package:flutter/material.dart';
+import 'package:school_app_flutter/localdatabase/StudentService.dart';
+import 'package:school_app_flutter/localdatabase/student.dart';
+import 'package:school_app_flutter/main.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-Future<void> showDeleteStudentDialog(BuildContext context, Map<String, dynamic> student, VoidCallback onDeleted) async {
+Future<void> showDeleteStudentDialog(BuildContext context, Student student, VoidCallback onDeleted) async {
   final supabase = Supabase.instance.client;
 
   showDialog(
     context: context,
     builder: (context) => AlertDialog(
       title: const Text('تأكيد الحذف'),
-      content: Text('هل أنت متأكد من حذف الطالب: ${student['full_name']}؟'),
+      content: Text('هل أنت متأكد من حذف الطالب: ${student.fullName}؟'),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
@@ -21,10 +24,12 @@ Future<void> showDeleteStudentDialog(BuildContext context, Map<String, dynamic> 
           style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
           onPressed: () async {
             try {
-              await supabase
-                  .from('students')
-                  .delete()
-                  .eq('id', student['id']);
+              // await supabase
+              //     .from('students')
+              //     .delete()
+              //     .eq('id', student['id']);
+              StudentService storage = StudentService(isar);
+              await storage.deleteStudent(student.id);
 
               Navigator.pop(context); // إغلاق الحوار
               onDeleted(); // إعادة تحميل البيانات

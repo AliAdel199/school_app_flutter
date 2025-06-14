@@ -1,6 +1,10 @@
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:isar/isar.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:school_app_flutter/employee/employee_list_screen.dart';
 import 'package:school_app_flutter/income_expeness/incomes.dart';
 import 'package:school_app_flutter/reports/classes_list_screen.dart';
@@ -8,6 +12,7 @@ import 'package:school_app_flutter/reports/reportsscreen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'income_expeness/ExpenseListScreen.dart';
 import 'income_expeness/addexpenesscreen.dart';
+import 'localdatabase/student.dart';
 import 'reports/SalaryReportScreen.dart';
 import 'employee/add_edit_employee.dart';
 import 'employee/monthlysalaryscreen.dart';
@@ -21,14 +26,20 @@ import 'student/studentpaymentscreen.dart';
 import 'student/students_list_screen_supabase.dart';
 import 'reports/subjectslistscreen.dart';
 
+late Isar isar; // تعريف متغير Isar عالمي يمكن استخدامه في أي مكان
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-    await initializeDateFormatting('ar', null); // ← هذا السطر الجديد
+  await initializeDateFormatting('ar', null); // ← هذا السطر الجديد
 
   await Supabase.initialize(
     url: 'https://lhzujcquhgxhsmmjwgdq.supabase.co',
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoenVqY3F1aGd4aHNtbWp3Z2RxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU4MjQ4NjQsImV4cCI6MjA2MTQwMDg2NH0.u7qPHRu_TdmNjPQJhMeXMZVI37xJs8IoX5Dcrg7fxV8',
+  );
+  final dir = Directory.current;
+  isar = await Isar.open(
+    [StudentSchema], // أضف جميع الشيفات هنا
+    directory: dir.path,
   );
 
   runApp(const SchoolApp());
@@ -57,7 +68,7 @@ class SchoolApp extends StatelessWidget {
         '/': (context) => const LoginScreen(),
         '/dashboard': (context) => const DashboardScreen(),
         '/students': (context) => const StudentsListScreen(),
-        '/add-student': (context) => const AddEditStudentScreen(),
+        '/add-student': (context) =>  AddEditStudentScreen(),
         '/classes': (context) => const ClassesListScreen(),
         '/add-class': (context) => const AddClassScreen(),
         '/edit-class': (context) => EditClassScreen(
