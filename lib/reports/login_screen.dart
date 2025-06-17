@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../auth_service.dart';
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -16,6 +18,38 @@ class _LoginScreenState extends State<LoginScreen> {
   final passwordController = TextEditingController();
   bool isLoading = false;
   String? errorText;
+
+Future<void> loginIsar() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      isLoading = true;
+      errorText = null;
+    });
+
+    try {
+      final user = await loginUser(
+         emailController.text.trim(),
+         passwordController.text.trim(),
+      );
+
+      if (user != null) {
+        Navigator.pushReplacementNamed(context, '/dashboard');
+      } else {
+        setState(() {
+          errorText = 'البريد الإلكتروني أو كلمة المرور غير صحيحة';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        errorText = 'حدث خطأ غير متوقع، حاول مرة أخرى.';
+      });
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
 
   Future<void> login() async {
     if (!_formKey.currentState!.validate()) return;
@@ -111,7 +145,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: isLoading ? null : login,
+                              onPressed: isLoading ? null : loginIsar,
                               style: ElevatedButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(vertical: 14),
                                 shape: RoundedRectangleBorder(

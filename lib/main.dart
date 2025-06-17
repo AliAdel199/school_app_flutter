@@ -4,11 +4,14 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:isar/isar.dart';
+import 'package:school_app_flutter/localdatabase/log.dart';
+import 'package:school_app_flutter/localdatabase/user.dart';
 import '../employee/employee_list_screen.dart';
 import '../income_expeness/incomes.dart';
 import '../reports/classes_list_screen.dart';
 import '../reports/reportsscreen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'UsersScreen.dart';
 import 'income_expeness/ExpenseListScreen.dart';
 import 'income_expeness/addexpenesscreen.dart';
 import 'localdatabase/class.dart';
@@ -52,6 +55,8 @@ Future<void> main() async {
     GradeSchema,
     SchoolSchema,
     SubjectSchema,
+    UserSchema,
+    LogSchema
   ], directory: dir.path);
 
   runApp(const SchoolApp());
@@ -102,7 +107,8 @@ class SchoolApp extends StatelessWidget {
         '/add-expense': (context) => AddEditExpenseScreen(
           expense: ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?,
         ),
-        '/income': (context) => const IncomesListScreen()
+        '/income': (context) => const IncomesListScreen(),
+        '/user-screen': (context) => const UsersScreen(),
       },
 
     );
