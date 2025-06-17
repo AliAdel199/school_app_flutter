@@ -2,13 +2,14 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:isar/isar.dart';
-import 'package:school_app_flutter/datamangermodel.dart';
-import 'package:school_app_flutter/localdatabase/StudentService.dart';
+
+// import 'package:school_app_flutter/localdatabase/students/StudentService.dart';
 import 'package:school_app_flutter/main.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../localdatabase/class.dart';
 import '../localdatabase/student.dart';
+import '../localdatabase/student_fee_status.dart';
 
 // شاشة إضافة أو تعديل طالب
 class AddEditStudentScreen extends StatefulWidget {
@@ -48,6 +49,114 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
   List<Map<String, dynamic>> classes = [];
   double annualFee = 0;
   
+
+  
+  // دالة لتحديث بيانات الطالب في Isar بنفس ترتيب الحقول
+  Future<void> updateStudentDataIsar(Student student) async {
+    if (!formKey.currentState!.validate()) return;
+    setState(() => isLoading = true);
+
+    try {
+      await isar.writeTxn(() async {
+        student
+          ..fullName = fullNameController.text.trim()
+          ..gender = gender
+          ..birthDate = birthDate
+          ..nationalId = nationalIdController.text.trim()
+          ..parentName = parentNameController.text.trim()
+          ..parentPhone = parentPhoneController.text.trim()
+          ..address = addressController.text.trim()
+          ..email = emailController.text.trim()
+          ..phone = phoneController.text.trim()
+          ..status = status
+          ..registrationYear = registrationYearController.text.trim()
+          ..annualFee = double.tryParse(annualFeeController.text.trim()) ?? 0;
+
+        // تحديث الصف المرتبط إذا تغير
+        if (selectedClassId != null) {
+          final classId = int.tryParse(selectedClassId!);
+          if (classId != null) {
+            final schoolClass = await isar.schoolClass.get(classId);
+            if (schoolClass != null) {
+              student.schoolclass.value = schoolClass;
+            }
+          }
+        }
+
+        await isar.students.put(student);
+        await student.schoolclass.save();
+      });
+      Navigator.pop(context);
+    } catch (e) {
+      debugPrint('Error updating student in Isar: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('خطأ أثناء تحديث بيانات الطالب: $e')),
+      );
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+  // إضافة طالب جديد مع ربط الصف والقسط وكافة التفاصيل في Isar
+  Future<void> addStudentWithRelationsIsar() async {
+    if (!formKey.currentState!.validate()) return;
+    setState(() => isLoading = true);
+
+    try {
+      // جلب الصف المختار من Isar
+      final classId = int.tryParse(selectedClassId ?? '');
+      final schoolClass = classId != null ? await isar.schoolClass.get(classId) : null;
+      final fee = schoolClass?.annualFee ?? 0.0;
+
+      // إنشاء الطالب وربط الصف
+      final student = Student()
+        ..fullName = fullNameController.text.trim()
+        ..gender = gender
+        ..birthDate = birthDate
+        ..nationalId = nationalIdController.text.trim()
+        ..parentName = parentNameController.text.trim()
+        ..parentPhone = parentPhoneController.text.trim()
+        ..address = addressController.text.trim()
+        ..email = emailController.text.trim()
+        ..phone = phoneController.text.trim()
+        ..status = status
+        ..registrationYear = registrationYearController.text.trim()
+        ..annualFee = fee
+        ..createdAt = DateTime.now();
+
+      // ربط الصف بالطالب
+      if (schoolClass != null) {
+        student.schoolclass.value = schoolClass;
+      }
+
+      // إنشاء سجل حالة القسط وربطه بالطالب
+      final feeStatus = StudentFeeStatus()
+        ..academicYear = registrationYearController.text.trim()
+        ..annualFee = fee
+        ..paidAmount = 0
+        ..dueAmount = fee
+        ..nextDueDate = DateTime.now().add(const Duration(days: 30));
+
+      // ربط حالة القسط بالطالب
+      student.feeStatus.value = feeStatus;
+
+      // حفظ الطالب وحالة القسط في معاملة واحدة
+      await isar.writeTxn(() async {
+        await isar.students.put(student);
+        await isar.studentFeeStatus.put(feeStatus);
+        await student.schoolclass.save();
+        await student.feeStatus.save();
+      });
+
+      Navigator.pop(context);
+    } catch (e) {
+      debugPrint('Error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('خطأ أثناء إضافة الطالب: $e')),
+      );
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
   // جلب قائمة الصفوف من قاعدة البيانات
   Future<void> fetchClasses() async {
     final result = await supabase.from('classes').select('id, name, annual_fee').order('name');
@@ -76,7 +185,6 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
       final s = widget.student!;
       fullNameController.text = s.fullName ?? '';
       nationalIdController.text = s.nationalId ?? '';
-      // annualFeeController.text = s.studentId ?? '';
       parentNameController.text = s.parentName ?? '';
       parentPhoneController.text = s.parentPhone ?? '';
       addressController.text = s.address ?? '';
@@ -85,10 +193,19 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
       registrationYearController.text = s.registrationYear ?? '';
       gender = s.gender ?? 'male';
       status = s.status ?? 'active';
-      selectedClassId = s.classId;
-      if (s.birthDate != null) {
-        birthDate = DateTime.tryParse(s.birthDate!);
+      // ربط الصف المختار
+      if (s.schoolclass.value != null) {
+      selectedClassId = s.schoolclass.value!.id.toString();
+      annualFee = s.schoolclass.value!.annualFee ?? 0;
+      annualFeeController.text = annualFee.toString();
+      } else {
+      annualFeeController.text = (s.annualFee ?? 0).toString();
       }
+      // ربط المرحلة الدراسية إذا كانت موجودة
+      if (s.schoolclass.value?.grade.value != null) {
+      selectedGradeId = s.schoolclass.value!.grade.value!.id.toString();
+      }
+      birthDate = s.birthDate;
     }
   }
 
@@ -392,74 +509,77 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
                                   width: double.infinity,
                                   child: ElevatedButton.icon(
                                     onPressed: () async {
-                                        DataController dataController = DataController();
-final storage = StudentService(isar);
-if (!formKey.currentState!.validate()) return;
-if(widget.student == null) {
-  // إضافة طالب جديد    
-  storage.addStudent(student:  Student()
-..address=addressController.text.trim()
-..gender=gender
-..annualFee=annualFee.toInt()
 
-..status=status
-..birthDate=birthDate?.toIso8601String()
-..classId=selectedClassId
-..email=emailController.text.trim() 
-..fullName=fullNameController.text.trim()
-..nationalId=nationalIdController.text.trim()
-..parentName=parentNameController.text.trim() 
-..parentPhone=parentPhoneController.text.trim()
-..phone=phoneController.text.trim()
-..registrationYear=registrationYearController.text.trim()
-..createdAt=DateTime.now(),context: context
+                                      addStudentWithRelationsIsar();
+                                     
+//                                         DataController dataController = DataController();
+// final storage = StudentService(isar);
+// if (!formKey.currentState!.validate()) return;
+// if(widget.student == null) {
+//   // إضافة طالب جديد    
+//   storage.addStudent(student:  Student()
+// ..address=addressController.text.trim()
+// ..gender=gender
+// ..annualFee=annualFee.toInt()
+
+// ..status=status
+// ..birthDate=birthDate?.toIso8601String()
+// ..classId=selectedClassId
+// ..email=emailController.text.trim() 
+// ..fullName=fullNameController.text.trim()
+// ..nationalId=nationalIdController.text.trim()
+// ..parentName=parentNameController.text.trim() 
+// ..parentPhone=parentPhoneController.text.trim()
+// ..phone=phoneController.text.trim()
+// ..registrationYear=registrationYearController.text.trim()
+// ..createdAt=DateTime.now(),context: context
  
-);
+// );
 
-fullNameController.clear();
-nationalIdController.clear();
-annualFeeController.clear();
-parentNameController.clear();
-parentPhoneController.clear();
-addressController.clear();
-emailController.clear();
-phoneController.clear();
-registrationYearController.clear();
-setState(() {
-  gender = 'male';
-  status = 'active';
-  birthDate = null;
-  selectedClassId = null;
-  selectedGradeId = null;
-  annualFee = 0;
-});}else {
-  Student student=widget.student!;
-  student
-..address = addressController.text.trim()
-..fullName = fullNameController.text.trim()
-..gender = gender
-..annualFee = annualFee.toInt()
-..status = status
-..birthDate = birthDate?.toIso8601String()
-..classId = selectedClassId
-..email = emailController.text.trim()
-..nationalId = nationalIdController.text.trim()
-..parentName = parentNameController.text.trim()
-..parentPhone = parentPhoneController.text.trim()
-..phone = phoneController.text.trim()
-// استخدام ID الطالب الموجود
-..registrationYear = registrationYearController.text.trim();
-  // تعديل بيانات طالب موجود  
+// fullNameController.clear();
+// nationalIdController.clear();
+// annualFeeController.clear();
+// parentNameController.clear();
+// parentPhoneController.clear();
+// addressController.clear();
+// emailController.clear();
+// phoneController.clear();
+// registrationYearController.clear();
+// setState(() {
+//   gender = 'male';
+//   status = 'active';
+//   birthDate = null;
+//   selectedClassId = null;
+//   selectedGradeId = null;
+//   annualFee = 0;
+// });}else {
+//   Student student=widget.student!;
+//   student
+// ..address = addressController.text.trim()
+// ..fullName = fullNameController.text.trim()
+// ..gender = gender
+// ..annualFee = annualFee.toInt()
+// ..status = status
+// ..birthDate = birthDate?.toIso8601String()
+// ..classId = selectedClassId
+// ..email = emailController.text.trim()
+// ..nationalId = nationalIdController.text.trim()
+// ..parentName = parentNameController.text.trim()
+// ..parentPhone = parentPhoneController.text.trim()
+// ..phone = phoneController.text.trim()
+// // استخدام ID الطالب الموجود
+// ..registrationYear = registrationYearController.text.trim();
+//   // تعديل بيانات طالب موجود  
 
 
-  storage.updateStudent(
-    student: student,
-// ..id = widget.student!['id'] // استخدام ID الطالب الموجود
+//   storage.updateStudent(
+//     student: student,
+// // ..id = widget.student!['id'] // استخدام ID الطالب الموجود
 
-  context: context,
-  );
-  // print( 'تم تحديث بيانات الطالب بنجاح' );
-}
+//   context: context,
+//   );
+//   // print( 'تم تحديث بيانات الطالب بنجاح' );
+// }
 },
                                     icon: const Icon(Icons.save),
                                     label: const Text('حفظ الطالب'),

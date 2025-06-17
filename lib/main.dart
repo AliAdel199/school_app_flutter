@@ -4,15 +4,20 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:isar/isar.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:school_app_flutter/employee/employee_list_screen.dart';
-import 'package:school_app_flutter/income_expeness/incomes.dart';
-import 'package:school_app_flutter/reports/classes_list_screen.dart';
-import 'package:school_app_flutter/reports/reportsscreen.dart';
+import '../employee/employee_list_screen.dart';
+import '../income_expeness/incomes.dart';
+import '../reports/classes_list_screen.dart';
+import '../reports/reportsscreen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'income_expeness/ExpenseListScreen.dart';
 import 'income_expeness/addexpenesscreen.dart';
+import 'localdatabase/class.dart';
+import 'localdatabase/grade.dart';
+import 'localdatabase/school.dart';
 import 'localdatabase/student.dart';
+import 'localdatabase/student_fee_status.dart';
+import 'localdatabase/student_payment.dart';
+import 'localdatabase/subject.dart';
 import 'reports/SalaryReportScreen.dart';
 import 'employee/add_edit_employee.dart';
 import 'employee/monthlysalaryscreen.dart';
@@ -27,6 +32,8 @@ import 'student/students_list_screen_supabase.dart';
 import 'reports/subjectslistscreen.dart';
 
 late Isar isar; // تعريف متغير Isar عالمي يمكن استخدامه في أي مكان
+bool isCloud = true; // تحديد ما إذا كان التطبيق يعمل في بيئة سحابية
+
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,10 +44,15 @@ Future<void> main() async {
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoenVqY3F1aGd4aHNtbWp3Z2RxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU4MjQ4NjQsImV4cCI6MjA2MTQwMDg2NH0.u7qPHRu_TdmNjPQJhMeXMZVI37xJs8IoX5Dcrg7fxV8',
   );
   final dir = Directory.current;
-  isar = await Isar.open(
-    [StudentSchema], // أضف جميع الشيفات هنا
-    directory: dir.path,
-  );
+  isar = await Isar.open([
+    StudentSchema,
+    StudentPaymentSchema,
+    StudentFeeStatusSchema,
+    SchoolClassSchema,
+    GradeSchema,
+    SchoolSchema,
+    SubjectSchema,
+  ], directory: dir.path);
 
   runApp(const SchoolApp());
 }

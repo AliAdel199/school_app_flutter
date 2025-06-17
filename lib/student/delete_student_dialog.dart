@@ -1,6 +1,6 @@
 
 import 'package:flutter/material.dart';
-import 'package:school_app_flutter/localdatabase/StudentService.dart';
+// import 'package:school_app_flutter/localdatabase/students/StudentService.dart';
 import 'package:school_app_flutter/localdatabase/student.dart';
 import 'package:school_app_flutter/main.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -23,25 +23,25 @@ Future<void> showDeleteStudentDialog(BuildContext context, Student student, Void
           label: const Text('حذف'),
           style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
           onPressed: () async {
-            try {
-              // await supabase
-              //     .from('students')
-              //     .delete()
-              //     .eq('id', student['id']);
-              StudentService storage = StudentService(isar);
-              await storage.deleteStudent(student.id);
+            // try {
+            //   // await supabase
+            //   //     .from('students')
+            //   //     .delete()
+            //   //     .eq('id', student['id']);
+            //   StudentService storage = StudentService(isar);
+            //   await storage.deleteStudent(student.id);
 
-              Navigator.pop(context); // إغلاق الحوار
-              onDeleted(); // إعادة تحميل البيانات
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('تم حذف الطالب بنجاح')),
-              );
-            } catch (e) {
-              debugPrint('Delete error: \n\n$e');
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('فشل في الحذف: \n\n$e')),
-              );
-            }
+            //   Navigator.pop(context); // إغلاق الحوار
+            //   onDeleted(); // إعادة تحميل البيانات
+            //   ScaffoldMessenger.of(context).showSnackBar(
+            //     const SnackBar(content: Text('تم حذف الطالب بنجاح')),
+            //   );
+            // } catch (e) {
+            //   debugPrint('Delete error: \n\n$e');
+            //   ScaffoldMessenger.of(context).showSnackBar(
+            //     SnackBar(content: Text('فشل في الحذف: \n\n$e')),
+            //   );
+            // }
           },
         ),
       ],

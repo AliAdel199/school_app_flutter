@@ -25,80 +25,60 @@ const StudentSchema = CollectionSchema(
     r'annualFee': PropertySchema(
       id: 1,
       name: r'annualFee',
-      type: IsarType.long,
+      type: IsarType.double,
     ),
     r'birthDate': PropertySchema(
       id: 2,
       name: r'birthDate',
-      type: IsarType.string,
-    ),
-    r'classId': PropertySchema(
-      id: 3,
-      name: r'classId',
-      type: IsarType.string,
+      type: IsarType.dateTime,
     ),
     r'createdAt': PropertySchema(
-      id: 4,
+      id: 3,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
-    r'currentFeeStatusId': PropertySchema(
-      id: 5,
-      name: r'currentFeeStatusId',
-      type: IsarType.string,
-    ),
     r'email': PropertySchema(
-      id: 6,
+      id: 4,
       name: r'email',
       type: IsarType.string,
     ),
     r'fullName': PropertySchema(
-      id: 7,
+      id: 5,
       name: r'fullName',
       type: IsarType.string,
     ),
     r'gender': PropertySchema(
-      id: 8,
+      id: 6,
       name: r'gender',
       type: IsarType.string,
     ),
     r'nationalId': PropertySchema(
-      id: 9,
+      id: 7,
       name: r'nationalId',
       type: IsarType.string,
     ),
     r'parentName': PropertySchema(
-      id: 10,
+      id: 8,
       name: r'parentName',
       type: IsarType.string,
     ),
     r'parentPhone': PropertySchema(
-      id: 11,
+      id: 9,
       name: r'parentPhone',
       type: IsarType.string,
     ),
     r'phone': PropertySchema(
-      id: 12,
+      id: 10,
       name: r'phone',
       type: IsarType.string,
     ),
     r'registrationYear': PropertySchema(
-      id: 13,
+      id: 11,
       name: r'registrationYear',
       type: IsarType.string,
     ),
-    r'schoolId': PropertySchema(
-      id: 14,
-      name: r'schoolId',
-      type: IsarType.string,
-    ),
-    r'serverId': PropertySchema(
-      id: 15,
-      name: r'serverId',
-      type: IsarType.string,
-    ),
     r'status': PropertySchema(
-      id: 16,
+      id: 12,
       name: r'status',
       type: IsarType.string,
     )
@@ -109,7 +89,26 @@ const StudentSchema = CollectionSchema(
   deserializeProp: _studentDeserializeProp,
   idName: r'id',
   indexes: {},
-  links: {},
+  links: {
+    r'payments': LinkSchema(
+      id: 2239160336485532004,
+      name: r'payments',
+      target: r'StudentPayment',
+      single: false,
+    ),
+    r'feeStatus': LinkSchema(
+      id: -6975049165102952333,
+      name: r'feeStatus',
+      target: r'StudentFeeStatus',
+      single: true,
+    ),
+    r'schoolclass': LinkSchema(
+      id: 3019866641619462384,
+      name: r'schoolclass',
+      target: r'SchoolClass',
+      single: true,
+    )
+  },
   embeddedSchemas: {},
   getId: _studentGetId,
   getLinks: _studentGetLinks,
@@ -125,24 +124,6 @@ int _studentEstimateSize(
   var bytesCount = offsets.last;
   {
     final value = object.address;
-    if (value != null) {
-      bytesCount += 3 + value.length * 3;
-    }
-  }
-  {
-    final value = object.birthDate;
-    if (value != null) {
-      bytesCount += 3 + value.length * 3;
-    }
-  }
-  {
-    final value = object.classId;
-    if (value != null) {
-      bytesCount += 3 + value.length * 3;
-    }
-  }
-  {
-    final value = object.currentFeeStatusId;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -190,19 +171,7 @@ int _studentEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
-  {
-    final value = object.schoolId;
-    if (value != null) {
-      bytesCount += 3 + value.length * 3;
-    }
-  }
-  bytesCount += 3 + object.serverId.length * 3;
-  {
-    final value = object.status;
-    if (value != null) {
-      bytesCount += 3 + value.length * 3;
-    }
-  }
+  bytesCount += 3 + object.status.length * 3;
   return bytesCount;
 }
 
@@ -213,22 +182,18 @@ void _studentSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeString(offsets[0], object.address);
-  writer.writeLong(offsets[1], object.annualFee);
-  writer.writeString(offsets[2], object.birthDate);
-  writer.writeString(offsets[3], object.classId);
-  writer.writeDateTime(offsets[4], object.createdAt);
-  writer.writeString(offsets[5], object.currentFeeStatusId);
-  writer.writeString(offsets[6], object.email);
-  writer.writeString(offsets[7], object.fullName);
-  writer.writeString(offsets[8], object.gender);
-  writer.writeString(offsets[9], object.nationalId);
-  writer.writeString(offsets[10], object.parentName);
-  writer.writeString(offsets[11], object.parentPhone);
-  writer.writeString(offsets[12], object.phone);
-  writer.writeString(offsets[13], object.registrationYear);
-  writer.writeString(offsets[14], object.schoolId);
-  writer.writeString(offsets[15], object.serverId);
-  writer.writeString(offsets[16], object.status);
+  writer.writeDouble(offsets[1], object.annualFee);
+  writer.writeDateTime(offsets[2], object.birthDate);
+  writer.writeDateTime(offsets[3], object.createdAt);
+  writer.writeString(offsets[4], object.email);
+  writer.writeString(offsets[5], object.fullName);
+  writer.writeString(offsets[6], object.gender);
+  writer.writeString(offsets[7], object.nationalId);
+  writer.writeString(offsets[8], object.parentName);
+  writer.writeString(offsets[9], object.parentPhone);
+  writer.writeString(offsets[10], object.phone);
+  writer.writeString(offsets[11], object.registrationYear);
+  writer.writeString(offsets[12], object.status);
 }
 
 Student _studentDeserialize(
@@ -239,23 +204,19 @@ Student _studentDeserialize(
 ) {
   final object = Student();
   object.address = reader.readStringOrNull(offsets[0]);
-  object.annualFee = reader.readLongOrNull(offsets[1]);
-  object.birthDate = reader.readStringOrNull(offsets[2]);
-  object.classId = reader.readStringOrNull(offsets[3]);
-  object.createdAt = reader.readDateTime(offsets[4]);
-  object.currentFeeStatusId = reader.readStringOrNull(offsets[5]);
-  object.email = reader.readStringOrNull(offsets[6]);
-  object.fullName = reader.readString(offsets[7]);
-  object.gender = reader.readStringOrNull(offsets[8]);
+  object.annualFee = reader.readDoubleOrNull(offsets[1]);
+  object.birthDate = reader.readDateTimeOrNull(offsets[2]);
+  object.createdAt = reader.readDateTime(offsets[3]);
+  object.email = reader.readStringOrNull(offsets[4]);
+  object.fullName = reader.readString(offsets[5]);
+  object.gender = reader.readStringOrNull(offsets[6]);
   object.id = id;
-  object.nationalId = reader.readStringOrNull(offsets[9]);
-  object.parentName = reader.readStringOrNull(offsets[10]);
-  object.parentPhone = reader.readStringOrNull(offsets[11]);
-  object.phone = reader.readStringOrNull(offsets[12]);
-  object.registrationYear = reader.readStringOrNull(offsets[13]);
-  object.schoolId = reader.readStringOrNull(offsets[14]);
-  object.serverId = reader.readString(offsets[15]);
-  object.status = reader.readStringOrNull(offsets[16]);
+  object.nationalId = reader.readStringOrNull(offsets[7]);
+  object.parentName = reader.readStringOrNull(offsets[8]);
+  object.parentPhone = reader.readStringOrNull(offsets[9]);
+  object.phone = reader.readStringOrNull(offsets[10]);
+  object.registrationYear = reader.readStringOrNull(offsets[11]);
+  object.status = reader.readString(offsets[12]);
   return object;
 }
 
@@ -269,19 +230,19 @@ P _studentDeserializeProp<P>(
     case 0:
       return (reader.readStringOrNull(offset)) as P;
     case 1:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 2:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 3:
-      return (reader.readStringOrNull(offset)) as P;
-    case 4:
       return (reader.readDateTime(offset)) as P;
-    case 5:
+    case 4:
       return (reader.readStringOrNull(offset)) as P;
+    case 5:
+      return (reader.readString(offset)) as P;
     case 6:
       return (reader.readStringOrNull(offset)) as P;
     case 7:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 8:
       return (reader.readStringOrNull(offset)) as P;
     case 9:
@@ -291,15 +252,7 @@ P _studentDeserializeProp<P>(
     case 11:
       return (reader.readStringOrNull(offset)) as P;
     case 12:
-      return (reader.readStringOrNull(offset)) as P;
-    case 13:
-      return (reader.readStringOrNull(offset)) as P;
-    case 14:
-      return (reader.readStringOrNull(offset)) as P;
-    case 15:
       return (reader.readString(offset)) as P;
-    case 16:
-      return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -310,11 +263,17 @@ Id _studentGetId(Student object) {
 }
 
 List<IsarLinkBase<dynamic>> _studentGetLinks(Student object) {
-  return [];
+  return [object.payments, object.feeStatus, object.schoolclass];
 }
 
 void _studentAttach(IsarCollection<dynamic> col, Id id, Student object) {
   object.id = id;
+  object.payments
+      .attach(col, col.isar.collection<StudentPayment>(), r'payments', id);
+  object.feeStatus
+      .attach(col, col.isar.collection<StudentFeeStatus>(), r'feeStatus', id);
+  object.schoolclass
+      .attach(col, col.isar.collection<SchoolClass>(), r'schoolclass', id);
 }
 
 extension StudentQueryWhereSort on QueryBuilder<Student, Student, QWhere> {
@@ -557,46 +516,54 @@ extension StudentQueryFilter
   }
 
   QueryBuilder<Student, Student, QAfterFilterCondition> annualFeeEqualTo(
-      int? value) {
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'annualFee',
         value: value,
+        epsilon: epsilon,
       ));
     });
   }
 
   QueryBuilder<Student, Student, QAfterFilterCondition> annualFeeGreaterThan(
-    int? value, {
+    double? value, {
     bool include = false,
+    double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         include: include,
         property: r'annualFee',
         value: value,
+        epsilon: epsilon,
       ));
     });
   }
 
   QueryBuilder<Student, Student, QAfterFilterCondition> annualFeeLessThan(
-    int? value, {
+    double? value, {
     bool include = false,
+    double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.lessThan(
         include: include,
         property: r'annualFee',
         value: value,
+        epsilon: epsilon,
       ));
     });
   }
 
   QueryBuilder<Student, Student, QAfterFilterCondition> annualFeeBetween(
-    int? lower,
-    int? upper, {
+    double? lower,
+    double? upper, {
     bool includeLower = true,
     bool includeUpper = true,
+    double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
@@ -605,6 +572,7 @@ extension StudentQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+        epsilon: epsilon,
       ));
     });
   }
@@ -626,54 +594,46 @@ extension StudentQueryFilter
   }
 
   QueryBuilder<Student, Student, QAfterFilterCondition> birthDateEqualTo(
-    String? value, {
-    bool caseSensitive = true,
-  }) {
+      DateTime? value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'birthDate',
         value: value,
-        caseSensitive: caseSensitive,
       ));
     });
   }
 
   QueryBuilder<Student, Student, QAfterFilterCondition> birthDateGreaterThan(
-    String? value, {
+    DateTime? value, {
     bool include = false,
-    bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         include: include,
         property: r'birthDate',
         value: value,
-        caseSensitive: caseSensitive,
       ));
     });
   }
 
   QueryBuilder<Student, Student, QAfterFilterCondition> birthDateLessThan(
-    String? value, {
+    DateTime? value, {
     bool include = false,
-    bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.lessThan(
         include: include,
         property: r'birthDate',
         value: value,
-        caseSensitive: caseSensitive,
       ));
     });
   }
 
   QueryBuilder<Student, Student, QAfterFilterCondition> birthDateBetween(
-    String? lower,
-    String? upper, {
+    DateTime? lower,
+    DateTime? upper, {
     bool includeLower = true,
     bool includeUpper = true,
-    bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
@@ -682,221 +642,6 @@ extension StudentQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> birthDateStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'birthDate',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> birthDateEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'birthDate',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> birthDateContains(
-      String value,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'birthDate',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> birthDateMatches(
-      String pattern,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'birthDate',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> birthDateIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'birthDate',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> birthDateIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'birthDate',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> classIdIsNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'classId',
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> classIdIsNotNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'classId',
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> classIdEqualTo(
-    String? value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'classId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> classIdGreaterThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'classId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> classIdLessThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'classId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> classIdBetween(
-    String? lower,
-    String? upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'classId',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> classIdStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'classId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> classIdEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'classId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> classIdContains(
-      String value,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'classId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> classIdMatches(
-      String pattern,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'classId',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> classIdIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'classId',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> classIdIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'classId',
-        value: '',
       ));
     });
   }
@@ -950,160 +695,6 @@ extension StudentQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition>
-      currentFeeStatusIdIsNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'currentFeeStatusId',
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition>
-      currentFeeStatusIdIsNotNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'currentFeeStatusId',
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition>
-      currentFeeStatusIdEqualTo(
-    String? value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'currentFeeStatusId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition>
-      currentFeeStatusIdGreaterThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'currentFeeStatusId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition>
-      currentFeeStatusIdLessThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'currentFeeStatusId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition>
-      currentFeeStatusIdBetween(
-    String? lower,
-    String? upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'currentFeeStatusId',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition>
-      currentFeeStatusIdStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'currentFeeStatusId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition>
-      currentFeeStatusIdEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'currentFeeStatusId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition>
-      currentFeeStatusIdContains(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'currentFeeStatusId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition>
-      currentFeeStatusIdMatches(String pattern, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'currentFeeStatusId',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition>
-      currentFeeStatusIdIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'currentFeeStatusId',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition>
-      currentFeeStatusIdIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'currentFeeStatusId',
-        value: '',
       ));
     });
   }
@@ -2320,300 +1911,8 @@ extension StudentQueryFilter
     });
   }
 
-  QueryBuilder<Student, Student, QAfterFilterCondition> schoolIdIsNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'schoolId',
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> schoolIdIsNotNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'schoolId',
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> schoolIdEqualTo(
-    String? value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'schoolId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> schoolIdGreaterThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'schoolId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> schoolIdLessThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'schoolId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> schoolIdBetween(
-    String? lower,
-    String? upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'schoolId',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> schoolIdStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'schoolId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> schoolIdEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'schoolId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> schoolIdContains(
-      String value,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'schoolId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> schoolIdMatches(
-      String pattern,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'schoolId',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> schoolIdIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'schoolId',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> schoolIdIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'schoolId',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> serverIdEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'serverId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> serverIdGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'serverId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> serverIdLessThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'serverId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> serverIdBetween(
-    String lower,
-    String upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'serverId',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> serverIdStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'serverId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> serverIdEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'serverId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> serverIdContains(
-      String value,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'serverId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> serverIdMatches(
-      String pattern,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'serverId',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> serverIdIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'serverId',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> serverIdIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'serverId',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> statusIsNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'status',
-      ));
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterFilterCondition> statusIsNotNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'status',
-      ));
-    });
-  }
-
   QueryBuilder<Student, Student, QAfterFilterCondition> statusEqualTo(
-    String? value, {
+    String value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
@@ -2626,7 +1925,7 @@ extension StudentQueryFilter
   }
 
   QueryBuilder<Student, Student, QAfterFilterCondition> statusGreaterThan(
-    String? value, {
+    String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -2641,7 +1940,7 @@ extension StudentQueryFilter
   }
 
   QueryBuilder<Student, Student, QAfterFilterCondition> statusLessThan(
-    String? value, {
+    String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -2656,8 +1955,8 @@ extension StudentQueryFilter
   }
 
   QueryBuilder<Student, Student, QAfterFilterCondition> statusBetween(
-    String? lower,
-    String? upper, {
+    String lower,
+    String upper, {
     bool includeLower = true,
     bool includeUpper = true,
     bool caseSensitive = true,
@@ -2747,7 +2046,90 @@ extension StudentQueryObject
     on QueryBuilder<Student, Student, QFilterCondition> {}
 
 extension StudentQueryLinks
-    on QueryBuilder<Student, Student, QFilterCondition> {}
+    on QueryBuilder<Student, Student, QFilterCondition> {
+  QueryBuilder<Student, Student, QAfterFilterCondition> payments(
+      FilterQuery<StudentPayment> q) {
+    return QueryBuilder.apply(this, (query) {
+      return query.link(q, r'payments');
+    });
+  }
+
+  QueryBuilder<Student, Student, QAfterFilterCondition> paymentsLengthEqualTo(
+      int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.linkLength(r'payments', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<Student, Student, QAfterFilterCondition> paymentsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.linkLength(r'payments', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<Student, Student, QAfterFilterCondition> paymentsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.linkLength(r'payments', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<Student, Student, QAfterFilterCondition> paymentsLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.linkLength(r'payments', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<Student, Student, QAfterFilterCondition>
+      paymentsLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.linkLength(r'payments', length, include, 999999, true);
+    });
+  }
+
+  QueryBuilder<Student, Student, QAfterFilterCondition> paymentsLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.linkLength(
+          r'payments', lower, includeLower, upper, includeUpper);
+    });
+  }
+
+  QueryBuilder<Student, Student, QAfterFilterCondition> feeStatus(
+      FilterQuery<StudentFeeStatus> q) {
+    return QueryBuilder.apply(this, (query) {
+      return query.link(q, r'feeStatus');
+    });
+  }
+
+  QueryBuilder<Student, Student, QAfterFilterCondition> feeStatusIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.linkLength(r'feeStatus', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<Student, Student, QAfterFilterCondition> schoolclass(
+      FilterQuery<SchoolClass> q) {
+    return QueryBuilder.apply(this, (query) {
+      return query.link(q, r'schoolclass');
+    });
+  }
+
+  QueryBuilder<Student, Student, QAfterFilterCondition> schoolclassIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.linkLength(r'schoolclass', 0, true, 0, true);
+    });
+  }
+}
 
 extension StudentQuerySortBy on QueryBuilder<Student, Student, QSortBy> {
   QueryBuilder<Student, Student, QAfterSortBy> sortByAddress() {
@@ -2786,18 +2168,6 @@ extension StudentQuerySortBy on QueryBuilder<Student, Student, QSortBy> {
     });
   }
 
-  QueryBuilder<Student, Student, QAfterSortBy> sortByClassId() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'classId', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterSortBy> sortByClassIdDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'classId', Sort.desc);
-    });
-  }
-
   QueryBuilder<Student, Student, QAfterSortBy> sortByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
@@ -2807,18 +2177,6 @@ extension StudentQuerySortBy on QueryBuilder<Student, Student, QSortBy> {
   QueryBuilder<Student, Student, QAfterSortBy> sortByCreatedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.desc);
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterSortBy> sortByCurrentFeeStatusId() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'currentFeeStatusId', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterSortBy> sortByCurrentFeeStatusIdDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'currentFeeStatusId', Sort.desc);
     });
   }
 
@@ -2918,30 +2276,6 @@ extension StudentQuerySortBy on QueryBuilder<Student, Student, QSortBy> {
     });
   }
 
-  QueryBuilder<Student, Student, QAfterSortBy> sortBySchoolId() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'schoolId', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterSortBy> sortBySchoolIdDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'schoolId', Sort.desc);
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterSortBy> sortByServerId() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'serverId', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterSortBy> sortByServerIdDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'serverId', Sort.desc);
-    });
-  }
-
   QueryBuilder<Student, Student, QAfterSortBy> sortByStatus() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'status', Sort.asc);
@@ -2993,18 +2327,6 @@ extension StudentQuerySortThenBy
     });
   }
 
-  QueryBuilder<Student, Student, QAfterSortBy> thenByClassId() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'classId', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterSortBy> thenByClassIdDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'classId', Sort.desc);
-    });
-  }
-
   QueryBuilder<Student, Student, QAfterSortBy> thenByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
@@ -3014,18 +2336,6 @@ extension StudentQuerySortThenBy
   QueryBuilder<Student, Student, QAfterSortBy> thenByCreatedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.desc);
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterSortBy> thenByCurrentFeeStatusId() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'currentFeeStatusId', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterSortBy> thenByCurrentFeeStatusIdDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'currentFeeStatusId', Sort.desc);
     });
   }
 
@@ -3137,30 +2447,6 @@ extension StudentQuerySortThenBy
     });
   }
 
-  QueryBuilder<Student, Student, QAfterSortBy> thenBySchoolId() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'schoolId', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterSortBy> thenBySchoolIdDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'schoolId', Sort.desc);
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterSortBy> thenByServerId() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'serverId', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Student, Student, QAfterSortBy> thenByServerIdDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'serverId', Sort.desc);
-    });
-  }
-
   QueryBuilder<Student, Student, QAfterSortBy> thenByStatus() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'status', Sort.asc);
@@ -3189,31 +2475,15 @@ extension StudentQueryWhereDistinct
     });
   }
 
-  QueryBuilder<Student, Student, QDistinct> distinctByBirthDate(
-      {bool caseSensitive = true}) {
+  QueryBuilder<Student, Student, QDistinct> distinctByBirthDate() {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'birthDate', caseSensitive: caseSensitive);
-    });
-  }
-
-  QueryBuilder<Student, Student, QDistinct> distinctByClassId(
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'classId', caseSensitive: caseSensitive);
+      return query.addDistinctBy(r'birthDate');
     });
   }
 
   QueryBuilder<Student, Student, QDistinct> distinctByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'createdAt');
-    });
-  }
-
-  QueryBuilder<Student, Student, QDistinct> distinctByCurrentFeeStatusId(
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'currentFeeStatusId',
-          caseSensitive: caseSensitive);
     });
   }
 
@@ -3274,20 +2544,6 @@ extension StudentQueryWhereDistinct
     });
   }
 
-  QueryBuilder<Student, Student, QDistinct> distinctBySchoolId(
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'schoolId', caseSensitive: caseSensitive);
-    });
-  }
-
-  QueryBuilder<Student, Student, QDistinct> distinctByServerId(
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'serverId', caseSensitive: caseSensitive);
-    });
-  }
-
   QueryBuilder<Student, Student, QDistinct> distinctByStatus(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -3310,34 +2566,21 @@ extension StudentQueryProperty
     });
   }
 
-  QueryBuilder<Student, int?, QQueryOperations> annualFeeProperty() {
+  QueryBuilder<Student, double?, QQueryOperations> annualFeeProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'annualFee');
     });
   }
 
-  QueryBuilder<Student, String?, QQueryOperations> birthDateProperty() {
+  QueryBuilder<Student, DateTime?, QQueryOperations> birthDateProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'birthDate');
-    });
-  }
-
-  QueryBuilder<Student, String?, QQueryOperations> classIdProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'classId');
     });
   }
 
   QueryBuilder<Student, DateTime, QQueryOperations> createdAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'createdAt');
-    });
-  }
-
-  QueryBuilder<Student, String?, QQueryOperations>
-      currentFeeStatusIdProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'currentFeeStatusId');
     });
   }
 
@@ -3389,19 +2632,7 @@ extension StudentQueryProperty
     });
   }
 
-  QueryBuilder<Student, String?, QQueryOperations> schoolIdProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'schoolId');
-    });
-  }
-
-  QueryBuilder<Student, String, QQueryOperations> serverIdProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'serverId');
-    });
-  }
-
-  QueryBuilder<Student, String?, QQueryOperations> statusProperty() {
+  QueryBuilder<Student, String, QQueryOperations> statusProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'status');
     });

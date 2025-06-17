@@ -4,7 +4,7 @@ import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
 import 'package:isar/isar.dart';
 import 'package:printing/printing.dart';
-import 'package:school_app_flutter/localdatabase/StudentService.dart';
+// import 'package:school_app_flutter/localdatabase/students/StudentService.dart';
 import 'package:school_app_flutter/student/add_student_screen_supabase.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../localdatabase/student.dart';
@@ -30,6 +30,7 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
   @override
   void initState() {
     super.initState();
+    // fetchStudentsFromIsar();
     fetchStudentsFromIsar();
   }
 List<Map<String, dynamic>> classOptions = [];
@@ -39,51 +40,119 @@ String? selectedClassId;
 String? selectedStatus;
 
 
-Future<void> fetchStudentsFromIsar() async {
-  setState(() => isLoading = true);
-  try {
-   StudentService studentService = StudentService(isar);
-    final isarStudents = await studentService.getAllStudents();
-    students = isarStudents;
-    filteredStudents = students.where((student) {
-      final fullName = student.fullName?.toLowerCase() ?? '';
-      final studentId = student.id?.toString().toLowerCase() ?? '';
-      final nationalId = student.nationalId?.toLowerCase() ?? '';
-      final className = student.classId?.toString();
-      final status = student.status?.toString();
 
-      final matchesQuery = fullName.contains(searchQuery.toLowerCase()) ||
-          studentId.contains(searchQuery.toLowerCase()) ||
-          nationalId.contains(searchQuery.toLowerCase());
+  Future<void> fetchClasses() async {
+    try {
+      final res = await supabase
+          .from('classes')
+          .select('id, name')
+          .order('name', ascending: true);
 
-      final matchesClass = selectedClassId == null || selectedClassId == className;
-      final matchesStatus = selectedStatus == null || selectedStatus == status;
-
-      return matchesQuery && matchesClass && matchesStatus;
-    }).toList();
-    filteredStudents.forEach((e) {
-  print( 'Student: ${e.fullName}, ID: ${e.serverId}, Class: ${e.classId}, Status: ${e.status}');
-    });
-    // تحويل الطلاب من Isar إلى Map<String, dynamic> لتسهيل التصفية
-    // filterStudents();
-  } catch (e) {
-    debugPrint('خطأ في جلب الطلاب من Isar: \n$e');
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل تحميل الطلاب من Isar: \n\n$e')),
-      );
-    }
-  } finally {
-    if (mounted) {
-      setState(() => isLoading = false);
+      classOptions = List<Map<String, dynamic>>.from(res);
+    } catch (e) {
+      debugPrint('خطأ في جلب الصفوف: \n$e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('فشل تحميل الصفوف: \n\n$e')),
+        );
+      }
     }
   }
-}
-// void filterStudents() {
-//   setState(() {
-//     final query = searchQuery.toLowerCase();
 
+
+
+  Future<void> fetchStudentsFromIsar() async {
+    setState(() => isLoading = true);
+    try {
+      // جلب جميع الطلاب من قاعدة بيانات Isar
+      final isarStudents = await isar.students.where().findAll();
+
+      students = isarStudents;
+
+
+      // تطبيق الفلاتر
+      final query = searchQuery.toLowerCase();
+      filteredStudents = students.where((student) {
+        final fullName = student.fullName?.toLowerCase() ?? '';
+        final studentId = student.id?.toString().toLowerCase() ?? '';
+        final nationalId = student.nationalId?.toLowerCase() ?? '';
+        final className = student.schoolclass.value?.name.trim();
+        final status = student.status?.toString();
+
+        final matchesQuery = fullName.contains(query) ||
+            studentId.contains(query) ||
+            nationalId.contains(query);
+
+        final matchesClass = selectedClassId == null || selectedClassId == className;
+        final matchesStatus = selectedStatus == null || selectedStatus == status;
+
+        return matchesQuery && matchesClass && matchesStatus;
+      }).toList();
+    } catch (e) {
+      debugPrint('خطأ في جلب الطلاب من Isar: \n$e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('فشل تحميل الطلاب من Isar: \n\n$e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    fetchClasses();
+  }
+
+// Future<void> fetchStudentsFromIsar() async {
+//   setState(() => isLoading = true);
+//   try {
+//   //  StudentService studentService = StudentService(isar);
+//     // final isarStudents = await studentService.getAllStudents();
+//     // students = isarStudents;
 //     filteredStudents = students.where((student) {
+//       final fullName = student.fullName?.toLowerCase() ?? '';
+//       final studentId = student.id?.toString().toLowerCase() ?? '';
+//       final nationalId = student.nationalId?.toLowerCase() ?? '';
+//       // final className = student.classId?.toString();
+//       final status = student.status?.toString();
+
+//       final matchesQuery = fullName.contains(searchQuery.toLowerCase()) ||
+//           studentId.contains(searchQuery.toLowerCase()) ||
+//           nationalId.contains(searchQuery.toLowerCase());
+
+//       // final matchesClass = selectedClassId == null || selectedClassId == className;
+//       final matchesStatus = selectedStatus == null || selectedStatus == status;
+
+//       return matchesQuery && matchesClass && matchesStatus;
+//     }).toList();
+//     filteredStudents.forEach((e) {
+//   print( 'Student: ${e.fullName}, ID: ${e.serverId}, Class: ${e.classId}, Status: ${e.status}');
+//     });
+//     // تحويل الطلاب من Isar إلى Map<String, dynamic> لتسهيل التصفية
+//     // filterStudents();
+//   } catch (e) {
+//     debugPrint('خطأ في جلب الطلاب من Isar: \n$e');
+//     if (mounted) {
+//       ScaffoldMessenger.of(context).showSnackBar(
+//         SnackBar(content: Text('فشل تحميل الطلاب من Isar: \n\n$e')),
+//       );
+//     }
+//   } finally {
+//     if (mounted) {
+//       setState(() => isLoading = false);
+//     }
+//   }
+// }
+// // void filterStudents() {
+// //   setState(() {
+// //     final query = searchQuery.toLowerCase();
+
+// //     filteredStudents = students.where((student) {
 //       final fullName = student.fullName?.toLowerCase() ?? '';
 //       final studentId = student.id?.toString().toLowerCase() ?? '';
 //       final nationalId = student.nationalId?.toLowerCase() ?? '';
@@ -136,7 +205,7 @@ for (final student in filteredStudents) {
     TextCellValue(student.phone ?? ''),
     TextCellValue(student.email ?? ''),
     TextCellValue(student.address ?? ''),
-    TextCellValue(student.classId ?? ''), // Ensure you have a className property or adjust accordingly
+    // TextCellValue(student.classId ?? ''), // Ensure you have a className property or adjust accordingly
     TextCellValue(student.status ?? ''),
     TextCellValue(student.registrationYear?.toString() ?? ''),
     TextCellValue(student.annualFee?.toString() ?? ''),
@@ -222,8 +291,8 @@ for (final student in filteredStudents) {
         actions: [
           IconButton(
             onPressed: () {
-              Navigator.pushNamed(context, '/add-student')
-                  .then((_) => fetchStudentsFromIsar());
+              // Navigator.pushNamed(context, '/add-student')
+              //     .then((_) => fetchStudentsFromIsar());
             },
             icon: const Icon(Icons.add),
             tooltip: 'إضافة طالب',
@@ -368,7 +437,7 @@ for (final student in filteredStudents) {
             onChanged: (val) {
               setState(() {
                 selectedClassId = val;
-                fetchStudentsFromIsar();
+                // fetchStudentsFromIsar();
               });
             },
             items: [
@@ -400,7 +469,7 @@ for (final student in filteredStudents) {
                       ),
                       onChanged: (val) {
                         searchQuery = val;
-                        fetchStudentsFromIsar();
+                        // fetchStudentsFromIsar();
                       },
                     ),
                   ),
@@ -413,7 +482,7 @@ for (final student in filteredStudents) {
             onChanged: (val) {
               setState(() {
                 selectedStatus = val;
-                fetchStudentsFromIsar();
+                // fetchStudentsFromIsar();
               });
             },
             items: const [
@@ -505,19 +574,38 @@ for (final student in filteredStudents) {
                                             ),
                                           ),
                                         );
-                                        fetchStudentsFromIsar(); // إعادة تحميل بعد التعديل
+                                        // fetchStudentsFromIsar(); // إعادة تحميل بعد التعديل
                                       },
                                       icon: const Icon(Icons.edit, size: 20),
                                       label: const Text('تعديل'),
                                     ),
                                     const SizedBox(width: 12),
                                     TextButton.icon(
-                                      onPressed: () async {
-                                        await showDeleteStudentDialog(
-                                          context,
-                                          student,
-                                          fetchStudentsFromIsar,
-                                        );
+                                        onPressed: () async {
+                                          final confirm = await showDialog<bool>(
+                                          context: context,
+                                          builder: (context) => AlertDialog(
+                                            title: const Text('تأكيد الحذف'),
+                                            content: Text('هل أنت متأكد أنك تريد حذف الطالب "${student.fullName ?? ''}"؟ لا يمكن التراجع عن هذه العملية.'),
+                                            actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.of(context).pop(false),
+                                              child: const Text('إلغاء'),
+                                            ),
+                                            TextButton(
+                                              onPressed: () => Navigator.of(context).pop(true),
+                                              style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                              child: const Text('حذف'),
+                                            ),
+                                            ],
+                                          ),
+                                          );
+                                          if (confirm == true) {
+                                          await isar.writeTxn(() async {
+                                            await isar.students.delete(student.id!);
+                                          });
+                                          await fetchStudentsFromIsar();
+                                          }
                                       },
                                       icon: const Icon(Icons.delete, size: 20),
                                       label: const Text('حذف'),
@@ -554,7 +642,7 @@ for (final student in filteredStudents) {
       Flexible(
         flex: 2,
         child: Text(
-          'الصف: ${student.classId ?? '-'}',
+          'الصف: hhhhh ?? ''}',
           overflow: TextOverflow.ellipsis,
         ),
       ),
