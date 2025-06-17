@@ -209,39 +209,41 @@ class _ClassesListScreenState extends State<ClassesListScreen> {
             }, child: Text('إضافة صف')
                      
                       ),
-                      ElevatedButton(
-                        onPressed: ()async{
-          final gradeController = TextEditingController();
-              final formKey = GlobalKey<FormState>();
+                     
+          //             ElevatedButton(
+          //               onPressed: ()async{
+          // final gradeController = TextEditingController();
+          //     final formKey = GlobalKey<FormState>();
 
-              await showDialog(
-                context: context,
-                builder: (context) => 
-                AlertDialog(
-                  title: const Text('إضافة مرحلة دراسية'),
-                  content: Form(
-                    key: formKey,
-                    child: TextFormField(
-                      controller: gradeController,
-                      decoration:
-                          const InputDecoration(labelText: 'اسم المرحلة'),
-                      validator: (val) =>
-                          val == null || val.isEmpty ? 'مطلوب' : null,
-                    ),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('إلغاء'),
-                    ),
+          //     await showDialog(
+          //       context: context,
+          //       builder: (context) => 
+          //       AlertDialog(
+          //         title: const Text('إضافة مرحلة دراسية'),
+          //         content: Form(
+          //           key: formKey,
+          //           child: TextFormField(
+          //             controller: gradeController,
+          //             decoration:
+          //                 const InputDecoration(labelText: 'اسم المرحلة'),
+          //             validator: (val) =>
+          //                 val == null || val.isEmpty ? 'مطلوب' : null,
+          //           ),
+          //         ),
+          //         actions: [
+          //           TextButton(
+          //             onPressed: () => Navigator.pop(context),
+          //             child: const Text('إلغاء'),
+          //           ),
     
-                  ],
-                ),
-              );
-            },
+          //         ],
+          //       ),
+          //     );
+          //   },
       
                       
-                        child: Text('إضافة مرحلة')  ),
+          //               child: Text('إضافة مرحلة')  ),
+                    
                     ],
                   ),
                 );

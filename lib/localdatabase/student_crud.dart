@@ -82,8 +82,10 @@ Future<void> deleteFeeStatus(Isar isar, int id) async {
 Future<void> addClass(Isar isar, SchoolClass schoolClass) async {
   await isar.writeTxn(() async {
     await isar.schoolClass.put(schoolClass);
+    schoolClass.grade.save(); // Save the grades associated with the class
   });
 }
+
 
 Future<List<SchoolClass>> getAllClasses(Isar isar) async {
   return await isar.schoolClass.where().findAll();
@@ -125,6 +127,7 @@ Future<Grade?> getGradeById(Isar isar, int id) async {
 Future<void> updateGrade(Isar isar, Grade grade) async {
   await isar.writeTxn(() async {
     await isar.grades.put(grade);
+    grade.classes.save();
   });
 }
 
