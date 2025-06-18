@@ -4,6 +4,8 @@ import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
 import 'package:isar/isar.dart';
 import 'package:printing/printing.dart';
+import 'package:school_app_flutter/dashboard_screen.dart';
+import 'package:school_app_flutter/localdatabase/class.dart';
 // import 'package:school_app_flutter/localdatabase/students/StudentService.dart';
 import 'package:school_app_flutter/student/add_student_screen_supabase.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -21,7 +23,7 @@ class StudentsListScreen extends StatefulWidget {
 }
 
 class _StudentsListScreenState extends State<StudentsListScreen> {
-  final supabase = Supabase.instance.client;
+  // final supabase = Supabase.instance.client;
   List<Student> students = [];
   List<Student> filteredStudents = [];
   bool isLoading = true;
@@ -39,25 +41,43 @@ List<Map<String, dynamic>> classOptions = [];
 String? selectedClassId;
 String? selectedStatus;
 
-
-
-  Future<void> fetchClasses() async {
-    try {
-      final res = await supabase
-          .from('classes')
-          .select('id, name')
-          .order('name', ascending: true);
-
-      classOptions = List<Map<String, dynamic>>.from(res);
-    } catch (e) {
-      debugPrint('خطأ في جلب الصفوف: \n$e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('فشل تحميل الصفوف: \n\n$e')),
-        );
-      }
+Future<void> fetchClassesFromIsar() async {
+  try {
+    final isarClasses = await isar.schoolClass.where().findAll();
+    classOptions = isarClasses
+        .map((c) => {
+              'id': c.id,
+              'name': c.name,
+            })
+        .toList();
+    if (mounted) setState(() {});
+  } catch (e) {
+    debugPrint('خطأ في جلب الصفوف من Isar: \n$e');
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('فشل تحميل الصفوف من Isar: \n\n$e')),
+      );
     }
   }
+}
+
+  // Future<void> fetchClasses() async {
+  //   try {
+  //     final res = await supabase
+  //         .from('classes')
+  //         .select('id, name')
+  //         .order('name', ascending: true);
+
+  //     classOptions = List<Map<String, dynamic>>.from(res);
+  //   } catch (e) {
+  //     debugPrint('خطأ في جلب الصفوف: \n$e');
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: Text('فشل تحميل الصفوف: \n\n$e')),
+  //       );
+  //     }
+  //   }
+  // }
 
 
 
@@ -105,7 +125,8 @@ String? selectedStatus;
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    fetchClasses();
+    fetchClassesFromIsar();
+    // fetchClasses();
   }
 
 // Future<void> fetchStudentsFromIsar() async {
@@ -550,7 +571,7 @@ for (final student in filteredStudents) {
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(
-                                            builder: (_) => StudentPaymentsScreen(studentId: student.id, className: student.schoolclass.value!.name,fullName: student.fullName,),
+                                            builder: (_) => StudentPaymentsScreen(studentId: student.id,fullName: student.fullName,),
                                               // student: {
                                               //   'id': student.id,
                                               //   'full_name': student.fullName,

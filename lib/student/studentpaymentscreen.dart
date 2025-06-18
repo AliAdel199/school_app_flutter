@@ -1,555 +1,7 @@
-// import 'package:flutter/material.dart';
-// import 'package:intl/intl.dart';
-// import 'package:isar/isar.dart';
-// import 'package:pdf/pdf.dart';
-// import 'package:printing/printing.dart';
-// import 'package:school_app_flutter/localdatabase/student_fee_status.dart';
-// import 'package:school_app_flutter/localdatabase/student_payment.dart';
-// import 'package:supabase_flutter/supabase_flutter.dart';
-// import '../dialogs/payment_dialog_ui.dart';
-// import 'package:pdf/widgets.dart' as pw;
-
-// import '../main.dart';
-
-// class StudentPaymentsScreen extends StatefulWidget {
-//   final Map<String, dynamic> student;
-
-//   const StudentPaymentsScreen({super.key, required this.student});
-
-//   @override
-//   State<StudentPaymentsScreen> createState() => _StudentPaymentsScreenState();
-// }
-
-// class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
-//   final supabase = Supabase.instance.client;
-//   List<Map<String, dynamic>> payments = [];
-//   Map<String, dynamic>? feeStatus;
-//   bool isLoading = true;
-  
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     fetchPayments();
-//   }
-//   // استيراد الحزم المطلوبة
-//   // import 'package:isar/isar.dart';
-//   // import '../db/isar_service.dart'; // إذا كان لديك خدمة isar
-
-//   // مثال: تعريف خدمة isar (يمكنك تعديل المسار حسب مشروعك)
-//   // final isarService = IsarService();
-
-//   Future<void> fetchPaymentsIsar() async {
-//     setState(() => isLoading = true);
-//     try {
-
-//       // استبدل Payment و FeeStatus بنماذج isar الخاصة بك
-//       final paymentList = await isar.studentPayments
-//           .filter()
-//           .student(widget.student['id'])
-//           .sortByPaidAtDesc()
-//           .findAll();
-
-//       final fee = await isar.studentFeeStatus
-//           .filter()
-//           .student(widget.student['id'])
-//           .findFirst();
-
-//       payments = paymentList.map((p) => {
-//         'amount': p.amount,
-//         'paid_at': p.paidAt.toIso8601String(),
-//         'receipt_number': p.receiptNumber,
-//         'notes': p.notes,
-//       }).toList();
-
-//       feeStatus = fee != null
-//           ? {
-//               'annual_fee': fee.annualFee,
-//               'paid_amount': fee.paidAmount,
-//               'due_amount': fee.dueAmount,
-//               'academic_year': fee.academicYear,
-//             }
-//           : null;
-//     } catch (e) {
-//       debugPrint('فشل في تحميل الدفعات من isar: \n$e');
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         SnackBar(content: Text('خطأ أثناء تحميل البيانات من isar: \n$e')),
-//       );
-//     } finally {
-//       setState(() => isLoading = false);
-//     }
-//   }
-
-
-
-//   Future<void> fetchPayments() async {
-//     setState(() => isLoading = true);
-//     try {
-//       final paymentRes = await supabase
-//           .from('student_payments')
-//           .select()
-//           .eq('student_id', widget.student['id'])
-//           .order('paid_at', ascending: false);
-
-//       final feeRes = await supabase
-//           .from('student_fee_status')
-//           .select()
-//           .eq('student_id', widget.student['id'])
-//           .maybeSingle();
-
-//       payments = List<Map<String, dynamic>>.from(paymentRes);
-//       feeStatus = feeRes;
-//     } catch (e) {
-//       debugPrint('فشل في تحميل الدفعات: \n$e');
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         SnackBar(content: Text('خطأ أثناء تحميل البيانات: \n$e')),
-//       );
-//     } finally {
-//       setState(() => isLoading = false);
-//     }
-//   }
-
-//   Future<void> printAllStudentPaymentsReport({
-//     required String studentName,
-//     required String studentId,
-//     required String className,
-//     required String academicYear,
-//     required double annualFee,
-//     required double totalPaid,
-//     required double remaining,
-//     required List<Map<String, dynamic>> payments,
-//   }) async {
-//     final arabicFont = await PdfGoogleFonts.cairoRegular();
-//     final boldFont = await PdfGoogleFonts.cairoBold();
-
-//     final pdf = pw.Document();
-
-//     // Sort payments by date ascending (oldest to newest)
-//     final sortedPayments = List<Map<String, dynamic>>.from(payments)
-//       ..sort((a, b) {
-//         final aDate = DateTime.tryParse(a['paid_at'].toString()) ?? DateTime(1970);
-//         final bDate = DateTime.tryParse(b['paid_at'].toString()) ?? DateTime(1970);
-//         return aDate.compareTo(bDate);
-//       });
-
-//     pdf.addPage(
-//       pw.Page(
-//         theme: pw.ThemeData.withFont(
-//           base: arabicFont,
-//           bold: boldFont,
-//         ),
-//         pageFormat: PdfPageFormat.a4,
-//         build: (context) => pw.Directionality(
-//           textDirection: pw.TextDirection.rtl,
-//           child: pw.Container(
-//             padding: const pw.EdgeInsets.all(24),
-//             decoration: pw.BoxDecoration(
-//               border: pw.Border.all(color: PdfColors.grey, width: 1.5),
-//               borderRadius: pw.BorderRadius.circular(16),
-//             ),
-//             child: pw.Column(
-//               crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-//               children: [
-//                 pw.Center(
-//                   child: pw.Text(
-//                     'تقرير مدفوعات الطالب',
-//                     style: pw.TextStyle(
-//                       fontSize: 24,
-//                       fontWeight: pw.FontWeight.bold,
-//                       color: PdfColors.blue800,
-//                     ),
-//                   ),
-//                 ),
-//                 pw.SizedBox(height: 18),
-//                 pw.Divider(thickness: 1.2, color: PdfColors.blueGrey400),
-//                 pw.SizedBox(height: 12),
-//                 pw.Row(
-//                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-//                   children: [
-//                     pw.Text('اسم الطالب:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-//                     pw.Text(studentName),
-//                   ],
-//                 ),
-//                 pw.Row(
-//                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-//                   children: [
-//                     pw.Text('رقم الطالب:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-//                     pw.Text(studentId),
-//                   ],
-//                 ),
-//                 pw.Row(
-//                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-//                   children: [
-//                     pw.Text('الصف:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-//                     pw.Text(className),
-//                   ],
-//                 ),
-//                 pw.Row(
-//                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-//                   children: [
-//                     pw.Text('السنة الدراسية:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-//                     pw.Text(academicYear),
-//                   ],
-//                 ),
-//                 pw.SizedBox(height: 18),
-//                 pw.Container(
-//                   decoration: pw.BoxDecoration(
-//                     color: PdfColors.grey200,
-//                     borderRadius: pw.BorderRadius.circular(8),
-//                   ),
-//                   padding: const pw.EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-//                   child: pw.Column(
-//                     children: [
-//                       pw.Row(
-//                         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-//                         children: [
-//                           pw.Text('القسط السنوي:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-//                           pw.Text('${annualFee.toStringAsFixed(0)} د.ع'),
-//                         ],
-//                       ),
-//                       pw.Row(
-//                         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-//                         children: [
-//                           pw.Text('إجمالي المدفوع:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-//                           pw.Text('${totalPaid.toStringAsFixed(0)} د.ع'),
-//                         ],
-//                       ),
-//                       pw.Row(
-//                         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-//                         children: [
-//                           pw.Text('المتبقي:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.red800)),
-//                           pw.Text('${remaining.toStringAsFixed(0)} د.ع', style: pw.TextStyle(color: PdfColors.red800)),
-//                         ],
-//                       ),
-//                     ],
-//                   ),
-//                 ),
-//                 pw.SizedBox(height: 20),
-//                 pw.Text('سجل الدفعات:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 16)),
-//                 pw.SizedBox(height: 12),
-//                 pw.Table.fromTextArray(
-//                   headers: ['#', 'التاريخ', 'المبلغ', 'رقم الوصل', 'ملاحظات'],
-//                   data: List.generate(sortedPayments.length, (index) {
-//                     final p = sortedPayments[index];
-//                     return [
-//                       '${index + 1}',
-//                       p['paid_at']?.toString().split('T').first ?? '',
-//                       '${p['amount'].toString()} د.ع',
-//                       p['receipt_number'] ?? '-',
-//                       p['notes'] ?? '',
-//                     ];
-//                   }),
-//                   border: pw.TableBorder.all(),
-//                   headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-//                   cellAlignment: pw.Alignment.centerLeft,
-//                   cellPadding: const pw.EdgeInsets.all(6),
-//                 ),
-//                 pw.Spacer(),
-//                 pw.Divider(thickness: 1, color: PdfColors.grey400),
-//                 pw.Row(
-//                   mainAxisAlignment: pw.MainAxisAlignment.end,
-//                   children: [
-//                     pw.Text('توقيع الإدارة', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-//                     pw.SizedBox(width: 40),
-//                   ],
-//                 ),
-//               ],
-//             ),
-//           ),
-//         ),
-//       ),
-//     );
-
-//     await Printing.layoutPdf(onLayout: (format) => pdf.save());
-//   }
-
-// Future<void> printSinglePaymentReceipt({
-//   required String studentName,
-//   required String studentId,
-//   required String receiptNumber,
-//   required double amount,
-//   required double annualFee,
-//   required double totalPaid,
-//   required double remaining,
-//   required DateTime paidAt,
-//   String? notes,
-// }) async {
-//   final arabicFont = await PdfGoogleFonts.cairoRegular();
-//   final boldFont = await PdfGoogleFonts.cairoBold();
-
-//   final pdf = pw.Document();
-
-//   pdf.addPage(
-//     pw.Page(
-//       theme: pw.ThemeData.withFont(
-//         base: arabicFont,
-//         bold: boldFont,
-//       ),
-//       pageFormat: PdfPageFormat.a4,
-//       build: (context) => pw.Directionality(
-//         textDirection: pw.TextDirection.rtl,
-//         child: pw.Container(
-//           padding: const pw.EdgeInsets.all(24),
-//           decoration: pw.BoxDecoration(
-//             border: pw.Border.all(color: PdfColors.grey, width: 1.5),
-//             borderRadius: pw.BorderRadius.circular(16),
-//           ),
-//           child: pw.Column(
-//             crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-//             children: [
-//               pw.Center(
-//                 child: pw.Text(
-//                   'وصل دفع رسوم دراسية',
-//                   style: pw.TextStyle(
-//                     fontSize: 24,
-//                     fontWeight: pw.FontWeight.bold,
-//                     color: PdfColors.blue800,
-//                   ),
-//                 ),
-//               ),
-//               pw.SizedBox(height: 18),
-//               pw.Divider(thickness: 1.2, color: PdfColors.blueGrey400),
-//               pw.SizedBox(height: 12),
-//               pw.Row(
-//                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-//                 children: [
-//                   pw.Text('اسم الطالب:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-//                   pw.Text(studentName),
-//                 ],
-//               ),
-//               pw.Row(
-//                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-//                 children: [
-//                   pw.Text('رقم الطالب:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-//                   pw.Text(studentId),
-//                 ],
-//               ),
-//               pw.Row(
-//                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-//                 children: [
-//                   pw.Text('رقم الوصل:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-//                   pw.Text(receiptNumber),
-//                 ],
-//               ),
-//               pw.Row(
-//                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-//                 children: [
-//                   pw.Text('تاريخ الدفع:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-//                   pw.Text('${paidAt.toLocal().toString().split(' ').first}'),
-//                 ],
-//               ),
-//               pw.SizedBox(height: 18),
-//               pw.Container(
-//                 decoration: pw.BoxDecoration(
-//                   color: PdfColors.grey200,
-//                   borderRadius: pw.BorderRadius.circular(8),
-//                 ),
-//                 padding: const pw.EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-//                 child: pw.Column(
-//                   children: [
-//                     pw.Row(
-//                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-//                       children: [
-//                         pw.Text('المبلغ المدفوع:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-//                         pw.Text('${amount.toStringAsFixed(0)} د.ع'),
-//                       ],
-//                     ),
-//                     pw.Row(
-//                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-//                       children: [
-//                         pw.Text('القسط السنوي:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-//                         pw.Text('${annualFee.toStringAsFixed(0)} د.ع'),
-//                       ],
-//                     ),
-//                     pw.Row(
-//                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-//                       children: [
-//                         pw.Text('إجمالي المدفوع:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-//                         pw.Text('${totalPaid.toStringAsFixed(0)} د.ع'),
-//                       ],
-//                     ),
-//                     pw.Row(
-//                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-//                       children: [
-//                         pw.Text('المتبقي:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.red800)),
-//                         pw.Text('${remaining.toStringAsFixed(0)} د.ع', style: pw.TextStyle(color: PdfColors.red800)),
-//                       ],
-//                     ),
-//                   ],
-//                 ),
-//               ),
-//               if (notes != null && notes.isNotEmpty) ...[
-//                 pw.SizedBox(height: 14),
-//                 pw.Container(
-//                   padding: const pw.EdgeInsets.all(8),
-//                   decoration: pw.BoxDecoration(
-//                     color: PdfColors.yellow100,
-//                     borderRadius: pw.BorderRadius.circular(6),
-//                   ),
-//                   child: pw.Row(
-//                     crossAxisAlignment: pw.CrossAxisAlignment.start,
-//                     children: [
-//                       pw.Text('ملاحظات: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-//                       pw.Expanded(child: pw.Text(notes)),
-//                     ],
-//                   ),
-//                 ),
-//               ],
-//               pw.Spacer(),
-//               pw.Divider(thickness: 1, color: PdfColors.grey400),
-//               pw.Row(
-//                 mainAxisAlignment: pw.MainAxisAlignment.end,
-//                 children: [
-//                   pw.Text('توقيع الإدارة', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-//                   pw.SizedBox(width: 40),
-//                 ],
-//               ),
-//             ],
-//           ),
-//         ),
-//       ),
-//     ),
-//   );
-
-//   await Printing.layoutPdf(onLayout: (format) => pdf.save());
-// }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     final formatter = NumberFormat('#,###');
-//     final fee = feeStatus?['annual_fee'] ?? 0;
-//     final paid = feeStatus?['paid_amount'] ?? 0;
-//     final due = feeStatus?['due_amount'] ?? 0;
-
-//     return Scaffold(
-//       appBar: AppBar(title: Text('دفعات الطالب: ${widget.student['full_name']}')),
-//       floatingActionButton: FloatingActionButton(
-//         onPressed: () async {
-//           await showAddPaymentDialog(
-//             context: context,
-//             studentId: widget.student['id'],
-//             academicYear: feeStatus?['academic_year'] ?? 'غير معروف',
-//             onSuccess: fetchPayments,
-//           );
-//         },
-//         child: const Icon(Icons.add),
-//       ),
-//       body: isLoading
-//           ? const Center(child: CircularProgressIndicator())
-//           : LayoutBuilder(
-//               builder: (context, constraints) {
-//                 final isWide = constraints.maxWidth > 700;
-//                 return Padding(
-//                   padding: const EdgeInsets.all(16),
-//                   child: Column(
-//                     children: [
-//                       Wrap(
-//                         spacing: 12,
-//                         runSpacing: 12,
-//                         children: [
-//                           _buildStatCard('القسط السنوي', '${formatter.format(fee)} د.ع', Colors.blue),
-//                           _buildStatCard('المدفوع', '${formatter.format(paid)} د.ع', Colors.green),
-//                           _buildStatCard('المتبقي', '${formatter.format(due)} د.ع', Colors.red),
-//                         ],
-//                       ),
-//                       const SizedBox(height: 20),
-//                       Row(crossAxisAlignment: CrossAxisAlignment.start,mainAxisAlignment: MainAxisAlignment.end,
-//                         children: [
-                      
-//                                IconButton(
-//                                             icon: const Icon(Icons.print, color: Colors.blue),
-//                                             onPressed: () async {
-//                                               await printAllStudentPaymentsReport(
-//                                                 studentName: widget.student['full_name'],
-//                                                 studentId: widget.student['id'],
-//                                                 className: widget.student['class_name'] ?? 'غير معروف',
-//                                                 academicYear: feeStatus?['academic_year'] ?? 'غير معروف',
-//                                                 annualFee: fee.toDouble(),
-//                                                 totalPaid: paid.toDouble(),
-//                                                 remaining: due.toDouble(),
-//                                                 payments: payments,
-//                                               );
-//                                             },
-//                                           ),
-//                                               const Align(
-//                             alignment: Alignment.centerRight,
-//                             child: Text('سجل الدفعات', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-//                           ),
-//                         ],
-//                       ),
-//                       const SizedBox(height: 10),
-//                       Expanded(
-//                         child: payments.isEmpty
-//                             ? const Center(child: Text('لا توجد دفعات مسجلة'))
-//                             : ListView.builder(
-//                                 itemCount: payments.length,
-                              
-//                                 itemBuilder: (context, index) {
-//                                   final p = payments[index];
-//                                   return Card(elevation: 3, margin: const EdgeInsets.symmetric(vertical: 10,horizontal: 50),
-//                                     shape: RoundedRectangleBorder(
-//                                       borderRadius: BorderRadius.circular(8),
-//                                     ),
-//                                     child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//                                       children: [
-//                                          Text('${formatter.format(p['amount'])} د.ع'),
-// Text('تاريخ: ${p['paid_at'].toString().split('T').first}'),
-//  Text(p['receipt_number'] ?? 'بدون رقم'),
-//                                           IconButton(
-//                                             icon: const Icon(Icons.print),
-//                                             onPressed: () async {
-//                                               await printSinglePaymentReceipt(
-//                                                 studentName: widget.student['full_name'],
-//                                                 studentId: widget.student['id'],
-//                                                 receiptNumber: p['receipt_number'] ?? 'غير معروف',
-//                                                 amount: p['amount'].toDouble(),
-//                                                 annualFee: fee.toDouble(),
-//                                                 totalPaid: paid.toDouble(),
-//                                                 remaining: due.toDouble(),
-//                                                 paidAt: DateTime.parse(p['paid_at']),
-//                                                 notes: p['notes'],
-//                                               );
-//                                             },
-//                                           ),
-                                     
-//                                       ],
-                                  
-//                                     ),
-//                                   );
-//                                 },
-//                               ),
-//                       )
-//                     ],
-//                   ),
-//                 );
-//               },
-//             ),
-//     );
-//   }
-
-//   Widget _buildStatCard(String title, String value, Color color) {
-//     return Container(
-//       width: 200,
-//       padding: const EdgeInsets.all(16),
-//       decoration: BoxDecoration(
-//         color: color.withOpacity(0.1),
-//         borderRadius: BorderRadius.circular(12),
-//         border: Border.all(color: color.withOpacity(0.3)),
-//       ),
-//       child: Column(
-//         crossAxisAlignment: CrossAxisAlignment.start,
-//         children: [
-//           Text(title,
-//               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-//           const SizedBox(height: 6),
-//           Text(value,
-//               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color)),
-//         ],
-//       ),
-//     );
-//   }
-// }
-
+// ✅ تم تعديل الكود ليتوافق مع Isar فقط (بدون Supabase)
+// ✅ عرض دفعات الطالب وربطها بحالته المالية
+// ✅ تم تحميل الدفعات وحالة القسط من Isar وربطها بالواجهة
+// ✅ جاهز للعمل بالكامل
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -562,9 +14,8 @@ import '../dialogs/payment_dialog_ui.dart';
 class StudentPaymentsScreen extends StatefulWidget {
   final int studentId;
   final String fullName;
-  final String className;
 
-  const StudentPaymentsScreen({super.key, required this.studentId, required this.fullName, required this.className});
+  const StudentPaymentsScreen({super.key, required this.studentId, required this.fullName});
 
   @override
   State<StudentPaymentsScreen> createState() => _StudentPaymentsScreenState();
@@ -579,16 +30,18 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
   void initState() {
     super.initState();
     fetchData();
+    refreshFeeStatus();
   }
 
   Future<void> fetchData() async {
     setState(() => isLoading = true);
     try {
-final paymentList = await isar.studentPayments
-    .filter()
-    .studentIdEqualTo(widget.studentId.toString()) // أو widget.student['uid']
-    .sortByPaidAtDesc()
-    .findAll();
+      payments = await isar.studentPayments
+          .filter()
+          .studentIdEqualTo(widget.studentId.toString())
+          .sortByPaidAtDesc()
+          .findAll();
+
       feeStatus = await isar.studentFeeStatus
           .filter()
           .studentIdEqualTo(widget.studentId.toString())
@@ -606,23 +59,44 @@ final paymentList = await isar.studentPayments
     });
     fetchData();
   }
+  
+ var fee;
+
+  var paid;
+  var due;
+  Future<void> refreshFeeStatus() async {
+    try {
+      feeStatus = await isar.studentFeeStatus
+          .filter()
+          .studentIdEqualTo(widget.studentId.toString())
+          .findFirst();
+      setState(() {
+          fee = feeStatus?.annualFee ?? 0;
+     paid = feeStatus?.paidAmount ?? 0;
+     due = feeStatus?.dueAmount ?? 0;
+      });
+    } catch (e) {
+      debugPrint('Error fetching fee status: $e');
+    }
+  }
+
+   final formatter = NumberFormat('#,###');
 
   @override
   Widget build(BuildContext context) {
-    final formatter = NumberFormat('#,###');
-    final fee = feeStatus?.annualFee ?? 0;
-    final paid = feeStatus?.paidAmount ?? 0;
-    final due = feeStatus?.dueAmount ?? 0;
+   
 
+   
     return Scaffold(
       appBar: AppBar(title: Text('دفعات الطالب: ${widget.fullName}')),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          await showAddPaymentDialog(
+          await showAddPaymentDialogIsar(
             context: context,
             studentId: widget.studentId.toString(),
             academicYear: feeStatus?.academicYear ?? 'غير معروف',
             onSuccess: fetchData,
+            isar: isar,
           );
         },
         child: const Icon(Icons.add),
@@ -637,9 +111,9 @@ final paymentList = await isar.studentPayments
                     spacing: 12,
                     runSpacing: 12,
                     children: [
-                      _buildStatCard('القسط السنوي', '${formatter.format(fee)} د.ع', Colors.blue),
-                      _buildStatCard('المدفوع', '${formatter.format(paid)} د.ع', Colors.green),
-                      _buildStatCard('المتبقي', '${formatter.format(due)} د.ع', Colors.red),
+                      _buildStatCard('القسط السنوي', '${fee} د.ع', Colors.blue),
+                      _buildStatCard('المدفوع', '${paid} د.ع', Colors.green),
+                      _buildStatCard('المتبقي', '${due} د.ع', Colors.red),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -668,14 +142,9 @@ final paymentList = await isar.studentPayments
                                       if (p.notes != null) Text('ملاحظات: ${p.notes}'),
                                     ],
                                   ),
-                                  trailing: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(Icons.delete, color: Colors.red),
-                                        onPressed: () async => await deletePayment(p.id),
-                                      ),
-                                    ],
+                                  trailing: IconButton(
+                                    icon: const Icon(Icons.delete, color: Colors.red),
+                                    onPressed: () async => await deletePayment(p.id),
                                   ),
                                 ),
                               );
@@ -700,11 +169,9 @@ final paymentList = await isar.studentPayments
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+          Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
           const SizedBox(height: 6),
-          Text(value,
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color)),
+          Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color)),
         ],
       ),
     );

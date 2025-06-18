@@ -12,7 +12,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final supabase = Supabase.instance.client;
+  // final supabase = Supabase.instance.client;
   final _formKey = GlobalKey<FormState>();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
@@ -51,37 +51,37 @@ Future<void> loginIsar() async {
     }
   }
 
-  Future<void> login() async {
-    if (!_formKey.currentState!.validate()) return;
+  // Future<void> login() async {
+  //   if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      isLoading = true;
-      errorText = null;
-    });
+  //   setState(() {
+  //     isLoading = true;
+  //     errorText = null;
+  //   });
 
-    try {
-      final response = await supabase.auth.signInWithPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
-      );
+  //   try {
+  //     final response = await supabase.auth.signInWithPassword(
+  //       email: emailController.text.trim(),
+  //       password: passwordController.text.trim(),
+  //     );
 
-      if (response.user != null) {
-        Navigator.pushReplacementNamed(context, '/dashboard');
-      }
-    } on AuthException catch (e) {
-      setState(() {
-        errorText = e.message;
-      });
-    } catch (e) {
-      setState(() {
-        errorText = 'حدث خطأ غير متوقع، حاول مرة أخرى.';
-      });
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
-    }
-  }
+  //     if (response.user != null) {
+  //       Navigator.pushReplacementNamed(context, '/dashboard');
+  //     }
+  //   } on AuthException catch (e) {
+  //     setState(() {
+  //       errorText = e.message;
+  //     });
+  //   } catch (e) {
+  //     setState(() {
+  //       errorText = 'حدث خطأ غير متوقع، حاول مرة أخرى.';
+  //     });
+  //   } finally {
+  //     setState(() {
+  //       isLoading = false;
+  //     });
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {

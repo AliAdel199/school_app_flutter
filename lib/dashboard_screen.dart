@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:isar/isar.dart';
+import 'package:school_app_flutter/localdatabase/class.dart';
+import 'package:school_app_flutter/localdatabase/school.dart';
+import 'package:school_app_flutter/localdatabase/student.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'main.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -9,68 +15,110 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  final supabase = Supabase.instance.client;
+  // final supabase = Supabase.instance.client;
   int studentCount = 0;
   int classCount = 0;
   String subscriptionAlert = '';
-  bool isLoading = true;
+  bool isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    fetchStats();
+    // fetchStats();
   }
+
 
   Future<void> fetchStats() async {
     setState(() => isLoading = true);
     try {
-      final profile = await supabase
-          .from('profiles')
-          .select('school_id')
-          .eq('id', supabase.auth.currentUser!.id)
-          .single();
+    
 
-      final schoolId = profile['school_id'];
+ 
+      // final schoolId = await isar.schools.where().findFirst().id;
 
-      final studentRes = await supabase
-          .from('students')
-          .select('id')
-          .eq('school_id', schoolId);
+      // if (schoolId == null) {
+      //   throw Exception('School ID not found in local profile');
+      // }
 
-      final classRes = await supabase
-          .from('classes')
-          .select('id')
-          .eq('school_id', schoolId);
+      // final classCountQuery = await isar.schoolClass.filter().schoolIdEqualTo (schoolId).count();
 
-      final subscriptionRes = await supabase
-          .from('schools')
-          .select()
-          .eq('id', schoolId)
-          .maybeSingle();
-
-      final endDate = DateTime.tryParse(subscriptionRes?['end_date'] ?? '');
+      // final school = await isar.schools.filter().idEqualTo(schoolId).findFirst();
+      // final endDate = school?.endDate;
       final now = DateTime.now();
-      if (endDate != null) {
-        final diff = endDate.difference(now).inDays;
-        if (diff < 0) {
-          subscriptionAlert = 'انتهى الاشتراك!';
-        } else if (diff <= 7) {
-          subscriptionAlert = 'الاشتراك ينتهي بعد $diff يوم';
-        } else {
-          subscriptionAlert = 'الاشتراك فعّال';
-        }
-      }
+      String alert = '';
+      // if (endDate != null) {
+      //   final diff = endDate.difference(now).inDays;
+      //   if (diff < 0) {
+      //     alert = 'انتهى الاشتراك!';
+      //   } else if (diff <= 7) {
+      //     alert = 'الاشتراك ينتهي بعد $diff يوم';
+      //   } else {
+      //     alert = 'الاشتراك فعّال';
+      //   }
+      // }
 
       setState(() {
-        studentCount = studentRes.length;
-        classCount = classRes.length;
+        studentCount = 5;// studentCountQuery;
+        classCount = 6;//classCountQuery;
+        subscriptionAlert = "alert";
       });
     } catch (e) {
-      debugPrint('Error fetching dashboard stats: \n$e');
+      debugPrint('Error fetching dashboard stats from Isar: \n$e');
     } finally {
       setState(() => isLoading = false);
     }
   }
+
+  // Future<void> fetchStats() async {
+  //   setState(() => isLoading = true);
+  //   try {
+  //     final profile = await supabase
+  //         .from('profiles')
+  //         .select('school_id')
+  //         .eq('id', supabase.auth.currentUser!.id)
+  //         .single();
+
+  //     final schoolId = profile['school_id'];
+
+  //     final studentRes = await supabase
+  //         .from('students')
+  //         .select('id')
+  //         .eq('school_id', schoolId);
+
+  //     final classRes = await supabase
+  //         .from('classes')
+  //         .select('id')
+  //         .eq('school_id', schoolId);
+
+  //     final subscriptionRes = await supabase
+  //         .from('schools')
+  //         .select()
+  //         .eq('id', schoolId)
+  //         .maybeSingle();
+
+  //     final endDate = DateTime.tryParse(subscriptionRes?['end_date'] ?? '');
+  //     final now = DateTime.now();
+  //     if (endDate != null) {
+  //       final diff = endDate.difference(now).inDays;
+  //       if (diff < 0) {
+  //         subscriptionAlert = 'انتهى الاشتراك!';
+  //       } else if (diff <= 7) {
+  //         subscriptionAlert = 'الاشتراك ينتهي بعد $diff يوم';
+  //       } else {
+  //         subscriptionAlert = 'الاشتراك فعّال';
+  //       }
+  //     }
+
+  //     setState(() {
+  //       studentCount = studentRes.length;
+  //       classCount = classRes.length;
+  //     });
+  //   } catch (e) {
+  //     debugPrint('Error fetching dashboard stats: \n$e');
+  //   } finally {
+  //     setState(() => isLoading = false);
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -84,11 +132,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ? const Center(child: CircularProgressIndicator())
             : isWide
                 ? Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Expanded(child: _buildActionCards(context)),
                       const SizedBox(width: 16),
-                      Expanded(child: _buildOverviewPanel()),
+                      // Expanded(child: _buildOverviewPanel()),
+                      // Expanded(child: Container()),
+
                     ],
                   )
                 : SingleChildScrollView(
@@ -130,7 +180,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       shrinkWrap: true,
    
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
+        crossAxisCount: 5,
         childAspectRatio: 2.2,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,

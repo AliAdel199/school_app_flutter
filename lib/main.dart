@@ -41,12 +41,12 @@ bool isCloud = true; // تحديد ما إذا كان التطبيق يعمل ف
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initializeDateFormatting('ar', null); // ← هذا السطر الجديد
+  // await initializeDateFormatting('ar', null); // ← هذا السطر الجديد
 
-  await Supabase.initialize(
-    url: 'https://lhzujcquhgxhsmmjwgdq.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoenVqY3F1aGd4aHNtbWp3Z2RxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU4MjQ4NjQsImV4cCI6MjA2MTQwMDg2NH0.u7qPHRu_TdmNjPQJhMeXMZVI37xJs8IoX5Dcrg7fxV8',
-  );
+  // await Supabase.initialize(
+  //   url: 'https://lhzujcquhgxhsmmjwgdq.supabase.co',
+  //   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoenVqY3F1aGd4aHNtbWp3Z2RxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU4MjQ4NjQsImV4cCI6MjA2MTQwMDg2NH0.u7qPHRu_TdmNjPQJhMeXMZVI37xJs8IoX5Dcrg7fxV8',
+  // );
   final dir = Directory.current;
   isar = await Isar.open([
     StudentSchema,
@@ -98,7 +98,7 @@ class SchoolApp extends StatelessWidget {
           return StudentPaymentsScreen(
             studentId: args['studentId'],
             fullName: args['fullName'],
-            className: args['className'],
+            // className: args['className'],
           );
         },
         '/financial-reports': (context) => const FinancialReportsScreen(),
