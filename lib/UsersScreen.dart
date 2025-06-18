@@ -34,7 +34,11 @@ class _UsersScreenState extends State<UsersScreen> {
     await showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(user == null ? 'إضافة مستخدم' : 'تعديل مستخدم'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          user == null ? 'إضافة مستخدم' : 'تعديل مستخدم',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         content: Form(
           key: formKey,
           child: Column(
@@ -42,17 +46,31 @@ class _UsersScreenState extends State<UsersScreen> {
             children: [
               TextFormField(
                 controller: usernameController,
-                decoration: const InputDecoration(labelText: 'اسم المستخدم'),
+                decoration: InputDecoration(
+                  labelText: 'اسم المستخدم',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  prefixIcon: const Icon(Icons.person),
+                ),
                 validator: (val) => val == null || val.isEmpty ? 'مطلوب' : null,
               ),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: emailController,
-                decoration: const InputDecoration(labelText: 'البريد الإلكتروني'),
+                decoration: InputDecoration(
+                  labelText: 'البريد الإلكتروني',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  prefixIcon: const Icon(Icons.email),
+                ),
                 validator: (val) => val == null || val.isEmpty ? 'مطلوب' : null,
               ),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: passwordController,
-                decoration: const InputDecoration(labelText: 'كلمة المرور'),
+                decoration: InputDecoration(
+                  labelText: 'كلمة المرور',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  prefixIcon: const Icon(Icons.lock),
+                ),
                 obscureText: true,
                 validator: (val) => user == null && (val == null || val.length < 4)
                     ? 'كلمة المرور مطلوبة (4 أحرف على الأقل)' : null,
@@ -66,6 +84,9 @@ class _UsersScreenState extends State<UsersScreen> {
             child: const Text('إلغاء'),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
             onPressed: () async {
               if (!formKey.currentState!.validate()) return;
 
@@ -112,35 +133,63 @@ class _UsersScreenState extends State<UsersScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('إدارة المستخدمين')),
-      body: ListView.separated(
-        itemCount: users.length,
-        separatorBuilder: (_, __) => const Divider(),
-        itemBuilder: (context, index) {
-          final user = users[index];
-          return ListTile(
-            title: Text(user.username),
-            subtitle: Text(user.email),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.edit),
-                  onPressed: () => showUserDialog(user: user),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete),
-                  color: Colors.red,
-                  onPressed: () => deleteUser(user),
-                ),
-              ],
-            ),
-          );
-        },
+      appBar: AppBar(
+        title: const Text('إدارة المستخدمين'),
+        centerTitle: true,
+        elevation: 2,
+        backgroundColor: Colors.white,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: users.isEmpty
+            ? const Center(child: Text('لا يوجد مستخدمون'))
+            : ListView.separated(
+                itemCount: users.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final user = users[index];
+                  return Card(
+                    elevation: 3,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      leading: CircleAvatar(
+                        backgroundColor: Colors.blue.shade100,
+                        child: Text(
+                          user.username.isNotEmpty ? user.username[0].toUpperCase() : '?',
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
+                        ),
+                      ),
+                      title: Text(
+                        user.username,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(user.email),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit, color: Colors.orange),
+                            onPressed: () => showUserDialog(user: user),
+                            tooltip: 'تعديل',
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () => deleteUser(user),
+                            tooltip: 'حذف',
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => showUserDialog(),
+        backgroundColor:Colors.blue.shade100,
         child: const Icon(Icons.add),
+        tooltip: 'إضافة مستخدم',
       ),
     );
   }

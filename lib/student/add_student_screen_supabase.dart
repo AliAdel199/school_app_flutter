@@ -36,6 +36,15 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
   final emailController = TextEditingController();
   final phoneController = TextEditingController();
   final registrationYearController = TextEditingController();
+  final parentNameFocus = FocusNode();
+final fullNameFocus = FocusNode();
+final nationalIdFocus = FocusNode();
+final phoneFocus = FocusNode();
+final emailFocus = FocusNode();
+final addressFocus = FocusNode();
+final parentPhoneFocus = FocusNode();
+final registrationYearFocus = FocusNode();
+final annualFeeFocus = FocusNode();
 
   // متغيرات الحالة
   String gender = 'male';
@@ -381,18 +390,39 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
                         alignment: WrapAlignment.center,
                         children: [
                           // الحقول الرئيسية لإدخال بيانات الطالب
-                          for (final field in [
+                          for (final field in <Widget>[
+                            buildInputField(
+                              FocusTraversalGroup(
+                              child: TextFormField(
+                                controller: parentNameController,
+                                decoration: const InputDecoration(labelText: 'اسم ولي الأمر'),
+                                textInputAction: TextInputAction.next,
+                                focusNode: parentNameFocus, 
+                                onFieldSubmitted: (_) {
+                                  FocusScope.of(context).requestFocus(nationalIdFocus);
+                                  nationalIdFocus.requestFocus();
+                                  
+                                },
+                              ),
+                              ),
+                            ),
                             buildInputField(TextFormField(
-                              controller: parentNameController,
-                              decoration: const InputDecoration(labelText: 'اسم ولي الأمر'),
-                            )),
-                            buildInputField(TextFormField(
-                              controller: fullNameController,
+                              controller: fullNameController, 
+                              focusNode: fullNameFocus,
+                              textInputAction: TextInputAction.next,    
+                              onFieldSubmitted: (_) {
+                                FocusScope.of(context).requestFocus(parentNameFocus);
+                              },
                               decoration: const InputDecoration(labelText: 'الاسم الكامل'),
                               validator: (val) => val == null || val.isEmpty ? 'مطلوب' : null,
                             )),
                             buildInputField(TextFormField(
                               controller: nationalIdController,
+                              focusNode: nationalIdFocus,
+                              textInputAction: TextInputAction.next,
+                              onFieldSubmitted: (_) {
+                                FocusScope.of(context).requestFocus(phoneFocus);
+                              },
                               decoration: const InputDecoration(labelText: 'الرقم الوطني'),
                             )),
                             buildInputField(DropdownButtonFormField<String>(
@@ -406,18 +436,38 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
                             )),
                             buildInputField(TextFormField(
                               controller: phoneController,
+                              focusNode: phoneFocus,  
+                              textInputAction: TextInputAction.next,
+                              onFieldSubmitted: (_) {
+                                FocusScope.of(context).requestFocus(emailFocus);
+                              },
                               decoration: const InputDecoration(labelText: 'هاتف الطالب'),
                             )),
                             buildInputField(TextFormField(
                               controller: emailController,
+                              focusNode: emailFocus,
+                              textInputAction: TextInputAction.next,
+                              onFieldSubmitted: (_) {
+                                FocusScope.of(context).requestFocus(addressFocus);
+                              },
                               decoration: const InputDecoration(labelText: 'البريد الإلكتروني'),
                             )),
                             buildInputField(TextFormField(
                               controller: addressController,
+                              focusNode: addressFocus,
+                              textInputAction: TextInputAction.next,
+                              onFieldSubmitted: (_) {
+                                FocusScope.of(context).requestFocus(parentPhoneFocus);
+                              },
                               decoration: const InputDecoration(labelText: 'العنوان'),
                             )),
                             buildInputField(TextFormField(
                               controller: parentPhoneController,
+                              focusNode: parentPhoneFocus,
+                              onFieldSubmitted: (_) {
+                                FocusScope.of(context).requestFocus(registrationYearFocus);
+                              },
+                              textInputAction: TextInputAction.next,  
                               decoration: const InputDecoration(labelText: 'هاتف ولي الأمر'),
                             )),
                             buildInputField(DropdownButtonFormField<String>(
@@ -453,10 +503,17 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
                             )),
                             buildInputField(TextFormField(
                               controller: registrationYearController,
+                              focusNode: registrationYearFocus,
+                              textInputAction: TextInputAction.next,
+                              onFieldSubmitted: (_) {
+                                FocusScope.of(context).requestFocus(annualFeeFocus);
+                              },
                               decoration: const InputDecoration(labelText: 'سنة التسجيل'),
                             )),
                             buildInputField(TextFormField(
                               controller: annualFeeController,
+                              focusNode: annualFeeFocus,
+                              textInputAction: TextInputAction.done,
                               decoration: const InputDecoration(labelText: 'القسط السنوي '),
                             )),
                             buildInputField(DropdownButtonFormField<String>(

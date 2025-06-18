@@ -11,6 +11,7 @@ import '../income_expeness/incomes.dart';
 import '../reports/classes_list_screen.dart';
 import '../reports/reportsscreen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'LogsScreen.dart';
 import 'UsersScreen.dart';
 import 'income_expeness/ExpenseListScreen.dart';
 import 'income_expeness/addexpenesscreen.dart';
@@ -92,9 +93,14 @@ class SchoolApp extends StatelessWidget {
           classData: ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>,
         ),
         '/subjects': (context) => const SubjectsListScreen(),
-        '/studentpayments': (context) => StudentPaymentsScreen(
-          student: ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>,
-        ),
+        '/studentpayments': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+          return StudentPaymentsScreen(
+            studentId: args['studentId'],
+            fullName: args['fullName'],
+            className: args['className'],
+          );
+        },
         '/financial-reports': (context) => const FinancialReportsScreen(),
         '/reportsscreen': (context) => const ReportsScreen(),
         '/add-edit-employee': (context) => AddEditEmployeeScreen(
@@ -109,6 +115,7 @@ class SchoolApp extends StatelessWidget {
         ),
         '/income': (context) => const IncomesListScreen(),
         '/user-screen': (context) => const UsersScreen(),
+        '/logs-screen': (context) => const LogsScreen(),
       },
 
     );

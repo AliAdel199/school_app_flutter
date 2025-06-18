@@ -46,6 +46,11 @@ const StudentPaymentSchema = CollectionSchema(
       id: 5,
       name: r'receiptNumber',
       type: IsarType.string,
+    ),
+    r'studentId': PropertySchema(
+      id: 6,
+      name: r'studentId',
+      type: IsarType.string,
     )
   },
   estimateSize: _studentPaymentEstimateSize,
@@ -93,6 +98,7 @@ int _studentPaymentEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  bytesCount += 3 + object.studentId.length * 3;
   return bytesCount;
 }
 
@@ -108,6 +114,7 @@ void _studentPaymentSerialize(
   writer.writeString(offsets[3], object.notes);
   writer.writeDateTime(offsets[4], object.paidAt);
   writer.writeString(offsets[5], object.receiptNumber);
+  writer.writeString(offsets[6], object.studentId);
 }
 
 StudentPayment _studentPaymentDeserialize(
@@ -124,6 +131,7 @@ StudentPayment _studentPaymentDeserialize(
   object.notes = reader.readStringOrNull(offsets[3]);
   object.paidAt = reader.readDateTime(offsets[4]);
   object.receiptNumber = reader.readStringOrNull(offsets[5]);
+  object.studentId = reader.readString(offsets[6]);
   return object;
 }
 
@@ -146,6 +154,8 @@ P _studentPaymentDeserializeProp<P>(
       return (reader.readDateTime(offset)) as P;
     case 5:
       return (reader.readStringOrNull(offset)) as P;
+    case 6:
+      return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -942,6 +952,142 @@ extension StudentPaymentQueryFilter
       ));
     });
   }
+
+  QueryBuilder<StudentPayment, StudentPayment, QAfterFilterCondition>
+      studentIdEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'studentId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentPayment, StudentPayment, QAfterFilterCondition>
+      studentIdGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'studentId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentPayment, StudentPayment, QAfterFilterCondition>
+      studentIdLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'studentId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentPayment, StudentPayment, QAfterFilterCondition>
+      studentIdBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'studentId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentPayment, StudentPayment, QAfterFilterCondition>
+      studentIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'studentId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentPayment, StudentPayment, QAfterFilterCondition>
+      studentIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'studentId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentPayment, StudentPayment, QAfterFilterCondition>
+      studentIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'studentId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentPayment, StudentPayment, QAfterFilterCondition>
+      studentIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'studentId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentPayment, StudentPayment, QAfterFilterCondition>
+      studentIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'studentId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<StudentPayment, StudentPayment, QAfterFilterCondition>
+      studentIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'studentId',
+        value: '',
+      ));
+    });
+  }
 }
 
 extension StudentPaymentQueryObject
@@ -1044,6 +1190,19 @@ extension StudentPaymentQuerySortBy
       return query.addSortBy(r'receiptNumber', Sort.desc);
     });
   }
+
+  QueryBuilder<StudentPayment, StudentPayment, QAfterSortBy> sortByStudentId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'studentId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<StudentPayment, StudentPayment, QAfterSortBy>
+      sortByStudentIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'studentId', Sort.desc);
+    });
+  }
 }
 
 extension StudentPaymentQuerySortThenBy
@@ -1138,6 +1297,19 @@ extension StudentPaymentQuerySortThenBy
       return query.addSortBy(r'receiptNumber', Sort.desc);
     });
   }
+
+  QueryBuilder<StudentPayment, StudentPayment, QAfterSortBy> thenByStudentId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'studentId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<StudentPayment, StudentPayment, QAfterSortBy>
+      thenByStudentIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'studentId', Sort.desc);
+    });
+  }
 }
 
 extension StudentPaymentQueryWhereDistinct
@@ -1180,6 +1352,13 @@ extension StudentPaymentQueryWhereDistinct
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'receiptNumber',
           caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<StudentPayment, StudentPayment, QDistinct> distinctByStudentId(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'studentId', caseSensitive: caseSensitive);
     });
   }
 }
@@ -1227,6 +1406,12 @@ extension StudentPaymentQueryProperty
       receiptNumberProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'receiptNumber');
+    });
+  }
+
+  QueryBuilder<StudentPayment, String, QQueryOperations> studentIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'studentId');
     });
   }
 }

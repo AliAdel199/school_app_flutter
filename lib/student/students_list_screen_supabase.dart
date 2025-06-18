@@ -550,13 +550,13 @@ for (final student in filteredStudents) {
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(
-                                            builder: (_) => StudentPaymentsScreen(
-                                              student: {
-                                                'id': student.id,
-                                                'full_name': student.fullName,
-                                                'annual_fee': student.annualFee,
-                                              },
-                                            ),
+                                            builder: (_) => StudentPaymentsScreen(studentId: student.id, className: student.schoolclass.value!.name,fullName: student.fullName,),
+                                              // student: {
+                                              //   'id': student.id,
+                                              //   'full_name': student.fullName,
+                                              //   'annual_fee': student.annualFee,
+                                              // },
+                                            
                                           ),
                                         );
                                       },

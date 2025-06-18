@@ -16,6 +16,9 @@ class StudentPayment {
   DateTime createdAt = DateTime.now();
   String? academicYear;
 
-  // الربط مع الطالب
+  // ربط IsarLink
   final student = IsarLink<Student>();
+
+  // معرف الطالب النصي (محلي أو uid من Supabase)
+  late String studentId;
 }

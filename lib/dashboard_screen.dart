@@ -120,6 +120,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     {'label': 'قائمة المصروفات', 'icon': Icons.money_off, 'route': '/expense-list'},
     {'label': 'قائمة الدخل', 'icon': Icons.account_balance_wallet, 'route': '/income'},
     {'label': 'إدارة المستخدمين', 'icon': Icons.admin_panel_settings, 'route': '/user-screen'},
+    {'label': 'سجل العمليات', 'icon': Icons.history, 'route': '/logs-screen'},
     // {'label': 'إضافة مصروف', 'icon': Icons.add_circle, 'route': '/add-expense'},
     
     ];

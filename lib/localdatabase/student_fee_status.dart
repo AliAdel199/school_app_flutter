@@ -17,4 +17,5 @@ class StudentFeeStatus {
 
   // الربط مع الطالب
   final student = IsarLink<Student>();
+  late String studentId;
 }
