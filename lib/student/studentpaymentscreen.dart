@@ -30,7 +30,7 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
   void initState() {
     super.initState();
     fetchData();
-    refreshFeeStatus();
+    // refreshFeeStatus();
   }
 
   Future<void> fetchData() async {
@@ -46,6 +46,7 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
           .filter()
           .studentIdEqualTo(widget.studentId.toString())
           .findFirst();
+        print(feeStatus!.annualFee);
     } catch (e) {
       debugPrint('Error: $e');
     } finally {
@@ -64,21 +65,21 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
 
   var paid;
   var due;
-  Future<void> refreshFeeStatus() async {
-    try {
-      feeStatus = await isar.studentFeeStatus
-          .filter()
-          .studentIdEqualTo(widget.studentId.toString())
-          .findFirst();
-      setState(() {
-          fee = feeStatus?.annualFee ?? 0;
-     paid = feeStatus?.paidAmount ?? 0;
-     due = feeStatus?.dueAmount ?? 0;
-      });
-    } catch (e) {
-      debugPrint('Error fetching fee status: $e');
-    }
-  }
+  // Future<void> refreshFeeStatus() async {
+  //   try {
+  //     feeStatus = await isar.studentFeeStatus
+  //         .filter()
+  //         .studentIdEqualTo(widget.studentId.toString())
+  //         .findFirst();
+  //     setState(() {
+  //         fee = feeStatus?.annualFee ?? 0;
+  //    paid = feeStatus?.paidAmount ?? 0;
+  //    due = feeStatus?.dueAmount ?? 0;
+  //     });
+  //   } catch (e) {
+  //     debugPrint('Error fetching fee status: $e');
+  //   }
+  // }
 
    final formatter = NumberFormat('#,###');
 
@@ -111,9 +112,9 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
                     spacing: 12,
                     runSpacing: 12,
                     children: [
-                      _buildStatCard('القسط السنوي', '${fee} د.ع', Colors.blue),
-                      _buildStatCard('المدفوع', '${paid} د.ع', Colors.green),
-                      _buildStatCard('المتبقي', '${due} د.ع', Colors.red),
+                      _buildStatCard('القسط السنوي', '${formatter.format(feeStatus!.annualFee)} د.ع', Colors.blue),
+          _buildStatCard('المدفوع', '${formatter.format(feeStatus!.paidAmount)} د.ع', Colors.green),
+          _buildStatCard('المتبقي', '${formatter.format(feeStatus!.dueAmount)} د.ع', Colors.red),
                     ],
                   ),
                   const SizedBox(height: 20),

@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:school_app_flutter/localdatabase/student_crud.dart';
 
 // import 'package:school_app_flutter/localdatabase/students/StudentService.dart';
 import 'package:school_app_flutter/main.dart';
@@ -106,67 +107,58 @@ final annualFeeFocus = FocusNode();
     }
   }
   // إضافة طالب جديد مع ربط الصف والقسط وكافة التفاصيل في Isar
-  Future<void> addStudentWithRelationsIsar() async {
-    if (!formKey.currentState!.validate()) return;
-    setState(() => isLoading = true);
+  // Future<void> addStudentWithRelationsIsar() async {
+  //   if (!formKey.currentState!.validate()) return;
+  //   setState(() => isLoading = true);
 
-    try {
-      // جلب الصف المختار من Isar
-      final classId = int.tryParse(selectedClassId ?? '');
-      final schoolClass = classId != null ? await isar.schoolClass.get(classId) : null;
-      final fee = schoolClass?.annualFee ?? 0.0;
+  //   try {
+  //     // جلب الصف المختار من Isar
+  //     final classId = int.tryParse(selectedClassId ?? '');
+  //     final schoolClass = classId != null ? await isar.schoolClass.get(classId) : null;
+  //     final fee = schoolClass?.annualFee ?? 0.0;
 
-      // إنشاء الطالب وربط الصف
-      final student = Student()
-        ..fullName = fullNameController.text.trim()
-        ..gender = gender
-        ..birthDate = birthDate
-        ..nationalId = nationalIdController.text.trim()
-        ..parentName = parentNameController.text.trim()
-        ..parentPhone = parentPhoneController.text.trim()
-        ..address = addressController.text.trim()
-        ..email = emailController.text.trim()
-        ..phone = phoneController.text.trim()
-        ..status = status
-        ..registrationYear = registrationYearController.text.trim()
-        ..annualFee = fee
-        ..createdAt = DateTime.now();
+  //     // إنشاء الطالب وربط الصف
+  //     final student = Student()
+  //       ..fullName = fullNameController.text.trim()
+  //       ..gender = gender
+  //       ..birthDate = birthDate
+  //       ..nationalId = nationalIdController.text.trim()
+  //       ..parentName = parentNameController.text.trim()
+  //       ..parentPhone = parentPhoneController.text.trim()
+  //       ..address = addressController.text.trim()
+  //       ..email = emailController.text.trim()
+  //       ..phone = phoneController.text.trim()
+  //       ..status = status
+  //       ..registrationYear = registrationYearController.text.trim()
+  //       ..annualFee = fee
+  //       ..createdAt = DateTime.now();
 
-      // ربط الصف بالطالب
-      if (schoolClass != null) {
-        student.schoolclass.value = schoolClass;
-      }
+  //     // ربط الصف بالطالب
+  //     if (schoolClass != null) {
+  //       student.schoolclass.value = schoolClass;
+  //     }
 
-      // إنشاء سجل حالة القسط وربطه بالطالب
-      final feeStatus = StudentFeeStatus()
-        ..academicYear = registrationYearController.text.trim()
-        ..annualFee = fee
-        ..paidAmount = 0
-        ..dueAmount = fee
-        ..nextDueDate = DateTime.now().add(const Duration(days: 30));
 
-      // ربط حالة القسط بالطالب
-      student.feeStatus.value = feeStatus;
+   
 
-      // حفظ الطالب وحالة القسط في معاملة واحدة
-      await isar.writeTxn(() async {
-        await isar.students.put(student);
-        await isar.studentFeeStatus.put(feeStatus);
-        await student.schoolclass.save();
-        await student.feeStatus.save();
-      });
+  //     // حفظ الطالب وحالة القسط في معاملة واحدة
+  //     await isar.writeTxn(() async {
+  //       await isar.students.put(student);
+  //       await student.schoolclass.save();
+    
+  //     });
 
-      Navigator.pop(context);
-    } catch (e) {
-      debugPrint('Error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('خطأ أثناء إضافة الطالب: $e')),
-      );
-    } finally {
-      setState(() => isLoading = false);
-    }
-  }
-  // جلب قائمة الصفوف من قاعدة البيانات
+  //     Navigator.pop(context);
+  //   } catch (e) {
+  //     debugPrint('Error: $e');
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(content: Text('خطأ أثناء إضافة الطالب: $e')),
+  //     );
+  //   } finally {
+  //     setState(() => isLoading = false);
+  //   }
+  // }
+  // // جلب قائمة الصفوف من قاعدة البيانات
   Future<void> fetchClasses() async {
     final result = await supabase.from('classes').select('id, name, annual_fee').order('name');
     setState(() {
@@ -567,7 +559,22 @@ final annualFeeFocus = FocusNode();
                                   child: ElevatedButton.icon(
                                     onPressed: () async {
 
-                                      addStudentWithRelationsIsar();
+                                      addStudent(isar, Student()..
+                                      fullName = fullNameController.text.trim( )
+                                      ..address = addressController.text.trim()
+                                      ..annualFee = double.tryParse(annualFeeController.text.trim()) ?? 0 
+                                      ..schoolclass.value = null
+                                          ..birthDate = birthDate
+                                          ..createdAt = DateTime.now()
+                                          ..nationalId = nationalIdController.text.trim()
+                                          ..email = emailController.text.trim()
+                                          ..gender = gender
+                                          ..status = status
+                                          ..parentName = parentNameController.text.trim()
+                                          ..parentPhone = parentPhoneController.text.trim() 
+                                          ..phone = phoneController.text.trim()
+                                          ..registrationYear = registrationYearController.text.trim()
+                                      );
                                      
 //                                         DataController dataController = DataController();
 // final storage = StudentService(isar);
