@@ -571,7 +571,7 @@ for (final student in filteredStudents) {
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(
-                                            builder: (_) => StudentPaymentsScreen(studentId: student.id,fullName: student.fullName,),
+                                            builder: (_) => StudentPaymentsScreen(studentId: student.id,fullName: student.fullName,student: student,),
                                               // student: {
                                               //   'id': student.id,
                                               //   'full_name': student.fullName,

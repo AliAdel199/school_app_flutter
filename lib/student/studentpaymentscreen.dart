@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:isar/isar.dart';
+import 'package:school_app_flutter/localdatabase/student.dart';
 import '../localdatabase/student_fee_status.dart';
 import '../localdatabase/student_payment.dart';
 import '../main.dart';
@@ -14,8 +15,9 @@ import '../dialogs/payment_dialog_ui.dart';
 class StudentPaymentsScreen extends StatefulWidget {
   final int studentId;
   final String fullName;
+  final Student? student;
 
-  const StudentPaymentsScreen({super.key, required this.studentId, required this.fullName});
+  const StudentPaymentsScreen({super.key, required this.studentId, required this.fullName, this.student});
 
   @override
   State<StudentPaymentsScreen> createState() => _StudentPaymentsScreenState();
@@ -30,7 +32,7 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
   void initState() {
     super.initState();
     fetchData();
-    // refreshFeeStatus();
+    // s();
   }
 
   Future<void> fetchData() async {
@@ -97,6 +99,7 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
             studentId: widget.studentId.toString(),
             academicYear: feeStatus?.academicYear ?? 'غير معروف',
             onSuccess: fetchData,
+            student: widget.student!,
             isar: isar,
           );
         },

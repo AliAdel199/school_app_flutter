@@ -12,10 +12,10 @@ import 'student_payment.dart';
 //
 // 🧑‍🎓 Student
 //
-Future<void> addStudent(Isar isar, Student student,) async {
+Future<void> addStudent(Isar isar, Student student) async {
   await isar.writeTxn(() async {
     // Add the student
-    final studentId = await isar.students.put(student);
+    await isar.students.put(student);
     student.schoolclass.save();
 
   });
@@ -27,7 +27,7 @@ Future<void> addStudent(Isar isar, Student student,) async {
       ..annualFee=student.annualFee!
       ..dueAmount = student.annualFee // Assuming annualFee is the total fee
       ..studentId = student.id.toString()
-
+..lastPaymentDate
       ..academicYear = student.registrationYear ?? DateTime.now().year.toString()
       ..createdAt = DateTime.now()
       ..paidAmount = 0.0 // Initial paid amount
@@ -66,13 +66,20 @@ Future<void> deleteStudent(Isar isar, int id) async {
 //
 // 💳 StudentPayment
 //
-Future<void> addStudentPayment(Isar isar, StudentPayment payment, StudentFeeStatus feeStatus) async {
+Future<void> addStudentPayment(Isar isar, StudentPayment payment, StudentFeeStatus feeStatus ,Student student) async {
   await isar.writeTxn(() async {
     await isar.studentPayments.put(payment);
     await isar.studentFeeStatus.put(feeStatus);
     // Ensure the fee status is linked to the payment
+    
     feeStatus.student.value=payment.student.value;
     feeStatus.student.save();
+    feeStatus.studentId = student.id.toString();
+    feeStatus.student.value = student;
+    await payment.student.save();
+    await feeStatus.student.save();
+
+
   
 
   });

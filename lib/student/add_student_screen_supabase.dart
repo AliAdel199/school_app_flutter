@@ -10,9 +10,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../localdatabase/class.dart';
 import '../localdatabase/student.dart';
-import '../localdatabase/student_fee_status.dart';
 
 // شاشة إضافة أو تعديل طالب
+// ignore: must_be_immutable
 class AddEditStudentScreen extends StatefulWidget {
   Student? student;
 
@@ -107,12 +107,12 @@ final annualFeeFocus = FocusNode();
     }
   }
  
-  Future<void> fetchClasses() async {
-    final result = await supabase.from('classes').select('id, name, annual_fee').order('name');
-    setState(() {
-      classes = List<Map<String, dynamic>>.from(result);
-    });
-  }
+  // Future<void> fetchClasses() async {
+  //   final result = await supabase.from('classes').select('id, name, annual_fee').order('name');
+  //   setState(() {
+  //     classes = List<Map<String, dynamic>>.from(result);
+  //   });
+  // }
 
   // جلب القسط السنوي للصف المحدد
   double getAnnualFeeForSelectedClass() {
@@ -127,7 +127,7 @@ final annualFeeFocus = FocusNode();
   @override
   void initState() {
     super.initState();
-    fetchClasses();
+    // fetchClasses();
     fetchGrades();
     // إذا كان هناك طالب موجود، قم بملء الحقول  
     if (widget.student != null) {

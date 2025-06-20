@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:isar/isar.dart';
 import 'package:school_app_flutter/localdatabase/student.dart';
+import 'package:school_app_flutter/localdatabase/student_crud.dart';
 import 'package:school_app_flutter/localdatabase/student_fee_status.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -161,6 +162,8 @@ Future<void> showAddPaymentDialogIsar({
   required String studentId,
   required String academicYear,
   required VoidCallback onSuccess,
+  required Student student,
+  // Make sure to pass the students
   required Isar isar, // Pass your Isar instance
 }) async {
   final amountController = TextEditingController();
@@ -242,17 +245,26 @@ Future<void> showAddPaymentDialogIsar({
                         final receiptNumber = 'R-${DateTime.now().millisecondsSinceEpoch}';
 
                         // Insert payment into Isar
-                        await isar.writeTxn(() async {
-                          await isar.studentPayments.put(StudentPayment()
-                            ..studentId = studentId
-                            ..amount = amount
-                            ..paidAt = paidAt
-                            ..notes = notesController.text
-                            ..academicYear = academicYear
-                            ..receiptNumber = receiptNumber
-                          );
-                        });
-
+                        // await isar.writeTxn(() async {
+                        //   await isar.studentPayments.put(
+                            
+                        //     StudentPayment()
+                        //     ..studentId = studentId
+                        //     ..amount = amount
+                        //     ..paidAt = paidAt
+                        //     ..notes = notesController.text
+                        //     ..academicYear = academicYear
+                        //     ..receiptNumber = receiptNumber
+                        //   );
+                        // });
+   StudentPayment payment = StudentPayment()
+                          ..studentId = studentId
+                          ..amount = amount
+                          ..paidAt = paidAt
+                          ..student.value = student
+                          ..notes = notesController.text
+                          ..academicYear = academicYear
+                          ..receiptNumber = receiptNumber;
                         // Update fee status
                         final feeStatus = await isar.studentFeeStatus
                             .filter()
@@ -279,13 +291,14 @@ Future<void> showAddPaymentDialogIsar({
 
                           final due = (feeStatus.annualFee) - totalPaid;
 
-                          await isar.writeTxn(() async {
+                          
                             feeStatus.paidAmount = totalPaid;
                             feeStatus.dueAmount = due;
                             feeStatus.lastPaymentDate = lastDate;
                             feeStatus.nextDueDate = nextDueDate;
-                            await isar.studentFeeStatus.put(feeStatus);
-                          });
+                            // await isar.studentFeeStatus.put(feeStatus);
+                            addStudentPayment(isar, payment, feeStatus,student);
+                          
                         }
 
                         Navigator.pop(context);
