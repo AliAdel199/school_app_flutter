@@ -1,157 +1,503 @@
-// ✅ تم تعديل الكود ليتوافق مع Isar فقط (بدون Supabase)
-// ✅ عرض دفعات الطالب وربطها بحالته المالية
-// ✅ تم تحميل الدفعات وحالة القسط من Isar وربطها بالواجهة
-// ✅ جاهز للعمل بالكامل
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:isar/isar.dart';
+import 'package:school_app_flutter/localdatabase/student_crud.dart';
+
+// import 'package:school_app_flutter/localdatabase/students/StudentService.dart';
+import 'package:school_app_flutter/main.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../localdatabase/class.dart';
+import '../localdatabase/student.dart';
 import '../localdatabase/student_fee_status.dart';
-import '../localdatabase/student_payment.dart';
-import '../main.dart';
-import '../dialogs/payment_dialog_ui.dart';
 
-class StudentPaymentsScreen extends StatefulWidget {
-  final int studentId;
-  final String fullName;
+// شاشة إضافة أو تعديل طالب
+class AddEditStudentScreen extends StatefulWidget {
+  Student? student;
 
-  const StudentPaymentsScreen({super.key, required this.studentId, required this.fullName});
+  // إذا تم تمرير student، سيتم تعديل بياناته، وإلا سيتم إضافة طالب جديد
+   AddEditStudentScreen({super.key, this.student});
 
   @override
-  State<StudentPaymentsScreen> createState() => _StudentPaymentsScreenState();
+  State<AddEditStudentScreen> createState() => _AddEditStudentScreenState();
 }
 
-class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
-  List<StudentPayment> payments = [];
-  StudentFeeStatus? feeStatus;
-  bool isLoading = true;
+class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
+  final supabase = Supabase.instance.client;
+  final formKey = GlobalKey<FormState>();
 
-  @override
-  void initState() {
-    super.initState();
-    fetchData();
-  }
+  // متحكمات الحقول النصية
+  final fullNameController = TextEditingController();
+  final nationalIdController = TextEditingController();
+  final annualFeeController = TextEditingController();
+  final parentNameController = TextEditingController();
+  final parentPhoneController = TextEditingController();
+  final addressController = TextEditingController();
+  final emailController = TextEditingController();
+  final phoneController = TextEditingController();
+  final registrationYearController = TextEditingController();
+  final parentNameFocus = FocusNode();
+final fullNameFocus = FocusNode();
+final nationalIdFocus = FocusNode();
+final phoneFocus = FocusNode();
+final emailFocus = FocusNode();
+final addressFocus = FocusNode();
+final parentPhoneFocus = FocusNode();
+final registrationYearFocus = FocusNode();
+final annualFeeFocus = FocusNode();
 
-  Future<void> fetchData() async {
+  // متغيرات الحالة
+  String gender = 'male';
+  String status = 'active';
+  
+  DateTime? birthDate;
+  String? selectedClassId;
+
+  bool isLoading = false;
+  List<Map<String, dynamic>> classOptions = [];
+  List<Map<String, dynamic>> classes = [];
+  double annualFee = 0;
+  
+
+  
+  // دالة لتحديث بيانات الطالب في Isar بنفس ترتيب الحقول
+  Future<void> updateStudentDataIsar(Student student) async {
+    if (!formKey.currentState!.validate()) return;
     setState(() => isLoading = true);
-    try {
-      payments = await isar.studentPayments
-          .filter()
-          .studentIdEqualTo(widget.studentId.toString())
-          .sortByPaidAtDesc()
-          .findAll();
 
-      feeStatus = await isar.studentFeeStatus
-          .filter()
-          .studentIdEqualTo(widget.studentId.toString())
-          .findFirst();
+    try {
+      await isar.writeTxn(() async {
+        student
+          ..fullName = fullNameController.text.trim()
+          ..gender = gender
+          ..birthDate = birthDate
+          ..nationalId = nationalIdController.text.trim()
+          ..parentName = parentNameController.text.trim()
+          ..parentPhone = parentPhoneController.text.trim()
+          ..address = addressController.text.trim()
+          ..email = emailController.text.trim()
+          ..phone = phoneController.text.trim()
+          ..status = status
+          ..registrationYear = registrationYearController.text.trim()
+          ..annualFee = double.tryParse(annualFeeController.text.trim()) ?? 0;
+
+        // تحديث الصف المرتبط إذا تغير
+        if (selectedClassId != null) {
+          final classId = int.tryParse(selectedClassId!);
+          if (classId != null) {
+            final schoolClass = await isar.schoolClass.get(classId);
+            if (schoolClass != null) {
+              student.schoolclass.value = schoolClass;
+            }
+          }
+        }
+
+        await isar.students.put(student);
+        await student.schoolclass.save();
+      });
+      Navigator.pop(context);
     } catch (e) {
-      debugPrint('Error: \$e');
+      debugPrint('Error updating student in Isar: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('خطأ أثناء تحديث بيانات الطالب: $e')),
+      );
     } finally {
       setState(() => isLoading = false);
     }
   }
-
-  Future<void> deletePayment(int id) async {
-    await isar.writeTxn(() async {
-      await isar.studentPayments.delete(id);
+ 
+  Future<void> fetchClasses() async {
+    final result = await supabase.from('classes').select('id, name, annual_fee').order('name');
+    setState(() {
+      classes = List<Map<String, dynamic>>.from(result);
     });
-    fetchData();
   }
 
-  final formatter = NumberFormat('#,###');
+  // جلب القسط السنوي للصف المحدد
+  double getAnnualFeeForSelectedClass() {
+    final selectedClass = classes.firstWhere(
+      (c) => c['id'] == selectedClassId,
+      orElse: () => {},
+    );
+    return (selectedClass['annual_fee'] ?? 0).toDouble();
+  }
 
+  // دالة تهيئة الحالة عند فتح الشاشة
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('دفعات الطالب: \${widget.fullName}')),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          await showAddPaymentDialogIsar(
-            context: context,
-            studentId: widget.studentId.toString(),
-            academicYear: feeStatus?.academicYear ?? 'غير معروف',
-            onSuccess: fetchData,
-            isar: isar,
-          );
-        },
-        child: const Icon(Icons.add),
+  void initState() {
+    super.initState();
+    fetchClasses();
+    fetchGrades();
+    // إذا كان هناك طالب موجود، قم بملء الحقول  
+    if (widget.student != null) {
+      final s = widget.student!;
+      fullNameController.text = s.fullName ?? '';
+      nationalIdController.text = s.nationalId ?? '';
+      parentNameController.text = s.parentName ?? '';
+      parentPhoneController.text = s.parentPhone ?? '';
+      addressController.text = s.address ?? '';
+      emailController.text = s.email ?? '';
+      phoneController.text = s.phone ?? '';
+      registrationYearController.text = s.registrationYear ?? '';
+      gender = s.gender ?? 'male';
+      status = s.status ?? 'active';
+      // ربط الصف المختار
+      if (s.schoolclass.value != null) {
+      selectedClassId = s.schoolclass.value!.id.toString();
+      annualFee = s.schoolclass.value!.annualFee ?? 0;
+      annualFeeController.text = annualFee.toString();
+      } else {
+      annualFeeController.text = (s.annualFee ?? 0).toString();
+      }
+      // ربط المرحلة الدراسية إذا كانت موجودة
+      if (s.schoolclass.value?.grade.value != null) {
+      selectedGradeId = s.schoolclass.value!.grade.value!.id.toString();
+      }
+      birthDate = s.birthDate;
+    }
+  }
+
+  // إنشاء سجل حالة القسط إذا لم يكن موجودًا
+  Future<String?> createFeeStatusIfNotExists({
+    required String studentId,
+    required String academicYear,
+  }) async {
+    final supabase = Supabase.instance.client;
+
+    // تحقق إذا كان هناك سجل مسبق
+    final existing = await supabase
+        .from('student_fee_status')
+        .select('id')
+        .eq('student_id', studentId)
+        .eq('academic_year', academicYear)
+        .maybeSingle();
+
+    if (existing != null) return existing['id']?.toString(); // موجود مسبقًا
+
+    // جلب الصف الخاص بالطالب
+    final student = await supabase
+        .from('students')
+        .select('class_id')
+        .eq('id', studentId)
+        .maybeSingle();
+
+    final classId = student?['class_id'];
+
+    if (classId == null) throw Exception('الطالب غير مرتبط بصف.');
+
+    // جلب القسط السنوي للصف
+    final classData = await supabase
+        .from('classes')
+        .select('annual_fee')
+        .eq('id', classId)
+        .maybeSingle();
+
+    final fee = (classData?['annual_fee'] ?? 0) as num;
+
+    // إدراج سجل جديد
+    final insertResult = await supabase.from('student_fee_status').insert({
+      'student_id': studentId,
+      'academic_year': academicYear,
+      'annual_fee': fee.toDouble(),
+      'paid_amount': 0,
+      'due_amount': fee.toDouble(),
+      'next_due_date': DateTime.now().add(const Duration(days: 30)).toIso8601String(),
+    }).select('id').single();
+
+    return insertResult['id']?.toString();
+  }
+
+  // قائمة المراحل الدراسية
+  List<Map<String, dynamic>> grades = [];
+  String? selectedGradeId;
+
+  // جلب المراحل الدراسية من قاعدة البيانات
+  Future<void> fetchGrades() async {
+    try {
+      final result = await supabase.from('grades').select('id, name').order('name');
+      setState(() {
+        grades = List<Map<String, dynamic>>.from(result);
+      });
+    } catch (e) {
+      debugPrint('خطأ في جلب المراحل الدراسية: \n$e');
+    }
+  }
+
+
+
+  // التخلص من المتحكمات عند إغلاق الشاشة
+  @override
+  void dispose() {
+    fullNameController.dispose();
+    nationalIdController.dispose();
+    annualFeeController.dispose();
+    parentNameController.dispose();
+    parentPhoneController.dispose();
+    addressController.dispose();
+    emailController.dispose();
+    phoneController.dispose();
+    registrationYearController.dispose();
+    super.dispose();
+  }
+
+  // عنصر واجهة مستخدم لبناء حقل إدخال داخل بطاقة
+  Widget buildInputField(Widget field) {
+    return Card(
+      elevation: 4,
+      margin: const EdgeInsets.all(8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: field,
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      if (feeStatus != null)
-                        _buildStatCard('القسط السنوي', '${formatter.format(feeStatus!.annualFee)} د.ع', Colors.blue),
-                      if (feeStatus != null)
-                        _buildStatCard('المدفوع', '${formatter.format(feeStatus!.paidAmount)} د.ع', Colors.green),
-                      if (feeStatus != null)
-                        _buildStatCard('المتبقي', '${formatter.format(feeStatus!.dueAmount)} د.ع', Colors.red),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  const Align(
-                    alignment: Alignment.centerRight,
-                    child: Text('سجل الدفعات', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  ),
-                  const SizedBox(height: 10),
-                  Expanded(
-                    child: payments.isEmpty
-                        ? const Center(child: Text('لا توجد دفعات مسجلة'))
-                        : ListView.builder(
-                            itemCount: payments.length,
-                            itemBuilder: (context, index) {
-                              final p = payments[index];
-                              return Card(
-                                elevation: 3,
-                                margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-                                child: ListTile(
-                                  title: Text('${formatter.format(p.amount)} د.ع'),
-                                  subtitle: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text('تاريخ: ${p.paidAt.toString().split(' ').first}'),
-                                      Text('رقم الوصل: ${p.receiptNumber ?? 'بدون رقم'}'),
-                                      if (p.notes != null) Text('ملاحظات: ${p.notes}'),
-                                    ],
-                                  ),
-                                  trailing: IconButton(
-                                    icon: const Icon(Icons.delete, color: Colors.red),
-                                    onPressed: () async => await deletePayment(p.id),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                  )
-                ],
-              ),
-            ),
     );
   }
 
-  Widget _buildStatCard(String title, String value, Color color) {
-    return Container(
-      width: 200,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 6),
-          Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color)),
-        ],
+  // بناء واجهة المستخدم
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.student == null ? 'إضافة طالب' : 'تعديل طالب')),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1000),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: Card(
+              elevation: 4,
+              margin: const EdgeInsets.all(8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: Form(
+                key: formKey,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isWide = constraints.maxWidth > 600;
+                    return SingleChildScrollView(
+                      child: Wrap(
+                        spacing: 24,
+                        runSpacing: 16,
+                        alignment: WrapAlignment.center,
+                        children: [
+                          // الحقول الرئيسية لإدخال بيانات الطالب
+                          for (final field in <Widget>[
+                            buildInputField(
+                              FocusTraversalGroup(
+                              child: TextFormField(
+                                controller: parentNameController,
+                                decoration: const InputDecoration(labelText: 'اسم ولي الأمر'),
+                                textInputAction: TextInputAction.next,
+                                focusNode: parentNameFocus, 
+                                onFieldSubmitted: (_) {
+                                  FocusScope.of(context).requestFocus(nationalIdFocus);
+                                  nationalIdFocus.requestFocus();
+                                  
+                                },
+                              ),
+                              ),
+                            ),
+                            buildInputField(TextFormField(
+                              controller: fullNameController, 
+                              focusNode: fullNameFocus,
+                              textInputAction: TextInputAction.next,    
+                              onFieldSubmitted: (_) {
+                                FocusScope.of(context).requestFocus(parentNameFocus);
+                              },
+                              decoration: const InputDecoration(labelText: 'الاسم الكامل'),
+                              validator: (val) => val == null || val.isEmpty ? 'مطلوب' : null,
+                            )),
+                            buildInputField(TextFormField(
+                              controller: nationalIdController,
+                              focusNode: nationalIdFocus,
+                              textInputAction: TextInputAction.next,
+                              onFieldSubmitted: (_) {
+                                FocusScope.of(context).requestFocus(phoneFocus);
+                              },
+                              decoration: const InputDecoration(labelText: 'الرقم الوطني'),
+                            )),
+                            buildInputField(DropdownButtonFormField<String>(
+                              value: gender,
+                              decoration: const InputDecoration(labelText: 'الجنس'),
+                              items: const [
+                                DropdownMenuItem(value: 'male', child: Text('ذكر')),
+                                DropdownMenuItem(value: 'female', child: Text('أنثى')),
+                              ],
+                              onChanged: (val) => setState(() => gender = val!),
+                            )),
+                            buildInputField(TextFormField(
+                              controller: phoneController,
+                              focusNode: phoneFocus,  
+                              textInputAction: TextInputAction.next,
+                              onFieldSubmitted: (_) {
+                                FocusScope.of(context).requestFocus(emailFocus);
+                              },
+                              decoration: const InputDecoration(labelText: 'هاتف الطالب'),
+                            )),
+                            buildInputField(TextFormField(
+                              controller: emailController,
+                              focusNode: emailFocus,
+                              textInputAction: TextInputAction.next,
+                              onFieldSubmitted: (_) {
+                                FocusScope.of(context).requestFocus(addressFocus);
+                              },
+                              decoration: const InputDecoration(labelText: 'البريد الإلكتروني'),
+                            )),
+                            buildInputField(TextFormField(
+                              controller: addressController,
+                              focusNode: addressFocus,
+                              textInputAction: TextInputAction.next,
+                              onFieldSubmitted: (_) {
+                                FocusScope.of(context).requestFocus(parentPhoneFocus);
+                              },
+                              decoration: const InputDecoration(labelText: 'العنوان'),
+                            )),
+                            buildInputField(TextFormField(
+                              controller: parentPhoneController,
+                              focusNode: parentPhoneFocus,
+                              onFieldSubmitted: (_) {
+                                FocusScope.of(context).requestFocus(registrationYearFocus);
+                              },
+                              textInputAction: TextInputAction.next,  
+                              decoration: const InputDecoration(labelText: 'هاتف ولي الأمر'),
+                            )),
+                            buildInputField(DropdownButtonFormField<String>(
+                              value: selectedClassId,
+                              decoration: const InputDecoration(labelText: 'الصف'),
+                              items: classes
+                                  .map((c) => DropdownMenuItem<String>(
+                                        value: c['id'].toString(),
+                                        child: Text(c['name'] ?? ''),
+                                      ))
+                                  .toList(),
+                              onChanged: (val) => setState(() {
+                                selectedClassId = val;
+                                  annualFee = getAnnualFeeForSelectedClass(); 
+                                // تحديث القسط السنوي عند تغيير الصف
+                                  annualFeeController.text = annualFee.toString();
+                              }),
+                            )),
+                              buildInputField(DropdownButtonFormField<String>(
+                              value: selectedGradeId,
+                              decoration: const InputDecoration(labelText: 'المرحلة الدراسية'),
+                              items: grades
+                                  .map((g) => DropdownMenuItem<String>(
+                                        value: g['id'].toString(),
+                                        child: Text(g['name'] ?? ''),
+                                      )).toList(),
+                              onChanged: (val) => setState(() {
+                                selectedGradeId = val;
+                          
+                                
+                                print('Selected class ID: $selectedClassId, Annual Fee: $annualFee'); 
+                              }),
+                            )),
+                            buildInputField(TextFormField(
+                              controller: registrationYearController,
+                              focusNode: registrationYearFocus,
+                              textInputAction: TextInputAction.next,
+                              onFieldSubmitted: (_) {
+                                FocusScope.of(context).requestFocus(annualFeeFocus);
+                              },
+                              decoration: const InputDecoration(labelText: 'سنة التسجيل'),
+                            )),
+                            buildInputField(TextFormField(
+                              controller: annualFeeController,
+                              focusNode: annualFeeFocus,
+                              textInputAction: TextInputAction.done,
+                              decoration: const InputDecoration(labelText: 'القسط السنوي '),
+                            )),
+                            buildInputField(DropdownButtonFormField<String>(
+                              value: status,
+                              decoration: const InputDecoration(labelText: 'الحالة'),
+                              items: const [
+                                DropdownMenuItem(value: 'active', child: Text('فعال')),
+                                DropdownMenuItem(value: 'inactive', child: Text('غير فعال')),
+                                DropdownMenuItem(value: 'graduated', child: Text('متخرج')),
+                                DropdownMenuItem(value: 'transferred', child: Text('منقول')),
+                              ],
+                              onChanged: (val) => setState(() => status = val!),
+                            )),
+                            buildInputField(Row(
+                              children: [
+                                const Icon(Icons.date_range),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(birthDate == null
+                                      ? 'اختر تاريخ الميلاد'
+                                      : DateFormat('yyyy-MM-dd').format(birthDate!)),
+                                ),
+                                TextButton(
+                                  onPressed: () async {
+                                    final picked = await showDatePicker(
+                                      context: context,
+                                      initialDate: DateTime(2010),
+                                      firstDate: DateTime(1990),
+                                      lastDate: DateTime(2030),
+                                    );
+                                    if (picked != null) {
+                                      setState(() => birthDate = picked);
+                                    }
+                                  },
+                                  child: const Text('اختيار تاريخ'),
+                                ),
+                              ],
+                            )),
+                          ])
+                          // عرض الحقل بشكل متجاوب حسب حجم الشاشة
+                          SizedBox(
+                            width: isWide ? constraints.maxWidth * 0.45 : double.infinity,
+                            child: field,
+                          ),
+                          const SizedBox(height: 20),
+                          // زر الحفظ أو مؤشر التحميل
+                          isLoading
+                              ? const Center(child: CircularProgressIndicator())
+                              : SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton.icon(
+                                    onPressed: () async {
+
+                                    if(widget.student == null) {
+                                      // إضافة طالب جديد
+  addStudent(isar, Student()..
+                                      fullName = fullNameController.text.trim( )
+                                      ..address = addressController.text.trim()
+                                      ..annualFee = double.tryParse(annualFeeController.text.trim()) ?? 0 
+                                      ..schoolclass.value = null
+                                          ..birthDate = birthDate
+                                          ..createdAt = DateTime.now()
+                                          ..nationalId = nationalIdController.text.trim()
+                                          ..email = emailController.text.trim()
+                                          ..gender = gender
+                                          ..status = status
+                                          ..parentName = parentNameController.text.trim()
+                                          ..parentPhone = parentPhoneController.text.trim() 
+                                          ..phone = phoneController.text.trim()
+                                          ..registrationYear = registrationYearController.text.trim()
+                                      );                                    } else {
+                                      // تعديل بيانات طالب موجود
+                                      await updateStudentDataIsar(widget.student!);
+                                    }
+                                     
+
+},
+                                    icon: const Icon(Icons.save),
+                                    label: const Text('حفظ الطالب'),
+                                    style: ElevatedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(vertical: 16),
+                                      textStyle: const TextStyle(fontSize: 16),
+                                    ),
+                                  ),
+                                ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

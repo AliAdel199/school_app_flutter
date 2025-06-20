@@ -590,9 +590,7 @@ for (final student in filteredStudents) {
                                         await Navigator.push(
                                           context,
                                           MaterialPageRoute(
-                                            builder: (_) => AddEditStudentScreen(
-                                              student: student
-                                            ),
+                                            builder: (_) => AddEditStudentScreen(student: student,),  
                                           ),
                                         );
                                         // fetchStudentsFromIsar(); // إعادة تحميل بعد التعديل
