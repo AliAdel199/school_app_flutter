@@ -263,6 +263,7 @@ Future<bool?> showAddPaymentDialogIsar({
 
                         await isar.writeTxn(() async {
                           await isar.studentPayments.put(payment);
+                          payment.student.save();
 
                           final feeStatus = await isar.studentFeeStatus
                               .filter()
