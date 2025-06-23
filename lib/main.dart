@@ -10,6 +10,7 @@ import 'package:school_app_flutter/localdatabase/income.dart';
 import 'package:school_app_flutter/localdatabase/income_category.dart';
 import 'package:school_app_flutter/localdatabase/log.dart';
 import 'package:school_app_flutter/localdatabase/user.dart';
+import 'package:school_app_flutter/student/PaymentsListScreen.dart';
 import '../employee/employee_list_screen.dart';
 import '../income_expeness/incomes.dart';
 import '../reports/classes_list_screen.dart';
@@ -108,6 +109,7 @@ class SchoolApp extends StatelessWidget {
           classData: ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>,
         ),
         '/subjects': (context) => const SubjectsListScreen(),
+        '/payment-list':(context) => const PaymentsListScreen(),
         '/studentpayments': (context) {
           final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
           return StudentPaymentsScreen(
