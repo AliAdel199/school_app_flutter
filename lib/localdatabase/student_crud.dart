@@ -27,7 +27,7 @@ Future<void> addStudent(Isar isar, Student student) async {
       ..annualFee=student.annualFee!
       ..dueAmount = student.annualFee // Assuming annualFee is the total fee
       ..studentId = student.id.toString()
-..lastPaymentDate
+      ..lastPaymentDate
       ..academicYear = student.registrationYear ?? DateTime.now().year.toString()
       ..createdAt = DateTime.now()
       ..paidAmount = 0.0 // Initial paid amount
@@ -39,6 +39,7 @@ Future<void> addStudent(Isar isar, Student student) async {
     student.feeStatus.value = feeStatus; // Link the fee status to the student
     await feeStatus.student.save();
     await student.feeStatus.save();
+    
   });
 
 }
@@ -66,33 +67,107 @@ Future<void> deleteStudent(Isar isar, int id) async {
 //
 // 💳 StudentPayment
 //
-Future<void> addStudentPayment(Isar isar, StudentPayment payment, StudentFeeStatus feeStatus ,Student student) async {
+Future<void> addStudentPayment(Isar isar, StudentPayment payment,Student student,String studentId,String academicYear,DateTime nextDueDate) async {
   await isar.writeTxn(() async {
     await isar.studentPayments.put(payment);
+ final feeStatus = await isar.studentFeeStatus
+                            .filter()
+                            .studentIdEqualTo(studentId)
+                            .academicYearEqualTo(academicYear)
+                            .findFirst();
+                            print(feeStatus!.annualFee);
+
+                        if (feeStatus != null) {
+                          final payments = await isar.studentPayments
+                              .filter()
+                              .studentIdEqualTo(studentId)
+                              .academicYearEqualTo(academicYear)
+                              .findAll();
+
+                          double totalPaid = 0;
+                          DateTime? lastDate;
+
+                          for (final p in payments) {
+                            totalPaid += p.amount;
+                            if (lastDate == null || p.paidAt.isAfter(lastDate)) {
+                              lastDate = p.paidAt;
+                            }
+                          }
+
+                          final due = (feeStatus.annualFee) - totalPaid;
+
+                          
+                            feeStatus.paidAmount = totalPaid;
+                            feeStatus.dueAmount = due;
+                            feeStatus.lastPaymentDate = lastDate;
+                            feeStatus.nextDueDate = nextDueDate;
+
+
     await isar.studentFeeStatus.put(feeStatus);
-    // Ensure the fee status is linked to the payment
-    
-    feeStatus.student.value=payment.student.value;
-    feeStatus.student.save();
-    feeStatus.studentId = student.id.toString();
-    feeStatus.student.value = student;
-    await payment.student.save();
-    await feeStatus.student.save();
+
 
 
   
 
-  });
+}
+}
+);
+
 }
 
 Future<List<StudentPayment>> getAllStudentPayments(Isar isar) async {
   return await isar.studentPayments.where().findAll();
 }
 
-Future<void> deleteStudentPayment(Isar isar, int id) async {
+Future<void> deleteStudentPayment(Isar isar, int id,String studentId,String academicYear) async {
   await isar.writeTxn(() async {
-    await isar.studentPayments.delete(id);
+    
   });
+    await isar.writeTxn(() async {
+    await isar.studentPayments.delete(id);
+ final feeStatus = await isar.studentFeeStatus
+                            .filter()
+                            .studentIdEqualTo(studentId)
+                            .academicYearEqualTo(academicYear)
+                            .findFirst();
+                            print(feeStatus!.annualFee);
+
+                        if (feeStatus != null) {
+                          final payments = await isar.studentPayments
+                              .filter()
+                              .studentIdEqualTo(studentId)
+                              .academicYearEqualTo(academicYear)
+                              .findAll();
+
+                          double totalPaid = 0;
+                          DateTime? lastDate;
+
+                          for (final p in payments) {
+                            totalPaid += p.amount;
+                            if (lastDate == null || p.paidAt.isAfter(lastDate)) {
+                              lastDate = p.paidAt;
+                            }
+                          }
+
+                          final due = (feeStatus.annualFee) - totalPaid;
+
+                          
+                            feeStatus.paidAmount = totalPaid;
+                            feeStatus.dueAmount = due;
+                            feeStatus.lastPaymentDate = lastDate;
+
+
+    await isar.studentFeeStatus.put(feeStatus);
+
+
+
+  
+
+}
+}
+);
+
+  
 }
 
 //
@@ -120,6 +195,7 @@ Future<void> deleteFeeStatus(Isar isar, int id) async {
 Future<void> addClass(Isar isar, SchoolClass schoolClass) async {
   await isar.writeTxn(() async {
     await isar.schoolClass.put(schoolClass);
+
     schoolClass.grade.save(); // Save the grades associated with the class
   });
 }
@@ -149,8 +225,21 @@ Future<void> deleteClass(Isar isar, int id) async {
 // 🎓 Grade
 //
 Future<void> addGrade(Isar isar, Grade grade) async {
+
+  // Example: Fetch a school by its id (assuming grade.schoolId exists)
+ 
+    final school = await isar.schools.where().findFirst();
+    // You can use the fetched school object as needed here
+  
+  
   await isar.writeTxn(() async {
+    grade.school.value=school!;
     await isar.grades.put(grade);
+    school.grades.add(grade);
+    grade.school.save();
+    school.grades.save();
+
+
   });
 }
 

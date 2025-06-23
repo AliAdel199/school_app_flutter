@@ -661,7 +661,7 @@ for (final student in filteredStudents) {
       Flexible(
         flex: 2,
         child: Text(
-          'الصف: hhhhh ?? ''}',
+          'الصف: ${student.schoolclass.value!.name} ',
           overflow: TextOverflow.ellipsis,
         ),
       ),

@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:isar/isar.dart';
 import 'package:pdf/pdf.dart';
+import 'package:school_app_flutter/localdatabase/expense.dart';
+import 'package:school_app_flutter/localdatabase/income.dart';
+import 'package:school_app_flutter/localdatabase/student.dart';
+import 'package:school_app_flutter/localdatabase/student_fee_status.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+
+import '../main.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -38,8 +45,20 @@ class _ReportsScreenState extends State<ReportsScreen> {
   void initState() {
     super.initState();
     // افتراضياً يعرض جميع البيانات بدون فلترة، بإمكانك وضع فلترة أولية مثلاً شهر واحد سابق
-    fetchReportData();
+
+    startDate=DateTime.now().subtract(Duration(days: 1));
+    endDate = DateTime.now().add(Duration(days: 1));
+
+        fetchReportData();
   }
+  // استبدل fetchReportData للعمل مع Isar بدلاً من Supabase
+  // تأكد من استيراد مكتبة isar المناسبة في أعلى الملف:
+  // import 'package:isar/isar.dart';
+  // import 'package:path_provider/path_provider.dart';
+  // import 'your_isar_collections.dart'; // استبدلها بملف تعريف Collections الخاص بك
+
+
+
 
   Future<void> fetchReportData() async {
     setState(() => isLoading = true);
@@ -56,82 +75,139 @@ class _ReportsScreenState extends State<ReportsScreen> {
       totalExpenses = 0;
       netBalance = 0;
 
-      final userId = supabase.auth.currentUser!.id;
-      final profile = await supabase
-          .from('profiles')
-          .select('school_id')
-          .eq('id', userId)
-          .single();
-      final schoolId = profile['school_id'];
-
-      final studentsRes = await supabase
-          .from('students')
-          .select('id, status')
-          .eq('school_id', schoolId);
-
-      final students = List<Map<String, dynamic>>.from(studentsRes);
+      // جلب الطلاب
+      final students = await isar.students.where().findAll();
       totalStudents = students.length;
-      activeStudents = students.where((s) => s['status'] == 'active').length;
-      inactiveStudents = students.where((s) => s['status'] == 'inactive').length;
-      graduatedStudents = students.where((s) => s['status'] == 'graduated').length;
-      withdrawnStudents = students.where((s) => s['status'] == 'منسحب').length;
+      activeStudents = students.where((s) => s.status == 'active').length;
+      inactiveStudents = students.where((s) => s.status == 'inactive').length;
+      graduatedStudents = students.where((s) => s.status == 'graduated').length;
+      withdrawnStudents = students.where((s) => s.status == 'منسحب').length;
 
-      final studentIds = students.map((s) => s['id']).toList();
+      final studentIds = students.map((s) => s.id).toList();
 
-      // الأقساط الدراسية غير مرتبطة مباشرة بفترة زمنية، تُعرض كلها
-      final feeRes = await supabase
-          .from('student_fee_status')
-          .select('annual_fee, paid_amount, due_amount, student_id')
-          .inFilter('student_id', studentIds);
-      final fees = List<Map<String, dynamic>>.from(feeRes);
+      // جلب الأقساط
+      final fees = await isar.studentFeeStatus
+          .where().findAll();
 
       for (var fee in fees) {
-        totalAnnualFees += (fee['annual_fee'] ?? 0).toDouble();
-        totalPaid += (fee['paid_amount'] ?? 0).toDouble();
-        totalDue += (fee['due_amount'] ?? 0).toDouble();
+        totalAnnualFees += (fee.annualFee ?? 0).toDouble();
+        totalPaid += (fee.paidAmount ?? 0).toDouble();
+        totalDue += (fee.dueAmount ?? 0).toDouble();
       }
+// جلب الإيرادات بين تاريخين
+final incomes = await isar.incomes
+    .filter()
+    .incomeDateBetween(startDate!, endDate!)
+    .findAll();
 
-      // جلب الإيرادات والمصروفات حسب الفترة
-      var incomeQuery = supabase
-          .from('incomes')
-          .select('amount, income_date')
-          .eq('school_id', schoolId);
+totalIncomes = incomes.fold(0.0, (sum, i) => sum + (i.amount ?? 0));
 
-      var expenseQuery = supabase
-          .from('expenses')
-          .select('amount, expense_date')
-          .eq('school_id', schoolId);
+// جلب المصروفات بين تاريخين
+final expenses = await isar.expenses
+    .filter()
+    .expenseDateBetween(startDate!, endDate!)
+    .findAll();
 
-      if (startDate != null) {
-        final from = DateFormat('yyyy-MM-dd').format(startDate!);
-        incomeQuery = incomeQuery.gte('income_date', from);
-        expenseQuery = expenseQuery.gte('expense_date', from);
-      }
-      if (endDate != null) {
-        final to = DateFormat('yyyy-MM-dd').format(endDate!);
-        incomeQuery = incomeQuery.lte('income_date', to);
-        expenseQuery = expenseQuery.lte('expense_date', to);
-      }
+totalExpenses = expenses.fold(0.0, (sum, e) => sum + (e.amount ?? 0));
 
-      final incomeRes = await incomeQuery;
-      final expenseRes = await expenseQuery;
-
-      totalIncomes = 0;
-      for (var income in incomeRes) {
-        totalIncomes += (income['amount'] ?? 0).toDouble();
-      }
-      totalExpenses = 0;
-      for (var exp in expenseRes) {
-        totalExpenses += (exp['amount'] ?? 0).toDouble();
-      }
       netBalance = totalIncomes - totalExpenses;
-
     } catch (e) {
-      debugPrint('خطأ في تحميل التقارير: \n$e');
+      debugPrint('خطأ في تحميل التقارير من Isar: \n$e');
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
   }
+  // Future<void> fetchReportData() async {
+  //   setState(() => isLoading = true);
+  //   try {
+  //     totalStudents = 0;
+  //     activeStudents = 0;
+  //     inactiveStudents = 0;
+  //     graduatedStudents = 0;
+  //     withdrawnStudents = 0;
+  //     totalAnnualFees = 0;
+  //     totalPaid = 0;
+  //     totalDue = 0;
+  //     totalIncomes = 0;
+  //     totalExpenses = 0;
+  //     netBalance = 0;
+
+  //     final userId = supabase.auth.currentUser!.id;
+  //     final profile = await supabase
+  //         .from('profiles')
+  //         .select('school_id')
+  //         .eq('id', userId)
+  //         .single();
+  //     final schoolId = profile['school_id'];
+
+  //     final studentsRes = await supabase
+  //         .from('students')
+  //         .select('id, status')
+  //         .eq('school_id', schoolId);
+
+  //     final students = List<Map<String, dynamic>>.from(studentsRes);
+  //     totalStudents = students.length;
+  //     activeStudents = students.where((s) => s['status'] == 'active').length;
+  //     inactiveStudents = students.where((s) => s['status'] == 'inactive').length;
+  //     graduatedStudents = students.where((s) => s['status'] == 'graduated').length;
+  //     withdrawnStudents = students.where((s) => s['status'] == 'منسحب').length;
+
+  //     final studentIds = students.map((s) => s['id']).toList();
+
+  //     // الأقساط الدراسية غير مرتبطة مباشرة بفترة زمنية، تُعرض كلها
+  //     final feeRes = await supabase
+  //         .from('student_fee_status')
+  //         .select('annual_fee, paid_amount, due_amount, student_id')
+  //         .inFilter('student_id', studentIds);
+  //     final fees = List<Map<String, dynamic>>.from(feeRes);
+
+  //     for (var fee in fees) {
+  //       totalAnnualFees += (fee['annual_fee'] ?? 0).toDouble();
+  //       totalPaid += (fee['paid_amount'] ?? 0).toDouble();
+  //       totalDue += (fee['due_amount'] ?? 0).toDouble();
+  //     }
+
+  //     // جلب الإيرادات والمصروفات حسب الفترة
+  //     var incomeQuery = supabase
+  //         .from('incomes')
+  //         .select('amount, income_date')
+  //         .eq('school_id', schoolId);
+
+  //     var expenseQuery = supabase
+  //         .from('expenses')
+  //         .select('amount, expense_date')
+  //         .eq('school_id', schoolId);
+
+  //     if (startDate != null) {
+  //       final from = DateFormat('yyyy-MM-dd').format(startDate!);
+  //       incomeQuery = incomeQuery.gte('income_date', from);
+  //       expenseQuery = expenseQuery.gte('expense_date', from);
+  //     }
+  //     if (endDate != null) {
+  //       final to = DateFormat('yyyy-MM-dd').format(endDate!);
+  //       incomeQuery = incomeQuery.lte('income_date', to);
+  //       expenseQuery = expenseQuery.lte('expense_date', to);
+  //     }
+
+  //     final incomeRes = await incomeQuery;
+  //     final expenseRes = await expenseQuery;
+
+  //     totalIncomes = 0;
+  //     for (var income in incomeRes) {
+  //       totalIncomes += (income['amount'] ?? 0).toDouble();
+  //     }
+  //     totalExpenses = 0;
+  //     for (var exp in expenseRes) {
+  //       totalExpenses += (exp['amount'] ?? 0).toDouble();
+  //     }
+  //     netBalance = totalIncomes - totalExpenses;
+
+  //   } catch (e) {
+  //     debugPrint('خطأ في تحميل التقارير: \n$e');
+  //   } finally {
+  //     if (mounted) setState(() => isLoading = false);
+  //   }
+  // }
 
   Future<void> printReportPdf() async {
     final pdf = pw.Document();

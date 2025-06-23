@@ -108,6 +108,8 @@ class _ClassesListScreenState extends State<ClassesListScreen> {
                       ElevatedButton(
                         onPressed: () async {
                           if (!formKey.currentState!.validate()) return;
+
+
                           final grade =
                               Grade()..name = gradeController.text.trim();
 

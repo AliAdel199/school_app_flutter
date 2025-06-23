@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:isar/isar.dart';
 import 'package:school_app_flutter/localdatabase/student_crud.dart';
 
 // import 'package:school_app_flutter/localdatabase/students/StudentService.dart';
@@ -9,6 +10,7 @@ import 'package:school_app_flutter/main.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../localdatabase/class.dart';
+import '../localdatabase/grade.dart';
 import '../localdatabase/student.dart';
 
 // شاشة إضافة أو تعديل طالب
@@ -53,6 +55,7 @@ final annualFeeFocus = FocusNode();
   
   DateTime? birthDate;
   String? selectedClassId;
+
 
   bool isLoading = false;
   List<Map<String, dynamic>> classOptions = [];
@@ -127,8 +130,9 @@ final annualFeeFocus = FocusNode();
   @override
   void initState() {
     super.initState();
-    // fetchClasses();
-    fetchGrades();
+    fetchClasses();
+    // fetchGrades();
+    fetchGradesIsar();
     // إذا كان هناك طالب موجود، قم بملء الحقول  
     if (widget.student != null) {
       final s = widget.student!;
@@ -158,71 +162,113 @@ final annualFeeFocus = FocusNode();
     }
   }
 
-  // إنشاء سجل حالة القسط إذا لم يكن موجودًا
-  Future<String?> createFeeStatusIfNotExists({
-    required String studentId,
-    required String academicYear,
-  }) async {
-    final supabase = Supabase.instance.client;
+List<SchoolClass> schoolClassesIsar=[];
 
-    // تحقق إذا كان هناك سجل مسبق
-    final existing = await supabase
-        .from('student_fee_status')
-        .select('id')
-        .eq('student_id', studentId)
-        .eq('academic_year', academicYear)
-        .maybeSingle();
+  Future<void> fetchClasses() async {
+  try {
+    final result = await isar.schoolClass.where().sortByName().findAll();
 
-    if (existing != null) return existing['id']?.toString(); // موجود مسبقًا
-
-    // جلب الصف الخاص بالطالب
-    final student = await supabase
-        .from('students')
-        .select('class_id')
-        .eq('id', studentId)
-        .maybeSingle();
-
-    final classId = student?['class_id'];
-
-    if (classId == null) throw Exception('الطالب غير مرتبط بصف.');
-
-    // جلب القسط السنوي للصف
-    final classData = await supabase
-        .from('classes')
-        .select('annual_fee')
-        .eq('id', classId)
-        .maybeSingle();
-
-    final fee = (classData?['annual_fee'] ?? 0) as num;
-
-    // إدراج سجل جديد
-    final insertResult = await supabase.from('student_fee_status').insert({
-      'student_id': studentId,
-      'academic_year': academicYear,
-      'annual_fee': fee.toDouble(),
-      'paid_amount': 0,
-      'due_amount': fee.toDouble(),
-      'next_due_date': DateTime.now().add(const Duration(days: 30)).toIso8601String(),
-    }).select('id').single();
-
-    return insertResult['id']?.toString();
+    setState(() {
+      schoolClassesIsar = result;
+    });
+  } catch (e) {
+    debugPrint('خطأ في جلب الصفوف من Isar:\n$e');
   }
+}
+
+double getAnnualFeeForSelectedClassIsar() {
+  final selectedClass = schoolClassesIsar.firstWhere(
+    (c) => c.id.toString() == selectedClassId,
+    orElse: () => SchoolClass()..annualFee = 0,
+  );
+  return selectedClass.annualFee ?? 0.0;
+}
+
+
+
+  // // إنشاء سجل حالة القسط إذا لم يكن موجودًا
+  // Future<String?> createFeeStatusIfNotExists({
+  //   required String studentId,
+  //   required String academicYear,
+  // }) async {
+  //   final supabase = Supabase.instance.client;
+
+  //   // تحقق إذا كان هناك سجل مسبق
+  //   final existing = await supabase
+  //       .from('student_fee_status')
+  //       .select('id')
+  //       .eq('student_id', studentId)
+  //       .eq('academic_year', academicYear)
+  //       .maybeSingle();
+
+  //   if (existing != null) return existing['id']?.toString(); // موجود مسبقًا
+
+  //   // جلب الصف الخاص بالطالب
+  //   final student = await supabase
+  //       .from('students')
+  //       .select('class_id')
+  //       .eq('id', studentId)
+  //       .maybeSingle();
+
+  //   final classId = student?['class_id'];
+
+  //   if (classId == null) throw Exception('الطالب غير مرتبط بصف.');
+
+  //   // جلب القسط السنوي للصف
+  //   final classData = await supabase
+  //       .from('classes')
+  //       .select('annual_fee')
+  //       .eq('id', classId)
+  //       .maybeSingle();
+
+  //   final fee = (classData?['annual_fee'] ?? 0) as num;
+
+  //   // إدراج سجل جديد
+  //   final insertResult = await supabase.from('student_fee_status').insert({
+  //     'student_id': studentId,
+  //     'academic_year': academicYear,
+  //     'annual_fee': fee.toDouble(),
+  //     'paid_amount': 0,
+  //     'due_amount': fee.toDouble(),
+  //     'next_due_date': DateTime.now().add(const Duration(days: 30)).toIso8601String(),
+  //   }).select('id').single();
+
+  //   return insertResult['id']?.toString();
+  // }
 
   // قائمة المراحل الدراسية
   List<Map<String, dynamic>> grades = [];
+
+  List<Grade> gradesIsar=[];
+  Grade? selectedGrade;
   String? selectedGradeId;
 
   // جلب المراحل الدراسية من قاعدة البيانات
-  Future<void> fetchGrades() async {
-    try {
-      final result = await supabase.from('grades').select('id, name').order('name');
-      setState(() {
-        grades = List<Map<String, dynamic>>.from(result);
-      });
-    } catch (e) {
-      debugPrint('خطأ في جلب المراحل الدراسية: \n$e');
-    }
+  // Future<void> fetchGrades() async {
+  //   try {
+  //     final result = await supabase.from('grades').select('id, name').order('name');
+  //     setState(() {
+  //       grades = List<Map<String, dynamic>>.from(result);
+  //     });
+  //   } catch (e) {
+  //     debugPrint('خطأ في جلب المراحل الدراسية: \n$e');
+  //   }
+  // }
+
+
+Future<void> fetchGradesIsar() async {
+  try {
+    final result = await isar.grades.where().sortByName().findAll();
+
+    setState(() {
+      gradesIsar =result;
+    });
+  } catch (e) {
+    debugPrint('خطأ في جلب المراحل الدراسية من Isar:\n$e');
   }
+}
+
+SchoolClass? selectedClass;
 
 
 
@@ -360,29 +406,34 @@ final annualFeeFocus = FocusNode();
                               textInputAction: TextInputAction.next,  
                               decoration: const InputDecoration(labelText: 'هاتف ولي الأمر'),
                             )),
-                            buildInputField(DropdownButtonFormField<String>(
-                              value: selectedClassId,
-                              decoration: const InputDecoration(labelText: 'الصف'),
-                              items: classes
-                                  .map((c) => DropdownMenuItem<String>(
-                                        value: c['id'].toString(),
-                                        child: Text(c['name'] ?? ''),
-                                      ))
-                                  .toList(),
-                              onChanged: (val) => setState(() {
-                                selectedClassId = val;
-                                  annualFee = getAnnualFeeForSelectedClass(); 
-                                // تحديث القسط السنوي عند تغيير الصف
-                                  annualFeeController.text = annualFee.toString();
-                              }),
-                            )),
+                            buildInputField(
+                       DropdownButtonFormField<String>(
+  value: selectedClassId,
+  decoration: const InputDecoration(labelText: 'الصف'),
+  items: schoolClassesIsar.map((c) {
+    return DropdownMenuItem<String>(
+      value: c.id.toString(),
+      child: Text(c.name ?? ''),
+    );
+  }).toList(),
+  onChanged: (val) {
+    setState(() {
+      selectedClassId = val;
+      selectedClass = schoolClassesIsar.firstWhere((c) => c.id.toString() == val);
+      annualFee = getAnnualFeeForSelectedClassIsar(); 
+      annualFeeController.text = annualFee.toString();
+    });
+  },
+),
+
+                            ),
                               buildInputField(DropdownButtonFormField<String>(
                               value: selectedGradeId,
                               decoration: const InputDecoration(labelText: 'المرحلة الدراسية'),
-                              items: grades
+                              items: gradesIsar
                                   .map((g) => DropdownMenuItem<String>(
-                                        value: g['id'].toString(),
-                                        child: Text(g['name'] ?? ''),
+                                        value:g.id.toString(),
+                                        child: Text(g.name ?? ''),
                                       )).toList(),
                               onChanged: (val) => setState(() {
                                 selectedGradeId = val;
@@ -410,10 +461,14 @@ final annualFeeFocus = FocusNode();
                               value: status,
                               decoration: const InputDecoration(labelText: 'الحالة'),
                               items: const [
-                                DropdownMenuItem(value: 'active', child: Text('فعال')),
-                                DropdownMenuItem(value: 'inactive', child: Text('غير فعال')),
+                                DropdownMenuItem(value: 'active', child: Text('نشط')),
+                                DropdownMenuItem(value: 'inactive', child: Text('غير نشط')),
                                 DropdownMenuItem(value: 'graduated', child: Text('متخرج')),
                                 DropdownMenuItem(value: 'transferred', child: Text('منقول')),
+                                DropdownMenuItem(value: 'transferred', child: Text('منسب')),
+                                DropdownMenuItem(value: 'transferred', child: Text('تارك')),
+
+
                               ],
                               onChanged: (val) => setState(() => status = val!),
                             )),
@@ -463,7 +518,7 @@ final annualFeeFocus = FocusNode();
                                       fullName = fullNameController.text.trim( )
                                       ..address = addressController.text.trim()
                                       ..annualFee = double.tryParse(annualFeeController.text.trim()) ?? 0 
-                                      ..schoolclass.value = null
+                                      ..schoolclass.value = selectedClass
                                           ..birthDate = birthDate
                                           ..createdAt = DateTime.now()
                                           ..nationalId = nationalIdController.text.trim()
@@ -474,9 +529,18 @@ final annualFeeFocus = FocusNode();
                                           ..parentPhone = parentPhoneController.text.trim() 
                                           ..phone = phoneController.text.trim()
                                           ..registrationYear = registrationYearController.text.trim()
-                                      );                                    } else {
+                                      );                              
+                                      
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم حفظ بيانات الطالب بنجاح ')));
+        Navigator.pop(context);
+                                      
+                                      
+                                            } else {
                                       // تعديل بيانات طالب موجود
                                       await updateStudentDataIsar(widget.student!);
+                                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم حفظ بيانات الطالب بنجاح ')));
+        Navigator.pop(context);
+                                      
                                     }
                                      
 

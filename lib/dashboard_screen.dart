@@ -1,11 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:isar/isar.dart';
-import 'package:school_app_flutter/localdatabase/class.dart';
-import 'package:school_app_flutter/localdatabase/school.dart';
-import 'package:school_app_flutter/localdatabase/student.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'main.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -125,7 +119,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final isWide = MediaQuery.of(context).size.width > 900;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('لوحة التحكم')),
+      appBar: AppBar(title: const Text('لوحة التحكم'),actions: [IconButton(onPressed: ()=>Navigator.popAndPushNamed(context, '/'), icon: Icon(Icons.logout_outlined))],),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: isLoading
@@ -158,15 +152,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final actions = [
       {'label': 'الطلاب', 'icon': Icons.people, 'route': '/students'},
       {'label': 'إضافة طالب', 'icon': Icons.person_add, 'route': '/add-student'},
-      {'label': 'المواد', 'icon': Icons.book, 'route': '/subjects'},
+      // {'label': 'المواد', 'icon': Icons.book, 'route': '/subjects'},
       {'label': 'المراحل', 'icon': Icons.score, 'route': '/classes'},
-      {'label': 'إضافة مرحلة', 'icon': Icons.add, 'route': '/add-class'},
+      // {'label': 'إضافة مرحلة', 'icon': Icons.add, 'route': '/add-class'},
       // {'label': 'التقارير المالية', 'icon': Icons.monetization_on, 'route': '/financial-reports'},
       {'label': 'التقارير العامة', 'icon': Icons.bar_chart, 'route': '/reportsscreen'},
-      {'label': 'إضافة موظف', 'icon': Icons.person_add_alt, 'route': '/add-edit-employee'},
-    {'label': 'قائمة الموظفين', 'icon': Icons.work, 'route': '/employee-list'},
-    {'label': 'الرواتب الشهرية', 'icon': Icons.payments, 'route': '/monthly-salary'},
-    {'label': 'تقرير الرواتب', 'icon': Icons.receipt, 'route': '/salary-report'},
+      // {'label': 'إضافة موظف', 'icon': Icons.person_add_alt, 'route': '/add-edit-employee'},
+    // {'label': 'قائمة الموظفين', 'icon': Icons.work, 'route': '/employee-list'},
+    // {'label': 'الرواتب الشهرية', 'icon': Icons.payments, 'route': '/monthly-salary'},
+    // {'label': 'تقرير الرواتب', 'icon': Icons.receipt, 'route': '/salary-report'},
     {'label': 'قائمة المصروفات', 'icon': Icons.money_off, 'route': '/expense-list'},
     {'label': 'قائمة الدخل', 'icon': Icons.account_balance_wallet, 'route': '/income'},
     {'label': 'إدارة المستخدمين', 'icon': Icons.admin_panel_settings, 'route': '/user-screen'},
@@ -175,38 +169,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
     
     ];
 
-    return GridView.builder(
-      itemCount: actions.length,
-      shrinkWrap: true,
-   
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 5,
-        childAspectRatio: 2.2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-      ),
-      itemBuilder: (context, index) {
-        final action = actions[index];
-        return InkWell(
-          onTap: () => Navigator.pushNamed(context, action['route'] as String),
-          child: Card(
-            elevation: 4,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            color: Colors.teal.shade50,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(action['icon'] as IconData, size: 32, color: Colors.teal),
-                const SizedBox(width: 12),
-                Text(
-                  action['label']! as String,
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ],
+    return Center(
+      child: GridView.builder(
+        itemCount: actions.length,
+        shrinkWrap: true,
+         
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 4,
+          childAspectRatio: 2.2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+        ),
+        itemBuilder: (context, index) {
+          final action = actions[index];
+          return InkWell(
+            onTap: () => Navigator.pushNamed(context, action['route'] as String),
+            child: Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              color: Colors.teal.shade50,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(action['icon'] as IconData, size: 32, color: Colors.teal),
+                  const SizedBox(width: 12),
+                  Text(
+                    action['label']! as String,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 

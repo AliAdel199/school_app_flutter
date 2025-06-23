@@ -4,6 +4,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:isar/isar.dart';
+import 'package:school_app_flutter/localdatabase/expense.dart';
+import 'package:school_app_flutter/localdatabase/expense_category.dart';
+import 'package:school_app_flutter/localdatabase/income.dart';
+import 'package:school_app_flutter/localdatabase/income_category.dart';
 import 'package:school_app_flutter/localdatabase/log.dart';
 import 'package:school_app_flutter/localdatabase/user.dart';
 import '../employee/employee_list_screen.dart';
@@ -15,6 +19,7 @@ import 'LogsScreen.dart';
 import 'UsersScreen.dart';
 import 'income_expeness/ExpenseListScreen.dart';
 import 'income_expeness/addexpenesscreen.dart';
+import 'license_manager.dart';
 import 'localdatabase/class.dart';
 import 'localdatabase/grade.dart';
 import 'localdatabase/school.dart';
@@ -25,6 +30,7 @@ import 'localdatabase/subject.dart';
 import 'reports/SalaryReportScreen.dart';
 import 'employee/add_edit_employee.dart';
 import 'employee/monthlysalaryscreen.dart';
+import 'schoolregstristion.dart';
 import 'student/add_student_screen_supabase.dart';
 import 'reports/addclassscreen.dart';
 import 'dashboard_screen.dart';
@@ -43,6 +49,10 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('ar', null); // ← هذا السطر الجديد
 
+  final isLicensed = await LicenseManager.verifyLicense();
+  if (!isLicensed) {
+    await LicenseManager.createLicenseFile(); // أول مرة فقط
+  }
   await Supabase.initialize(
     url: 'https://lhzujcquhgxhsmmjwgdq.supabase.co',
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoenVqY3F1aGd4aHNtbWp3Z2RxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU4MjQ4NjQsImV4cCI6MjA2MTQwMDg2NH0.u7qPHRu_TdmNjPQJhMeXMZVI37xJs8IoX5Dcrg7fxV8',
@@ -57,14 +67,19 @@ Future<void> main() async {
     SchoolSchema,
     SubjectSchema,
     UserSchema,
+    IncomeSchema,IncomeCategorySchema,
     LogSchema
-  ], directory: dir.path,inspector: true);
+    ,ExpenseSchema,ExpenseCategorySchema
+  ], directory: dir.path,inspector: true,name: 'school_app_flutter',);
+    final schools = await isar.schools.where().findAll();
 
-  runApp(const SchoolApp());
+  runApp( SchoolApp(showInitialSetup: schools.isEmpty,));
 }
 
 class SchoolApp extends StatelessWidget {
-  const SchoolApp({super.key});
+    final bool showInitialSetup;
+
+   SchoolApp({super.key, required this.showInitialSetup});
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +98,7 @@ class SchoolApp extends StatelessWidget {
 
          initialRoute: '/',
       routes: {
-        '/': (context) => const LoginScreen(),
+        '/': (context) => showInitialSetup?InitialSetupScreen(): LoginScreen(),
         '/dashboard': (context) => const DashboardScreen(),
         '/students': (context) => const StudentsListScreen(),
         '/add-student': (context) =>  AddEditStudentScreen(),

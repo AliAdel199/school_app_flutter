@@ -1,29 +1,36 @@
-import 'dart:io';
+// ✅ تم تحويل الكود من Supabase إلى Isar فقط
+// ✅ الكود يعرض الإيرادات ويقوم بتصديرها وطباعتها + يدعم الفلترة
 
+import 'dart:io';
 import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_expandable_fab/flutter_expandable_fab.dart';
+import 'package:intl/intl.dart';
+import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:school_app_flutter/localdatabase/expense_category.dart';
+import 'package:school_app_flutter/localdatabase/expense.dart';
+
+import 'package:school_app_flutter/main.dart';
+
+import '../localdatabase/expense.dart';
+import '../localdatabase/income_category.dart';
 
 class ExpensesListScreen extends StatefulWidget {
   const ExpensesListScreen({super.key});
 
   @override
-  State<ExpensesListScreen> createState() => _ExpensesListScreenState();
+  State<ExpensesListScreen> createState() => _IncomesListScreenState();
 }
 
-class _ExpensesListScreenState extends State<ExpensesListScreen> {
-  final supabase = Supabase.instance.client;
-  List expenses = [];
-  List categories = [];
+class _IncomesListScreenState extends State<ExpensesListScreen> {
+  List<Expense> expenses = [];
+  List<ExpenseCategory> categories = [];
   bool isLoading = true;
-  
-  // متغيرات الفلترة
-  String? selectedFilterCategory; // null أو "all" يعني الكل
+
+  String? selectedFilterCategory;
   DateTime? filterStartDate;
   DateTime? filterEndDate;
 
@@ -35,78 +42,34 @@ class _ExpensesListScreenState extends State<ExpensesListScreen> {
 
   Future<void> fetchData() async {
     setState(() => isLoading = true);
-
-final userId = supabase.auth.currentUser!.id;
-
-    // جلب school_id من جدول profiles
-    final profileResponse = await supabase
-        .from('profiles')
-        .select('school_id')
-        .eq('id', userId)
-        .single();
-
-    if (profileResponse == null || profileResponse['school_id'] == null) {
-      throw Exception('لم يتم العثور على معرف المدرسة.');
-    }
-
-    final schoolId = profileResponse['school_id'];
-    final exp = await supabase
-  .from('expenses')
-  .select()
-  .eq('school_id', schoolId)
-  .order('expense_date', ascending: false);
-
-
-    // final exp = await supabase
-    //     .from('expenses')
-    //     .select().eq('school_id', supabase.auth.currentUser!.id)
-    //     .order('expense_date', ascending: false);
-    final cats = await supabase.from('expense_categories').select();
-    setState(() {
-      expenses = exp;
-      categories = cats;
-      isLoading = false;
-    });
+    expenses = await isar.expenses.where().sortByExpenseDateDesc().findAll();
+    categories = await isar.expenseCategorys.where().findAll();
+    setState(() => isLoading = false);
   }
 
-  List getFilteredExpenses() {
-    return expenses.where((expense) {
+  List<Expense> getFilteredIncomes() {
+    return expenses.where((Expense) {
       bool matchesCategory = selectedFilterCategory == null ||
           selectedFilterCategory == 'all' ||
-          expense['type'].toString() == selectedFilterCategory;
-      DateTime expenseDate =
-          DateTime.tryParse(expense['expense_date']) ?? DateTime.now();
+          Expense.category.value?.id.toString() == selectedFilterCategory;
+      DateTime expensesDate = Expense.expenseDate ?? DateTime.now();
       bool matchesStart = filterStartDate == null ||
-          expenseDate.isAfter(filterStartDate!.subtract(const Duration(days: 1)));
+          expensesDate.isAfter(filterStartDate!.subtract(const Duration(days: 1)));
       bool matchesEnd = filterEndDate == null ||
-          expenseDate.isBefore(filterEndDate!.add(const Duration(days: 1)));
+          expensesDate.isBefore(filterEndDate!.add(const Duration(days: 1)));
       return matchesCategory && matchesStart && matchesEnd;
     }).toList();
   }
 
-  double getTotalAmount(List filteredExpenses) {
-    return filteredExpenses.fold(0, (sum, item) {
-      double amt = 0;
-      if (item['amount'] is num) {
-        amt = (item['amount'] as num).toDouble();
-      }
-      return sum + amt;
-    });
+  double getTotalAmount(List<Expense> filteredExpenses) {
+    return filteredExpenses.fold(0, (sum, item) => sum + (item.amount ?? 0));
   }
 
-  String getCategoryName(String categoryId) {
-    final cat = categories.firstWhere(
-      (c) => c['id'].toString() == categoryId,
-      orElse: () => <String, dynamic>{},
-    );
-    return cat.isNotEmpty ? cat['name'] : '-';
-  }
+  String getCategoryName(ExpenseCategory? category) => category?.name ?? '-';
 
-  // دالة لتصدير البيانات إلى Excel
-  Future<void> exportExpensesToExcel(List filteredExpenses) async {
+  Future<void> exportIncomesToExcel(List<Expense> filteredExpenses) async {
     var excel = Excel.createExcel();
-    Sheet sheetObject = excel['Expenses'];
-    // كتابة header
+    Sheet sheetObject = excel['expenses'];
     sheetObject.appendRow([
       TextCellValue('العنوان'),
       TextCellValue('المبلغ'),
@@ -114,31 +77,190 @@ final userId = supabase.auth.currentUser!.id;
       TextCellValue('التاريخ'),
       TextCellValue('الملاحظات'),
     ]);
-    // كتابة البيانات
     for (var exp in filteredExpenses) {
       sheetObject.appendRow([
-        TextCellValue(exp['title'].toString()),
-        TextCellValue(exp['amount'].toString()),
-        TextCellValue(getCategoryName(exp['type'].toString())),
-        TextCellValue(exp['expense_date'].toString()),
-        TextCellValue(exp['note']?.toString() ?? '')
+        TextCellValue(exp.title ?? ''),
+        TextCellValue(exp.amount?.toString() ?? ''),
+        TextCellValue(getCategoryName(exp.category.value)),
+        TextCellValue(exp.expenseDate?.toIso8601String().split('T').first ?? ''),
+        TextCellValue(exp.note ?? '')
       ]);
     }
-    // حفظ الملف
     final bytes = excel.encode();
     final directory = await getApplicationDocumentsDirectory();
-    final file = File('${directory.path}/ExpensesReport.xlsx');
+    final file = File('${directory.path}/IncomesReport.xlsx');
     await file.writeAsBytes(bytes!);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('تم حفظ التقرير: ${file.path}')),
     );
   }
+Future<void> showAddIncomeDialogIsar(BuildContext context, void Function() onSuccess) async {
+  final titleController = TextEditingController();
+  final amountController = TextEditingController();
+  final noteController = TextEditingController();
+  DateTime selectedDate = DateTime.now();
 
-  // دالة لطباعة التقرير عبر إنشاء PDF مع دعم اللغة العربية وتحسين التصميم
-  Future<void> printExpensesReport(List filteredExpenses) async {
+  List<ExpenseCategory> categories = await isar.expenseCategorys.where().findAll();
+  ExpenseCategory? selectedCategory;
+
+  await showDialog(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setState) => AlertDialog(
+        title: Text('إضافة إيراد جديد'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: InputDecoration(labelText: 'عنوان الإيراد'),
+              ),
+              TextField(
+                controller: amountController,
+                decoration: InputDecoration(labelText: 'المبلغ'),
+                keyboardType: TextInputType.number,
+              ),
+              DropdownButtonFormField<ExpenseCategory>(
+                value: selectedCategory,
+                hint: Text('اختر الفئة'),
+                items: categories.map((cat) {
+                  return DropdownMenuItem(
+                    value: cat,
+                    child: Text(cat.name),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    selectedCategory = value;
+                  });
+                },
+              ),
+              SizedBox(height: 8),
+              TextField(
+                controller: noteController,
+                decoration: InputDecoration(labelText: 'ملاحظات (اختياري)'),
+              ),
+              SizedBox(height: 12),
+              TextButton.icon(
+                icon: Icon(Icons.calendar_today),
+                label: Text('اختر التاريخ'),
+                onPressed: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: selectedDate,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime.now().add(Duration(days: 365)),
+                  );
+                  if (picked != null) {
+                    setState(() {
+                      selectedDate = picked;
+                    });
+                  }
+                },
+              ),
+              Text(
+                'التاريخ: ${selectedDate.toLocal().toString().split(' ')[0]}',
+                style: TextStyle(color: Colors.grey[700]),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('إلغاء'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final title = titleController.text.trim();
+              final amount = double.tryParse(amountController.text.trim());
+
+              if (title.isEmpty || amount == null || selectedCategory == null) return;
+
+              final expense = Expense()
+                ..title = title
+                ..amount = amount
+                ..note = noteController.text.trim()
+                ..expenseDate = selectedDate
+                ..category.value = selectedCategory;
+
+              await isar.writeTxn(() async {
+                await isar.expenses.put(expense);
+                await expense.category.save(); // حفظ الربط
+              });
+
+              Navigator.pop(ctx);
+              onSuccess();
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تمت إضافة الإيراد')));
+            },
+            child: Text('حفظ'),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+  Future<void> showAddIncomeCategoryDialog(BuildContext context) async {
+  final TextEditingController controller = TextEditingController();
+
+  await showDialog(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text('إضافة فئة إيراد'),
+      content: TextField(
+        controller: controller,
+        decoration: InputDecoration(labelText: 'اسم الفئة'),
+        autofocus: true,
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: Text('إلغاء'),
+        ),
+        ElevatedButton(
+          onPressed: () async {
+            final name = controller.text.trim();
+            if (name.isEmpty) return;
+
+            final identifier = name.toLowerCase().replaceAll(' ', '_');
+
+            final exists = await isar.incomeCategorys
+                .filter()
+                .identifierEqualTo(identifier)
+                .findFirst();
+
+            if (exists == null) {
+              final category = ExpenseCategory()
+                ..name = name
+                ..identifier = identifier;
+
+              await isar.writeTxn(() async {
+                await isar.expenseCategorys.put(category);
+              });
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('تمت إضافة الفئة "$name"')),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('الفئة موجودة مسبقًا')),
+              );
+            }
+
+            Navigator.pop(ctx);
+          },
+          child: Text('إضافة'),
+        ),
+      ],
+    ),
+  );
+}
+
+
+  Future<void> printIncomesReport(List<Expense> filteredExpenses) async {
     final pdf = pw.Document();
-
-    // إعداد خط يدعم العربية
     final arabicFont = await PdfGoogleFonts.cairoRegular();
     final arabicBoldFont = await PdfGoogleFonts.cairoBold();
 
@@ -152,70 +274,29 @@ final userId = supabase.auth.currentUser!.id;
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.Text(
-                  'تقرير المصروفات',
-                  style: pw.TextStyle(
-                    font: arabicBoldFont,
-                    fontSize: 24,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                ),
+                pw.Text('تقرير الإيرادات',
+                    style: pw.TextStyle(font: arabicBoldFont, fontSize: 24)),
                 pw.SizedBox(height: 16),
                 pw.Table.fromTextArray(
-                  headers: [
-                    'العنوان',
-                    'المبلغ',
-                    'التصنيف',
-                    'التاريخ',
-                    'الملاحظات'
-                  ],
-                  data: filteredExpenses.map((e) {
-                    return [
-                      e['title'] ?? '',
-                      e['amount']?.toString() ?? '',
-                      getCategoryName(e['type'].toString()),
-                      e['expense_date'] ?? '',
-                      e['note'] ?? ''
-                    ];
-                  }).toList(),
-                  headerStyle: pw.TextStyle(
-                    font: arabicBoldFont,
-                    fontSize: 12,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                  cellStyle: pw.TextStyle(
-                    font: arabicFont,
-                    fontSize: 11,
-                  ),
+                  headers: ['العنوان', 'المبلغ', 'التصنيف', 'التاريخ', 'الملاحظات'],
+                  data: filteredExpenses.map((e) => [
+                        e.title ?? '',
+                        e.amount?.toString() ?? '',
+                        getCategoryName(e.category.value),
+                        e.expenseDate?.toIso8601String().split('T').first ?? '',
+                        e.note ?? ''
+                      ]).toList(),
+                  headerStyle: pw.TextStyle(font: arabicBoldFont, fontSize: 12),
+                  cellStyle: pw.TextStyle(font: arabicFont, fontSize: 11),
                   cellAlignment: pw.Alignment.centerRight,
-                  headerDecoration: pw.BoxDecoration(
-                    color: PdfColors.grey300,
-                  ),
-                  border: pw.TableBorder.all(
-                    color: PdfColors.grey600,
-                    width: 0.5,
-                  ),
+                  headerDecoration: pw.BoxDecoration(color: PdfColors.grey300),
+                  border: pw.TableBorder.all(color: PdfColors.grey600, width: 0.5),
                   cellHeight: 28,
-                  columnWidths: {
-                    0: const pw.FlexColumnWidth(2),
-                    1: const pw.FlexColumnWidth(1.2),
-                    2: const pw.FlexColumnWidth(1.5),
-                    3: const pw.FlexColumnWidth(1.5),
-                    4: const pw.FlexColumnWidth(2.5),
-                  },
                 ),
                 pw.SizedBox(height: 16),
-                pw.Container(
-                  alignment: pw.Alignment.centerRight,
-                  child: pw.Text(
-                    'إجمالي المصروفات: ${getTotalAmount(filteredExpenses)}',
-                    style: pw.TextStyle(
-                      font: arabicBoldFont,
-                      fontSize: 16,
-                      fontWeight: pw.FontWeight.bold,
-                      color: PdfColors.blue800,
-                    ),
-                  ),
+                pw.Text(
+                  'إجمالي الإيرادات: ${getTotalAmount(filteredExpenses)}',
+                  style: pw.TextStyle(font: arabicBoldFont, fontSize: 16, color: PdfColors.green800),
                 ),
               ],
             ),
@@ -223,529 +304,434 @@ final userId = supabase.auth.currentUser!.id;
         },
       ),
     );
-    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
+
+    await Printing.layoutPdf(onLayout: (format) => pdf.save());
   }
+Future<void> showEditIncomeDialog(BuildContext context, Expense Expense, void Function() onSuccess) async {
+  final titleController = TextEditingController(text: Expense.title);
+  final amountController = TextEditingController(text: Expense.amount.toString());
+  final noteController = TextEditingController(text: Expense.note ?? '');
+  DateTime selectedDate = Expense.expenseDate;
+  await Expense.category.load();
+  List<ExpenseCategory> categories = await isar.expenseCategorys.where().findAll();
+  ExpenseCategory? selectedCategory = Expense.category.value;
 
-  Future<void> showAddExpenseCategoryDialog(BuildContext context, void Function() onSuccess) async {
-    final TextEditingController categoryController = TextEditingController();
-
-    await showDialog(
-      context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          title: const Text('إضافة نوع مصروف جديد'),
-          content: TextField(
-            controller: categoryController,
-            decoration: const InputDecoration(labelText: 'اسم النوع'),
-            autofocus: true,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('إلغاء'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final name = categoryController.text.trim();
-                if (name.isEmpty) return;
-final userId = supabase.auth.currentUser!.id;
-                 // جلب school_id من جدول profiles
-    final profileResponse = await supabase
-        .from('profiles')
-        .select('school_id')
-        .eq('id', userId)
-        .single();
-
-    if (profileResponse == null || profileResponse['school_id'] == null) {
-      throw Exception('لم يتم العثور على معرف المدرسة.');
-    }
-
-    final schoolId = profileResponse['school_id'];
-                await Supabase.instance.client
-                    .from('expense_categories')
-                    .insert({'name': name, 'school_id':schoolId});
-                Navigator.pop(ctx);
-                onSuccess();
-              },
-              child: const Text('إضافة'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> showAddExpenseDialog(BuildContext context, List categories, void Function() onSuccess) async {
-    final titleController = TextEditingController();
-    final amountController = TextEditingController();
-    final noteController = TextEditingController();
-    DateTime selectedDate = DateTime.now();
-    String? selectedCategory;
-
-    await showDialog(
-      context: context,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setState) => AlertDialog(
-            title: const Text('إضافة مصروف'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: titleController,
-                    decoration: const InputDecoration(labelText: 'عنوان المصروف'),
-                  ),
-                  TextField(
-                    controller: amountController,
-                    decoration: const InputDecoration(labelText: 'المبلغ'),
-                    keyboardType: TextInputType.number,
-                  ),
-                  DropdownButtonFormField<String>(
-                    value: selectedCategory,
-                    items: categories
-                        .map<DropdownMenuItem<String>>((cat) =>
-                            DropdownMenuItem(value: cat['id'].toString(), child: Text(cat['name'])))
-                        .toList(),
-                    onChanged: (val) => setState(() => selectedCategory = val),
-                    decoration: const InputDecoration(labelText: 'نوع المصروف'),
-                  ),
-                  ListTile(
-                    title: Text('التاريخ: ${selectedDate.toString().split(' ')[0]}'),
-                    trailing: const Icon(Icons.calendar_today),
-                    onTap: () async {
-                      final date = await showDatePicker(
-                        context: context,
-                        initialDate: selectedDate,
-                        firstDate: DateTime(2023),
-                        lastDate: DateTime(2100),
-                      );
-                      if (date != null) setState(() => selectedDate = date);
-                    },
-                  ),
-                  TextField(
-                    controller: noteController,
-                    decoration: const InputDecoration(labelText: 'ملاحظات (اختياري)'),
-                    minLines: 1,
-                    maxLines: 3,
-                  ),
-                ],
+  await showDialog(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setState) => AlertDialog(
+        title: Text('تعديل الإيراد'),
+        content: SingleChildScrollView(
+          child: Column(
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: InputDecoration(labelText: 'العنوان'),
               ),
-            ),
-            actions: [
+              TextField(
+                controller: amountController,
+                decoration: InputDecoration(labelText: 'المبلغ'),
+                keyboardType: TextInputType.number,
+              ),
+              DropdownButtonFormField<ExpenseCategory>(
+                value: selectedCategory,
+                items: categories.map((cat) {
+                  return DropdownMenuItem(
+                    value: cat,
+                    child: Text(cat.name),
+                  );
+                }).toList(),
+                onChanged: (value) => setState(() => selectedCategory = value),
+              ),
+              TextField(
+                controller: noteController,
+                decoration: InputDecoration(labelText: 'ملاحظات'),
+              ),
               TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('إلغاء'),
-              ),
-              ElevatedButton(
                 onPressed: () async {
-                  if (titleController.text.trim().isEmpty ||
-                      amountController.text.trim().isEmpty ||
-                      selectedCategory == null) return;
-final userId = supabase.auth.currentUser!.id;
-
-    // جلب school_id من جدول profiles
-    final profileResponse = await supabase
-        .from('profiles')
-        .select('school_id')
-        .eq('id', userId)
-        .single();
-
-    if (profileResponse == null || profileResponse['school_id'] == null) {
-      throw Exception('لم يتم العثور على معرف المدرسة.');
-    }
-
-    final schoolId = profileResponse['school_id'];
-
-                  await Supabase.instance.client.from('expenses').insert({
-                    'title': titleController.text.trim(),
-                    'amount': double.tryParse(amountController.text) ?? 0,
-                    'type': selectedCategory,
-                    'school_id': schoolId,
-                    'expense_date': selectedDate.toIso8601String().split('T').first,
-                    'note': noteController.text,
-                  });
-                  Navigator.pop(ctx);
-                  onSuccess();
+                  final date = await showDatePicker(
+                    context: context,
+                    initialDate: selectedDate,
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime.now().add(Duration(days: 365)),
+                  );
+                  if (date != null) setState(() => selectedDate = date);
                 },
-                child: const Text('إضافة'),
+                child: Text('اختر التاريخ'),
               ),
+              Text('التاريخ: ${selectedDate.toLocal().toString().split(' ')[0]}'),
             ],
           ),
-        );
-      },
-    );
-  }
-
-  Future<void> showEditExpenseDialog(
-    BuildContext context,
-    Map expense,
-    List categories,
-    void Function() onSuccess,
-  ) async {
-    final titleController = TextEditingController(text: expense['title']);
-    final amountController = TextEditingController(text: expense['amount'].toString());
-    final noteController = TextEditingController(text: expense['note'] ?? '');
-    DateTime selectedDate = DateTime.tryParse(expense['expense_date']) ?? DateTime.now();
-    String? selectedCategory = expense['type'];
-
-    await showDialog(
-      context: context,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setState) => AlertDialog(
-            title: const Text('تعديل مصروف'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: titleController,
-                    decoration: const InputDecoration(labelText: 'عنوان المصروف'),
-                  ),
-                  TextField(
-                    controller: amountController,
-                    decoration: const InputDecoration(labelText: 'المبلغ'),
-                    keyboardType: TextInputType.number,
-                  ),
-                  DropdownButtonFormField<String>(
-                    value: selectedCategory,
-                    items: categories
-                        .map<DropdownMenuItem<String>>((cat) =>
-                            DropdownMenuItem(value: cat['id'].toString(), child: Text(cat['name'])))
-                        .toList(),
-                    onChanged: (val) => setState(() => selectedCategory = val),
-                    decoration: const InputDecoration(labelText: 'نوع المصروف'),
-                  ),
-                  ListTile(
-                    title: Text('التاريخ: ${selectedDate.toString().split(' ')[0]}'),
-                    trailing: const Icon(Icons.calendar_today),
-                    onTap: () async {
-                      final date = await showDatePicker(
-                        context: context,
-                        initialDate: selectedDate,
-                        firstDate: DateTime(2023),
-                        lastDate: DateTime(2100),
-                      );
-                      if (date != null) setState(() => selectedDate = date);
-                    },
-                  ),
-                  TextField(
-                    controller: noteController,
-                    decoration: const InputDecoration(labelText: 'ملاحظات (اختياري)'),
-                    minLines: 1,
-                    maxLines: 3,
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('إلغاء'),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  if (titleController.text.trim().isEmpty ||
-                      amountController.text.trim().isEmpty ||
-                      selectedCategory == null) return;
-
-                  await Supabase.instance.client.from('expenses').update({
-                    'title': titleController.text.trim(),
-                    'amount': double.tryParse(amountController.text) ?? 0,
-                    'type': selectedCategory,
-                    'expense_date': selectedDate.toIso8601String().split('T').first,
-                    'note': noteController.text,
-                  }).eq('id', expense['id']);
-                  Navigator.pop(ctx);
-                  onSuccess();
-                },
-                child: const Text('حفظ التعديلات'),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> showDeleteExpenseDialog(
-    BuildContext context,
-    Map expense,
-    void Function() onSuccess,
-  ) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('تأكيد الحذف'),
-        content: const Text('هل أنت متأكد من حذف هذا المصروف؟'),
+        ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('إلغاء'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('إلغاء')),
           ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('حذف'),
-          ),
-        ],
-      ),
-    );
-    if (confirm == true) {
-      await supabase.from('expenses').delete().eq('id', expense['id']);
-      onSuccess();
-    }
-  }
+            onPressed: () async {
+              Expense.title = titleController.text.trim();
+              Expense.amount = double.tryParse(amountController.text.trim()) ?? 0;
+              Expense.note = noteController.text.trim();
+              Expense.expenseDate = selectedDate;
+              Expense.category.value = selectedCategory;
 
-  @override
-  Widget build(BuildContext context) {
-    List filteredExpenses = getFilteredExpenses();
-    double totalAmount = getTotalAmount(filteredExpenses);
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('المصروفات'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.print),
-            tooltip: 'طباعة التقرير',
-            onPressed: () => printExpensesReport(filteredExpenses),
-          ),
-          IconButton(
-            icon: const Icon(Icons.file_download),
-            tooltip: 'تصدير Excel',
-            onPressed: () => exportExpensesToExcel(filteredExpenses),
-          ),
+              await isar.writeTxn(() async {
+                await isar.expenses.put(Expense);
+                await Expense.category.save();
+              });
+
+              Navigator.pop(ctx);
+              onSuccess();
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم تعديل الإيراد')));
+            },
+            child: Text('حفظ التعديلات'),
+          )
         ],
       ),
-      floatingActionButtonLocation: ExpandableFab.location,
-      floatingActionButton: ExpandableFab(
-      type: ExpandableFabType.up,
-  pos: ExpandableFabPos.center,
-  fanAngle: 180,
-        // fanAngle: 180,
-        children: [
-          FloatingActionButton.extended(
-            heroTag: null,
-            label: const Text('إضافة نوع مصروف'),
-            icon: const Icon(Icons.edit),
-            onPressed: () {
-              showAddExpenseCategoryDialog(context, fetchData);
-            },
-          ),
-          FloatingActionButton.extended(
-            heroTag: null,
-            label: const Text('إضافة مصروف'),
-            icon: const Icon(Icons.edit),
-            onPressed: () {
-              // تأكد من أن التصنيفات موجودة
-              showAddExpenseDialog(context, categories, fetchData);
-            },
-          ),
-        ],
-      ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
+    ),
+  );
+}
+Future<void> deleteIncome(int id) async {
+  await isar.writeTxn(() async {
+    await isar.expenses.delete(id); // حذف الإيراد حسب الـ ID
+  });
+  await fetchData(); // إعادة تحميل البيانات لتحديث الشاشة
+}
+@override
+Widget build(BuildContext context) {
+  final filtered = getFilteredIncomes();
+  final formatter = NumberFormat('#,###');
+
+  return Scaffold(
+    appBar: AppBar(title: const Text('قائمة الإيرادات'),actions: [ SizedBox(width: 150,
+                        child:  ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12), // يمكنك تغيير القيمة حسب الرغبة
+    ),
+  ),
+                          onPressed: () => exportIncomesToExcel(filtered),
+                          icon: const Icon(Icons.file_download),
+                          label: const Text('تصدير Excel'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      SizedBox(width: 150,
+                        child:  ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12), // يمكنك تغيير القيمة حسب الرغبة
+    ),
+  ),
+                          onPressed: () => printIncomesReport(filtered),
+                          icon: const Icon(Icons.print),
+                          label: const Text('طباعة PDF'),
+                        ),
+                      ),
+                          SizedBox(width: 10,),
+                      SizedBox(width: 150,
+                        child:  ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12), // يمكنك تغيير القيمة حسب الرغبة
+    ),
+  ),
+                          icon: Icon(Icons.add),
+                          label: Text('إضافة ايراد'),
+                          onPressed: () => showAddIncomeDialogIsar(context, fetchData),
+                        ),),
+                      SizedBox(width: 10,),
+                      SizedBox(width: 150,
+                        child:  ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12), // يمكنك تغيير القيمة حسب الرغبة
+    ),
+  ),
+                        
+                          icon: Icon(Icons.add),
+                          label: Text('إضافة فئة'),
+                          onPressed: () => showAddIncomeCategoryDialog(context),
+                        ),
+                      ),
+                      SizedBox(width: 10,),
+
+],),
+    body: isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
               children: [
-                // قسم الفلترة
-                Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  elevation: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Column(
-                      children: [
-                        // فلترة حسب النوع
-                        Row(
-                          children: [
-                            const Text('التصنيف: '),
-                            DropdownButton<String>(
-                              value: selectedFilterCategory,
-                              hint: const Text('الكل'),
-                              items: [
-                                const DropdownMenuItem(
-                                  value: 'all',
-                                  child: Text('الكل'),
-                                ),
-                                ...categories.map<DropdownMenuItem<String>>((cat) {
-                                  return DropdownMenuItem<String>(
-                                    value: cat['id'].toString(),
-                                    child: Text(cat['name']),
-                                  );
-                                }).toList(),
-                              ],
-                              onChanged: (val) {
-                                setState(() {
-                                  selectedFilterCategory = val;
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                        // فلترة حسب التاريخ
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            TextButton.icon(
-                              icon: const Icon(Icons.calendar_today),
-                              label: Text(filterStartDate == null
-                                  ? 'من تاريخ'
-                                  : filterStartDate!.toString().split(' ')[0]),
-                              onPressed: () async {
-                                final date = await showDatePicker(
-                                  context: context,
-                                  initialDate: filterStartDate ?? DateTime.now(),
-                                  firstDate: DateTime(2023),
-                                  lastDate: DateTime(2100),
-                                );
-                                if (date != null) {
-                                  setState(() {
-                                    filterStartDate = date;
-                                  });
-                                }
-                              },
-                            ),
-                            TextButton.icon(
-                              icon: const Icon(Icons.calendar_today),
-                              label: Text(filterEndDate == null
-                                  ? 'إلى تاريخ'
-                                  : filterEndDate!.toString().split(' ')[0]),
-                              onPressed: () async {
-                                final date = await showDatePicker(
-                                  context: context,
-                                  initialDate: filterEndDate ?? DateTime.now(),
-                                  firstDate: DateTime(2023),
-                                  lastDate: DateTime(2100),
-                                );
-                                if (date != null) {
-                                  setState(() {
-                                    filterEndDate = date;
-                                  });
-                                }
-                              },
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.clear),
-                              onPressed: () {
-                                setState(() {
-                                  filterStartDate = null;
-                                  filterEndDate = null;
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                        // زر لتحديث الفلترة وعرض إجمالي المصروفات
-                        ElevatedButton(
-                          onPressed: () {
-                            setState(() {});
-                          },
-                          child: const Text('تطبيق الفلترة'),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4.0),
-                          child: Text(
-                            'إجمالي المصروفات: $totalAmount',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
+                // --- أداة الفلترة ---
+                Row(
+                  children: [
+                    // فلتر الفئة
+                    SizedBox(
+                      width: 150,
+                      child: DropdownButton<String>(
+                        isExpanded: true,
+                        value: selectedFilterCategory ?? 'all',
+                        items: [
+                          DropdownMenuItem(value: 'all', child: Text('كل الفئات')),
+                          ...categories.map((cat) => DropdownMenuItem(
+                                value: cat.id.toString(),
+                                child: Text(cat.name),
+                              )),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            selectedFilterCategory = value;
+                          });
+                        },
+                      ),
                     ),
+                    const SizedBox(width: 10),
+
+                    // زر اختيار تاريخ البداية
+                    SizedBox(width: 150,
+                      child: ElevatedButton(                          style: ElevatedButton.styleFrom(
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12), // يمكنك تغيير القيمة حسب الرغبة
+    ),
+  ),
+                        onPressed: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: filterStartDate ?? DateTime.now(),
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime.now().add(Duration(days: 365)),
+                          );
+                          if (picked != null) {
+                            setState(() {
+                              filterStartDate = picked;
+                            });
+                          }
+                        },
+                        child: Text(filterStartDate == null
+                            ? 'تاريخ البداية'
+                            : 'من: ${filterStartDate!.toLocal().toString().split(' ')[0]}'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+
+                    // زر اختيار تاريخ النهاية
+                    SizedBox(width: 150,
+                      child: ElevatedButton(                          style: ElevatedButton.styleFrom(
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12), // يمكنك تغيير القيمة حسب الرغبة
+    ),
+  ),
+                        onPressed: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: filterEndDate ?? DateTime.now(),
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime.now().add(Duration(days: 365)),
+                          );
+                          if (picked != null) {
+                            setState(() {
+                              filterEndDate = picked;
+                            });
+                          }
+                        },
+                        child: Text(filterEndDate == null
+                            ? 'تاريخ النهاية'
+                            : 'إلى: ${filterEndDate!.toLocal().toString().split(' ')[0]}'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+
+                    // زر مسح الفلاتر
+                    IconButton(
+                      icon: Icon(Icons.clear),
+                      tooltip: 'مسح الفلاتر',
+                      onPressed: () {
+                        setState(() {
+                          selectedFilterCategory = 'all';
+                          filterStartDate = null;
+                          filterEndDate = null;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 12),
+
+                // عرض مجموع الإيرادات بعد الفلترة
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    'إجمالي الإيرادات: ${formatter.format(getTotalAmount(filtered))} د.ع',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ),
-                // عرض قائمة المصروفات المفلترة
+
+                const SizedBox(height: 12),
+
                 Expanded(
-                  child: filteredExpenses.isEmpty
-                      ? const Center(child: Text('لا توجد مصروفات'))
-                      : ListView.separated(
-                          itemCount: filteredExpenses.length,
-                          separatorBuilder: (_, __) => const Divider(height: 1),
-                          itemBuilder: (context, index) {
-                            final exp = filteredExpenses[index];
-                            return Card(
-                              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              elevation: 2,
-                              child: SizedBox(
-                                height: 80,
-                                child: Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(15.0),
-                                    child: Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            exp['title'],
-                                            style: const TextStyle(fontWeight: FontWeight.w600),
-                                          ),
-                                        ),
-                                        Expanded(
-                                          child: Text(
-                                            '${exp['amount']}',
-                                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
-                                          ),
-                                        ),
-                                        Expanded(child: Text(getCategoryName(exp['type'].toString()))),
-                                        Expanded(
-                                          child: Text(
-                                            exp['expense_date'],
-                                            style: const TextStyle(fontSize: 12, color: Colors.grey),
-                                          ),
-                                        ),
-                                        SizedBox(
-                                          width: 120,
-                                          child: Padding(
-                                            padding: const EdgeInsets.only(top: 4.0),
-                                            child: Text(
-                                              exp['note'] == null || exp['note'].toString().isEmpty
-                                                  ? 'لا توجد ملاحظات'
-                                                  : exp['note'],
-                                              style: const TextStyle(fontSize: 12, color: Colors.black54),
-                                              overflow: TextOverflow.ellipsis,
-                                              maxLines: 2,
-                                            ),
-                                          ),
-                                        ),
-                                        const Spacer(),
-                                        Expanded(
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              IconButton(
-                                                icon: const Icon(Icons.edit, color: Colors.blue),
-                                                onPressed: () async {
-                                                  await showEditExpenseDialog(
-                                                    context,
-                                                    exp,
-                                                    categories,
-                                                    fetchData,
-                                                  );
-                                                },
-                                              ),
-                                              IconButton(
-                                                icon: const Icon(Icons.delete, color: Colors.red),
-                                                onPressed: () async {
-                                                  await showDeleteExpenseDialog(
-                                                    context,
-                                                    exp,
-                                                    fetchData,
-                                                  );
-                                                },
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                  child: ListView.builder(
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) {
+                      final Expense = filtered[index];
+                      return Card(
+                        margin: const EdgeInsets.symmetric(vertical: 6),
+                        child: ListTile(
+                          title: Text(Expense.title ?? ''),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('المبلغ: ${formatter.format(Expense.amount)} د.ع'),
+                              Text('التصنيف: ${getCategoryName(Expense.category.value)}'),
+                              Text('التاريخ: ${Expense.expenseDate.toIso8601String().split('T').first}'),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  IconButton(
+                                    icon: Icon(Icons.edit, color: Colors.blue),
+                                    onPressed: () => showEditIncomeDialog(context, Expense, fetchData),
                                   ),
-                                ),
-                              ),
-                            );
-                          },
+                                  IconButton(
+                                    icon: Icon(Icons.delete, color: Colors.red),
+                                    onPressed: () async {
+                                      final confirm = await showDialog<bool>(
+                                        context: context,
+                                        builder: (ctx) => AlertDialog(
+                                          title: Text('تأكيد الحذف'),
+                                          content: Text('هل أنت متأكد أنك تريد حذف هذا الإيراد؟'),
+                                          actions: [
+                                            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('إلغاء')),
+                                            ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: Text('حذف')),
+                                          ],
+                                        ),
+                                      );
+                                      if (confirm == true) await deleteIncome(Expense.id);
+                                    },
+                                  ),
+                                ],
+                              )
+                            ],
+                          ),
                         ),
+                      );
+                    },
+                  ),
                 ),
               ],
             ),
-    );
-  }
+          ),
+  );
+}
+
+
+//   @override
+//   Widget build(BuildContext context) {
+//     final filtered = getFilteredIncomes();
+//     final formatter = NumberFormat('#,###');
+
+//     return Scaffold(
+//       appBar: AppBar(title: const Text('قائمة الإيرادات')),
+
+//       body: isLoading
+//           ? const Center(child: CircularProgressIndicator())
+//           : Padding(
+//               padding: const EdgeInsets.all(12),
+//               child: Column(
+//                 children: [
+                  // Row(
+                  //   mainAxisAlignment: MainAxisAlignment.end,
+                  //   children: [
+                      // SizedBox(width: 150,
+                      //   child:  ElevatedButton.icon(
+
+                      //     onPressed: () => exportIncomesToExcel(filtered),
+                      //     icon: const Icon(Icons.file_download),
+                      //     label: const Text('تصدير Excel'),
+                      //   ),
+                      // ),
+                      // const SizedBox(width: 10),
+                      // SizedBox(width: 150,
+                      //   child:  ElevatedButton.icon(
+
+                      //     onPressed: () => printIncomesReport(filtered),
+                      //     icon: const Icon(Icons.print),
+                      //     label: const Text('طباعة PDF'),
+                      //   ),
+                      // ),
+                      //     SizedBox(width: 10,),
+                      // SizedBox(width: 150,
+                      //   child:  ElevatedButton.icon(
+
+                      //     icon: Icon(Icons.add),
+                      //     label: Text('إضافة ايراد'),
+                      //     onPressed: () => showAddIncomeDialogIsar(context, fetchData),
+                      //   ),),
+                      // SizedBox(width: 10,),
+                      // SizedBox(width: 150,
+                      //   child:  ElevatedButton.icon(
+
+                      //     icon: Icon(Icons.add),
+                      //     label: Text('إضافة فئة'),
+                      //     onPressed: () => showAddIncomeCategoryDialog(context),
+                      //   ),
+                      // ),
+
+                  //   ],
+                  // ),
+//                   const SizedBox(height: 10),
+//                   Expanded(
+//                     child: ListView.builder(
+//                       itemCount: filtered.length,
+//                       itemBuilder: (context, index) {
+//                         final Expense = filtered[index];
+//                         return Card(
+//                           margin: const EdgeInsets.symmetric(vertical: 6),
+//                           child: ListTile(
+//                             title: Text(Expense.title ?? ''),
+//                             subtitle: Column(
+//   crossAxisAlignment: CrossAxisAlignment.start,
+//   children: [
+//     Text('المبلغ: ${formatter.format(Expense.amount)} د.ع'),
+//     Text('التصنيف: ${getCategoryName(Expense.category.value)}'),
+//     Text('التاريخ: ${Expense.expensesDate.toIso8601String().split('T').first}'),
+//     Row(
+//       mainAxisAlignment: MainAxisAlignment.end,
+//       children: [
+//         IconButton(
+//           icon: Icon(Icons.edit, color: Colors.blue),
+//           onPressed: () => showEditIncomeDialog(context, Expense, fetchData),
+//         ),
+//         IconButton(
+//           icon: Icon(Icons.delete, color: Colors.red),
+//           onPressed: () async {
+//             final confirm = await showDialog<bool>(
+//               context: context,
+//               builder: (ctx) => AlertDialog(
+//                 title: Text('تأكيد الحذف'),
+//                 content: Text('هل أنت متأكد أنك تريد حذف هذا الإيراد؟'),
+//                 actions: [
+//                   TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('إلغاء')),
+//                   ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: Text('حذف')),
+//                 ],
+//               ),
+//             );
+//             if (confirm == true) await deleteIncome(Expense.id);
+//           },
+//         ),
+//       ],
+//     )
+//   ],
+// )
+
+//                           ),
+//                         );
+                    
+//                       },
+//                     ),
+//                   )
+//                 ],
+//               ),
+//             ),
+//     );
+//   }
+
 }

@@ -15,9 +15,7 @@ class SchoolClass {
   late String name;
   double? annualFee;
 
-  final school = IsarLink<School>();
   final grade = IsarLink<Grade>();
 
-  final students = IsarLinks<Student>();
   final subjects = IsarLinks<Subject>();
 }

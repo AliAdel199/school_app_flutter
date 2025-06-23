@@ -35,23 +35,11 @@ const SchoolClassSchema = CollectionSchema(
   idName: r'id',
   indexes: {},
   links: {
-    r'school': LinkSchema(
-      id: 6873762208189171977,
-      name: r'school',
-      target: r'School',
-      single: true,
-    ),
     r'grade': LinkSchema(
       id: -573250481711267911,
       name: r'grade',
       target: r'Grade',
       single: true,
-    ),
-    r'students': LinkSchema(
-      id: 5460448763725855399,
-      name: r'students',
-      target: r'Student',
-      single: false,
     ),
     r'subjects': LinkSchema(
       id: 2562817919184489520,
@@ -121,15 +109,13 @@ Id _schoolClassGetId(SchoolClass object) {
 }
 
 List<IsarLinkBase<dynamic>> _schoolClassGetLinks(SchoolClass object) {
-  return [object.school, object.grade, object.students, object.subjects];
+  return [object.grade, object.subjects];
 }
 
 void _schoolClassAttach(
     IsarCollection<dynamic> col, Id id, SchoolClass object) {
   object.id = id;
-  object.school.attach(col, col.isar.collection<School>(), r'school', id);
   object.grade.attach(col, col.isar.collection<Grade>(), r'grade', id);
-  object.students.attach(col, col.isar.collection<Student>(), r'students', id);
   object.subjects.attach(col, col.isar.collection<Subject>(), r'subjects', id);
 }
 
@@ -487,19 +473,6 @@ extension SchoolClassQueryObject
 
 extension SchoolClassQueryLinks
     on QueryBuilder<SchoolClass, SchoolClass, QFilterCondition> {
-  QueryBuilder<SchoolClass, SchoolClass, QAfterFilterCondition> school(
-      FilterQuery<School> q) {
-    return QueryBuilder.apply(this, (query) {
-      return query.link(q, r'school');
-    });
-  }
-
-  QueryBuilder<SchoolClass, SchoolClass, QAfterFilterCondition> schoolIsNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.linkLength(r'school', 0, true, 0, true);
-    });
-  }
-
   QueryBuilder<SchoolClass, SchoolClass, QAfterFilterCondition> grade(
       FilterQuery<Grade> q) {
     return QueryBuilder.apply(this, (query) {
@@ -510,67 +483,6 @@ extension SchoolClassQueryLinks
   QueryBuilder<SchoolClass, SchoolClass, QAfterFilterCondition> gradeIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.linkLength(r'grade', 0, true, 0, true);
-    });
-  }
-
-  QueryBuilder<SchoolClass, SchoolClass, QAfterFilterCondition> students(
-      FilterQuery<Student> q) {
-    return QueryBuilder.apply(this, (query) {
-      return query.link(q, r'students');
-    });
-  }
-
-  QueryBuilder<SchoolClass, SchoolClass, QAfterFilterCondition>
-      studentsLengthEqualTo(int length) {
-    return QueryBuilder.apply(this, (query) {
-      return query.linkLength(r'students', length, true, length, true);
-    });
-  }
-
-  QueryBuilder<SchoolClass, SchoolClass, QAfterFilterCondition>
-      studentsIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.linkLength(r'students', 0, true, 0, true);
-    });
-  }
-
-  QueryBuilder<SchoolClass, SchoolClass, QAfterFilterCondition>
-      studentsIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.linkLength(r'students', 0, false, 999999, true);
-    });
-  }
-
-  QueryBuilder<SchoolClass, SchoolClass, QAfterFilterCondition>
-      studentsLengthLessThan(
-    int length, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.linkLength(r'students', 0, true, length, include);
-    });
-  }
-
-  QueryBuilder<SchoolClass, SchoolClass, QAfterFilterCondition>
-      studentsLengthGreaterThan(
-    int length, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.linkLength(r'students', length, include, 999999, true);
-    });
-  }
-
-  QueryBuilder<SchoolClass, SchoolClass, QAfterFilterCondition>
-      studentsLengthBetween(
-    int lower,
-    int upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.linkLength(
-          r'students', lower, includeLower, upper, includeUpper);
     });
   }
 

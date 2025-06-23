@@ -7,6 +7,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:isar/isar.dart';
 import 'package:school_app_flutter/localdatabase/student.dart';
+import 'package:school_app_flutter/localdatabase/user.dart';
+import '../localdatabase/income.dart';
+import '../localdatabase/log.dart';
+import '../localdatabase/student_crud.dart';
 import '../localdatabase/student_fee_status.dart';
 import '../localdatabase/student_payment.dart';
 import '../main.dart';
@@ -31,57 +35,51 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
   @override
   void initState() {
     super.initState();
-    fetchData();
+    // fetchData();
+    refreshFeeStatus();
+    reloadAllData();
     // s();
   }
+Future<void> reloadAllData() async {
+  setState(() => isLoading = true);
+  try {
+    payments = await isar.studentPayments
+        .filter()
+        .studentIdEqualTo(widget.studentId.toString())
+        .sortByPaidAtDesc()
+        .findAll();
 
-  Future<void> fetchData() async {
-    setState(() => isLoading = true);
+    feeStatus = await isar.studentFeeStatus
+        .filter()
+        .studentIdEqualTo(widget.studentId.toString())
+        .findFirst();
+        setState(() {
+          
+        });
+  } catch (e) {
+    debugPrint('Error during reloadAllData: $e');
+  } finally {
+    setState(() => isLoading = false);
+  }
+}
+
+
+
+  
+
+  Future<void> refreshFeeStatus() async {
     try {
-      payments = await isar.studentPayments
-          .filter()
-          .studentIdEqualTo(widget.studentId.toString())
-          .sortByPaidAtDesc()
-          .findAll();
-
       feeStatus = await isar.studentFeeStatus
           .filter()
           .studentIdEqualTo(widget.studentId.toString())
           .findFirst();
-        print(feeStatus!.annualFee);
+      setState(() {
+        // Update the UI with the new feeStatus
+      });
     } catch (e) {
-      debugPrint('Error: $e');
-    } finally {
-      setState(() => isLoading = false);
+      debugPrint('Error fetching fee status: $e');
     }
   }
-
-  Future<void> deletePayment(int id) async {
-    await isar.writeTxn(() async {
-      await isar.studentPayments.delete(id);
-    });
-    fetchData();
-  }
-  
- var fee;
-
-  var paid;
-  var due;
-  // Future<void> refreshFeeStatus() async {
-  //   try {
-  //     feeStatus = await isar.studentFeeStatus
-  //         .filter()
-  //         .studentIdEqualTo(widget.studentId.toString())
-  //         .findFirst();
-  //     setState(() {
-  //         fee = feeStatus?.annualFee ?? 0;
-  //    paid = feeStatus?.paidAmount ?? 0;
-  //    due = feeStatus?.dueAmount ?? 0;
-  //     });
-  //   } catch (e) {
-  //     debugPrint('Error fetching fee status: $e');
-  //   }
-  // }
 
    final formatter = NumberFormat('#,###');
 
@@ -93,18 +91,47 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
     return Scaffold(
       appBar: AppBar(title: Text('دفعات الطالب: ${widget.fullName}')),
       floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          await showAddPaymentDialogIsar(
-            context: context,
-            studentId: widget.studentId.toString(),
-            academicYear: feeStatus?.academicYear ?? 'غير معروف',
-            onSuccess: fetchData,
-            student: widget.student!,
-            isar: isar,
-          );
-        },
-        child: const Icon(Icons.add),
-      ),
+  onPressed: () async {
+    if(feeStatus!.dueAmount! <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('لا يمكن إضافة دفعة، القسط مدفوع بالكامل')),
+      );
+      return;
+    }
+    final result = await showAddPaymentDialogIsar(
+      context: context,
+      studentId: widget.studentId.toString(),
+      academicYear: feeStatus?.academicYear ?? 'غير معروف',
+      student: widget.student!,
+      isar: isar,
+    );
+   
+    print("dialog result: $result"); // اختبار للتأكد
+    if (result == true) {
+      print("reloading..."); // اختبار
+      await reloadAllData();
+  
+      // جلب بيانات المستخدم من Isar
+   var   user = await isar.users.where().findFirst();
+      
+      if (user != null) {
+    final log = Log()
+      ..action = 'اضافة دفعة'
+      ..tableName = 'users'
+      ..description = 'تم اضافة دفعة بواسطة ${user.username}'
+      ..user.value = user;
+
+    await isar.writeTxn(() async {
+      await isar.logs.put(log);
+      await log.user.save();
+    });
+  }
+    }
+  },
+  child: const Icon(Icons.add),
+),
+
+  
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
@@ -148,7 +175,10 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
                                   ),
                                   trailing: IconButton(
                                     icon: const Icon(Icons.delete, color: Colors.red),
-                                    onPressed: () async => await deletePayment(p.id),
+                                    onPressed: () {
+                                       deleteStudentPayment(isar, p.id, widget.studentId.toString(),feeStatus!.academicYear);
+                                       
+                                    }
                                   ),
                                 ),
                               );

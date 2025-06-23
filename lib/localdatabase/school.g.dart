@@ -71,12 +71,6 @@ const SchoolSchema = CollectionSchema(
       name: r'classes',
       target: r'SchoolClass',
       single: false,
-    ),
-    r'students': LinkSchema(
-      id: 4745367135435888291,
-      name: r'students',
-      target: r'Student',
-      single: false,
     )
   },
   embeddedSchemas: {},
@@ -179,7 +173,7 @@ Id _schoolGetId(School object) {
 }
 
 List<IsarLinkBase<dynamic>> _schoolGetLinks(School object) {
-  return [object.grades, object.classes, object.students];
+  return [object.grades, object.classes];
 }
 
 void _schoolAttach(IsarCollection<dynamic> col, Id id, School object) {
@@ -187,7 +181,6 @@ void _schoolAttach(IsarCollection<dynamic> col, Id id, School object) {
   object.grades.attach(col, col.isar.collection<Grade>(), r'grades', id);
   object.classes
       .attach(col, col.isar.collection<SchoolClass>(), r'classes', id);
-  object.students.attach(col, col.isar.collection<Student>(), r'students', id);
 }
 
 extension SchoolQueryWhereSort on QueryBuilder<School, School, QWhere> {
@@ -1260,62 +1253,6 @@ extension SchoolQueryLinks on QueryBuilder<School, School, QFilterCondition> {
     return QueryBuilder.apply(this, (query) {
       return query.linkLength(
           r'classes', lower, includeLower, upper, includeUpper);
-    });
-  }
-
-  QueryBuilder<School, School, QAfterFilterCondition> students(
-      FilterQuery<Student> q) {
-    return QueryBuilder.apply(this, (query) {
-      return query.link(q, r'students');
-    });
-  }
-
-  QueryBuilder<School, School, QAfterFilterCondition> studentsLengthEqualTo(
-      int length) {
-    return QueryBuilder.apply(this, (query) {
-      return query.linkLength(r'students', length, true, length, true);
-    });
-  }
-
-  QueryBuilder<School, School, QAfterFilterCondition> studentsIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.linkLength(r'students', 0, true, 0, true);
-    });
-  }
-
-  QueryBuilder<School, School, QAfterFilterCondition> studentsIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.linkLength(r'students', 0, false, 999999, true);
-    });
-  }
-
-  QueryBuilder<School, School, QAfterFilterCondition> studentsLengthLessThan(
-    int length, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.linkLength(r'students', 0, true, length, include);
-    });
-  }
-
-  QueryBuilder<School, School, QAfterFilterCondition> studentsLengthGreaterThan(
-    int length, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.linkLength(r'students', length, include, 999999, true);
-    });
-  }
-
-  QueryBuilder<School, School, QAfterFilterCondition> studentsLengthBetween(
-    int lower,
-    int upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.linkLength(
-          r'students', lower, includeLower, upper, includeUpper);
     });
   }
 }

@@ -1,0 +1,183 @@
+import 'package:flutter/material.dart';
+import 'package:isar/isar.dart';
+import 'package:school_app_flutter/LogsScreen.dart';
+import 'package:school_app_flutter/localdatabase/school.dart';
+import 'package:school_app_flutter/localdatabase/user.dart';
+import 'package:school_app_flutter/reports/login_screen.dart';
+import '../main.dart';
+import 'auth_service.dart';
+
+class InitialSetupScreen extends StatefulWidget {
+  const InitialSetupScreen({super.key});
+
+  @override
+  State<InitialSetupScreen> createState() => _InitialSetupScreenState();
+}
+
+class _InitialSetupScreenState extends State<InitialSetupScreen> {
+  final formKey = GlobalKey<FormState>();
+
+  final schoolNameController = TextEditingController();
+  final schoolEmailController = TextEditingController();
+  final schoolPhoneController = TextEditingController();
+
+  final usernameController = TextEditingController();
+  final userEmailController = TextEditingController();
+  final passwordController = TextEditingController();
+
+  bool isLoading = false;
+
+  Future<void> saveInitialData() async {
+    if (!formKey.currentState!.validate()) return;
+
+    setState(() => isLoading = true);
+
+    try {
+      final existingSchools = await isar.schools.where().findAll();
+      if (existingSchools.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم تسجيل المدرسة سابقًا.')));
+        return;
+      }
+
+      await isar.writeTxn(() async {
+        final school = School()
+          ..name = schoolNameController.text.trim()
+          ..email = schoolEmailController.text.trim()
+          ..phone = schoolPhoneController.text.trim()
+          ..subscriptionPlan = 'basic'
+          ..subscriptionStatus = 'active'
+          ..createdAt = DateTime.now();
+
+
+        await isar.schools.put(school);
+      });
+      await registerUser( usernameController.text.trim(), userEmailController.text.trim(), passwordController.text.trim());
+
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+      );
+    } catch (e) {
+      debugPrint('Error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('حدث خطأ: $e')));
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+
+  InputDecoration _inputDecoration(String label, {IconData? icon}) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: icon != null ? Icon(icon) : null,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      filled: true,
+      fillColor: Colors.grey[100],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('إعداد النظام لأول مرة'),
+        centerTitle: true,
+ 
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 200,vertical: 100),
+            child: Form(
+              key: formKey,
+              child: Column(
+                children: [
+                  Directionality(textDirection: TextDirection.rtl,
+                    child: Card(
+                      elevation: 3,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      margin: const EdgeInsets.only(bottom: 24),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('بيانات المدرسة', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: schoolNameController,
+                              decoration: _inputDecoration('اسم المدرسة', icon: Icons.school),
+                              validator: (val) => val == null || val.isEmpty ? 'مطلوب' : null,
+                            ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: schoolEmailController,
+                              decoration: _inputDecoration('البريد الإلكتروني', icon: Icons.email),
+                            ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: schoolPhoneController,
+                              decoration: _inputDecoration('رقم الهاتف', icon: Icons.phone),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Directionality(textDirection: TextDirection.rtl,
+                    child: Card(
+                      elevation: 3,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('بيانات المستخدم الإداري', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: usernameController,
+                              decoration: _inputDecoration('اسم المستخدم', icon: Icons.person),
+                              validator: (val) => val == null || val.isEmpty ? 'مطلوب' : null,
+                            ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: userEmailController,
+                              decoration: _inputDecoration('البريد الإلكتروني', icon: Icons.email_outlined),
+                            ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: passwordController,
+                              obscureText: true,
+                              decoration: _inputDecoration('كلمة المرور', icon: Icons.lock),
+                              validator: (val) => val == null || val.length < 4 ? 'يجب أن تكون 4 أحرف على الأقل' : null,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  SizedBox(
+                    width: double.infinity,
+                    child: isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            onPressed: saveInitialData,
+                            icon: const Icon(Icons.save),
+                            label: const Text('حفظ البيانات وبدء الاستخدام', style: TextStyle(fontSize: 16)),
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

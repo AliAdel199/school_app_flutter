@@ -19,5 +19,4 @@ class School {
 
   final grades = IsarLinks<Grade>();
   final classes = IsarLinks<SchoolClass>();
-  final students = IsarLinks<Student>();
 }
