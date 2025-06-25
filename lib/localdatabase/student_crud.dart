@@ -1,4 +1,6 @@
 import 'package:isar/isar.dart';
+import 'package:pdf/pdf.dart';
+import 'package:printing/printing.dart';
 import 'package:school_app_flutter/localdatabase/subject.dart';
 
 import 'class.dart';
@@ -7,7 +9,10 @@ import 'school.dart';
 import 'student.dart';
 import 'student_fee_status.dart';
 import 'student_payment.dart';
-
+import 'package:intl/intl.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 //
 // 🧑‍🎓 Student
@@ -321,3 +326,194 @@ Future<void> deleteSubject(Isar isar, int id) async {
     await isar.subjects.delete(id);
   });
 }
+
+  void printArabicInvoice2({
+    required String studentName,
+    required String receiptNumber,
+    required double amount,
+    required String notes,
+    required DateTime paidAt,
+    required String academicYear,
+  }) async {
+    final format = NumberFormat('#,###');
+    final pdf = pw.Document();
+
+    final baseFont = await PdfGoogleFonts.amiriRegular();
+    final boldFont = await PdfGoogleFonts.amiriBold();
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a5,
+        margin: const pw.EdgeInsets.all(18),
+        theme: pw.ThemeData.withFont(base: baseFont, bold: boldFont),
+        build: (context) {
+          return pw.Directionality(
+            textDirection: pw.TextDirection.rtl,
+            child: pw.Container(
+              decoration: pw.BoxDecoration(
+                border: pw.Border.all(color: PdfColors.blueGrey400, width: 1.2),
+                borderRadius: pw.BorderRadius.circular(10),
+                color: PdfColors.white,
+              ),
+              padding: const pw.EdgeInsets.all(14),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+                children: [
+                  // Header
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text('مدرسة المستقبل الأهلية',
+                              style: pw.TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: pw.FontWeight.bold,
+                                  color: PdfColors.blue800)),
+                          pw.Text('إيصال دفع رسوم دراسية',
+                              style: pw.TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: pw.FontWeight.bold,
+                                  color: PdfColors.blueGrey700)),
+                        ],
+                      ),
+                      pw.Container(
+                        width: 44,
+                        height: 44,
+                        decoration: pw.BoxDecoration(
+                          color: PdfColors.blue50,
+                          shape: pw.BoxShape.circle,
+                          border: pw.Border.all(color: PdfColors.blueGrey300, width: 1),
+                        ),
+                        child: pw.Center(
+                          child: pw.Text('🔖', style: pw.TextStyle(fontSize: 22)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  pw.SizedBox(height: 8),
+                  pw.Divider(thickness: 1, color: PdfColors.blueGrey200),
+
+                  // Receipt Info Table
+                  pw.SizedBox(height: 12),
+                  pw.Container(
+                    decoration: pw.BoxDecoration(
+                      color: PdfColors.blueGrey50,
+                      borderRadius: pw.BorderRadius.circular(7),
+                    ),
+                    padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                    child: pw.Table(
+                      columnWidths: {
+                        0: const pw.FlexColumnWidth(2),
+                        1: const pw.FlexColumnWidth(3),
+                      },
+                      children: [
+                        pw.TableRow(
+                          children: [
+                            pw.Text('اسم الطالب:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                            pw.Text(studentName),
+                          ],
+                        ),
+                        pw.TableRow(
+                          children: [
+                            pw.Text('السنة الأكاديمية:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                            pw.Text(academicYear),
+                          ],
+                        ),
+                        pw.TableRow(
+                          children: [
+                            pw.Text('رقم الوصل:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                            pw.Text(receiptNumber),
+                          ],
+                        ),
+                        pw.TableRow(
+                          children: [
+                            pw.Text('تاريخ الدفع:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                            pw.Text(DateFormat('yyyy-MM-dd').format(paidAt)),
+                          ],
+                        ),
+                        if (notes.isNotEmpty)
+                          pw.TableRow(
+                            children: [
+                              pw.Text('ملاحظات:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                              pw.Text(notes),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ),
+
+                  // Amount Section
+                  pw.SizedBox(height: 16),
+                  pw.Container(
+                    decoration: pw.BoxDecoration(
+                      color: PdfColors.blue100,
+                      borderRadius: pw.BorderRadius.circular(8),
+                      border: pw.Border.all(color: PdfColors.blue600, width: 1),
+                    ),
+                    padding: const pw.EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                    child: pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text('المبلغ المدفوع',
+                            style: pw.TextStyle(
+                                fontSize: 16,
+                                fontWeight: pw.FontWeight.bold,
+                                color: PdfColors.blue900)),
+                        pw.Text('${format.format(amount)} د.ع',
+                            style: pw.TextStyle(
+                                fontSize: 16,
+                                fontWeight: pw.FontWeight.bold,
+                                color: PdfColors.green800)),
+                      ],
+                    ),
+                  ),
+
+                  // Footer
+                  pw.Spacer(),
+                  pw.Divider(thickness: 1, color: PdfColors.blueGrey200),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text('توقيع الإدارة',
+                              style: pw.TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: pw.FontWeight.bold,
+                                  color: PdfColors.blueGrey700)),
+                          pw.SizedBox(height: 18),
+                          pw.Container(
+                            width: 70,
+                            height: 1,
+                            color: PdfColors.blueGrey400,
+                          ),
+                        ],
+                      ),
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.end,
+                        children: [
+                          pw.Text('📞 0780 000 0000',
+                              style: pw.TextStyle(
+                                  fontSize: 11, color: PdfColors.blueGrey600)),
+                          pw.Text('📍 بغداد - شارع الربيعي',
+                              style: pw.TextStyle(
+                                  fontSize: 11, color: PdfColors.blueGrey600)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => pdf.save(),
+    );
+  }
