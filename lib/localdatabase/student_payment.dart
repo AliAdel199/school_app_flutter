@@ -15,6 +15,8 @@ class StudentPayment {
   String? notes;
   DateTime createdAt = DateTime.now();
   String? academicYear;
+   int invoiceSerial=0; // ✅ الرقم التسلسلي للفاتورة
+
 
   // ربط IsarLink
   final student = IsarLink<Student>();

@@ -8,6 +8,7 @@ import 'package:school_app_flutter/localdatabase/expense.dart';
 import 'package:school_app_flutter/localdatabase/expense_category.dart';
 import 'package:school_app_flutter/localdatabase/income.dart';
 import 'package:school_app_flutter/localdatabase/income_category.dart';
+import 'package:school_app_flutter/localdatabase/invoice_serial.dart';
 import 'package:school_app_flutter/localdatabase/log.dart';
 import 'package:school_app_flutter/localdatabase/user.dart';
 import 'package:school_app_flutter/student/PaymentsListScreen.dart';
@@ -69,7 +70,8 @@ Future<void> main() async {
     SubjectSchema,
     UserSchema,
     IncomeSchema,IncomeCategorySchema,
-    LogSchema
+    LogSchema,
+    InvoiceCounterSchema
     ,ExpenseSchema,ExpenseCategorySchema
   ], directory: dir.path,inspector: true,name: 'school_app_flutter',);
     final schools = await isar.schools.where().findAll();

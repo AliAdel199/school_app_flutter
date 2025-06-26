@@ -105,7 +105,7 @@ Future<void> reloadAllData() async {
       student: widget.student!,
       isar: isar,
     );
-   
+ 
     print("dialog result: $result"); // اختبار للتأكد
     if (result == true) {
       print("reloading..."); // اختبار

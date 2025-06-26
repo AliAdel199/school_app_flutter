@@ -12,6 +12,8 @@ class School {
   late String name;
   String? email;
   String? phone;
+  String? address;
+  String? logoUrl;
   String? subscriptionPlan;
   String subscriptionStatus = 'active';
   DateTime? endDate;

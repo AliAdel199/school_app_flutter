@@ -251,7 +251,9 @@ Future<bool?> showAddPaymentDialogIsar({
                       try {
                         final amount = double.parse(amountController.text);
                         final receiptNumber = 'R-${DateTime.now().millisecondsSinceEpoch}';
-
+                        
+    final serial = await getNextInvoiceNumber(isar);
+  
                         final payment = StudentPayment()
                           ..studentId = studentId
                           ..amount = amount
@@ -259,6 +261,7 @@ Future<bool?> showAddPaymentDialogIsar({
                           ..student.value = student
                           ..notes = notesController.text
                           ..academicYear = academicYear
+                          ..invoiceSerial = serial // الرقم التسلسلي للفاتورة 
                           ..receiptNumber = receiptNumber;
 
                         await isar.writeTxn(() async {
@@ -308,6 +311,11 @@ Future<bool?> showAddPaymentDialogIsar({
                           await isar.incomes.put(income);
                           await income.category.save();
                         });
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('تم حفظ بيانات بنجاح')),
+    );
+
 
                         Navigator.pop(context, true);
                       } catch (e) {

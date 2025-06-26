@@ -144,6 +144,7 @@ class _PaymentsListScreenState extends State<PaymentsListScreen> {
             notes: notes,
             paidAt: payment.paidAt,
             academicYear: payment.academicYear ?? 'غير محدد',
+            invoiceSerial: payment.invoiceSerial??0,
           );
         },
       ),
