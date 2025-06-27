@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:isar/isar.dart';
-import 'package:school_app_flutter/localdatabase/log.dart';
+import '/localdatabase/log.dart';
 import '../../main.dart';
 
 class LogsScreen extends StatefulWidget {

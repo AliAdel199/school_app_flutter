@@ -1,11 +1,14 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:isar/isar.dart';
-import 'package:school_app_flutter/LogsScreen.dart';
-import 'package:school_app_flutter/localdatabase/school.dart';
-import 'package:school_app_flutter/localdatabase/user.dart';
-import 'package:school_app_flutter/reports/login_screen.dart';
+import '/LogsScreen.dart';
+import '/localdatabase/school.dart';
+import '/localdatabase/user.dart';
+import '/reports/login_screen.dart';
 import '../main.dart';
 import 'auth_service.dart';
+import 'package:image_picker/image_picker.dart';
 
 class InitialSetupScreen extends StatefulWidget {
   const InitialSetupScreen({super.key});
@@ -20,12 +23,23 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
   final schoolNameController = TextEditingController();
   final schoolEmailController = TextEditingController();
   final schoolPhoneController = TextEditingController();
+  final schoolAddressController = TextEditingController();
 
   final usernameController = TextEditingController();
   final userEmailController = TextEditingController();
   final passwordController = TextEditingController();
 
+  File? selectedLogo;
   bool isLoading = false;
+
+  Future<void> pickLogoImage() async {
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (picked != null) {
+      setState(() {
+        selectedLogo = File(picked.path);
+      });
+    }
+  }
 
   Future<void> saveInitialData() async {
     if (!formKey.currentState!.validate()) return;
@@ -44,15 +58,17 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
           ..name = schoolNameController.text.trim()
           ..email = schoolEmailController.text.trim()
           ..phone = schoolPhoneController.text.trim()
+          ..address = schoolAddressController.text.trim()
+          ..logoUrl = selectedLogo?.path
           ..subscriptionPlan = 'basic'
           ..subscriptionStatus = 'active'
           ..createdAt = DateTime.now();
 
-
         await isar.schools.put(school);
+        print(school.logoUrl);
       });
-      await registerUser( usernameController.text.trim(), userEmailController.text.trim(), passwordController.text.trim());
 
+      await registerUser(usernameController.text.trim(), userEmailController.text.trim(), passwordController.text.trim());
 
       Navigator.pushReplacement(
         context,
@@ -82,17 +98,17 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
       appBar: AppBar(
         title: const Text('إعداد النظام لأول مرة'),
         centerTitle: true,
- 
       ),
       body: Center(
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 200,vertical: 100),
+            padding: const EdgeInsets.symmetric(horizontal: 200, vertical: 100),
             child: Form(
               key: formKey,
               child: Column(
                 children: [
-                  Directionality(textDirection: TextDirection.rtl,
+                  Directionality(
+                    textDirection: TextDirection.rtl,
                     child: Card(
                       elevation: 3,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -119,12 +135,37 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                               controller: schoolPhoneController,
                               decoration: _inputDecoration('رقم الهاتف', icon: Icons.phone),
                             ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: schoolAddressController,
+                              decoration: _inputDecoration('عنوان المدرسة', icon: Icons.location_on),
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                SizedBox(width: 200,
+                                  child: ElevatedButton.icon(
+                                    onPressed: pickLogoImage,
+                                    icon: const Icon(Icons.image),
+                                    label: const Text('اختيار لوجو المدرسة'),
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                if (selectedLogo != null)
+                                  SizedBox(
+                                    width: 80,
+                                    height: 80,
+                                    child: Image.file(selectedLogo!, fit: BoxFit.cover),
+                                  )
+                              ],
+                            ),
                           ],
                         ),
                       ),
                     ),
                   ),
-                  Directionality(textDirection: TextDirection.rtl,
+                  Directionality(
+                    textDirection: TextDirection.rtl,
                     child: Card(
                       elevation: 3,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

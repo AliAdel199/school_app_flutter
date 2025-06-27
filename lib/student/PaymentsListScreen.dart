@@ -92,9 +92,10 @@ class _PaymentsListScreenState extends State<PaymentsListScreen> {
   subtitle: Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
+      Text('رقم الوصل: ${payment.invoiceSerial ?? 'غير متوفر'}'),
+      Text('كود التحقق: ${payment.receiptNumber ?? 'غير متوفر'}'),
       Text('المبلغ: ${payment.amount}'),
       Text('التاريخ: ${formatDate(payment.paidAt)}'),
-      Text('رقم الوصل: ${payment.receiptNumber ?? 'غير متوفر'}'),
     ],
   ),
   trailing: Row(

@@ -1,7 +1,7 @@
 import 'package:isar/isar.dart';
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
-import 'package:school_app_flutter/localdatabase/subject.dart';
+import '/localdatabase/subject.dart';
 
 import '../main.dart';
 import 'class.dart';

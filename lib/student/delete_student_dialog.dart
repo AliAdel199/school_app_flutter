@@ -1,8 +1,8 @@
 
 import 'package:flutter/material.dart';
-// import 'package:school_app_flutter/localdatabase/students/StudentService.dart';
-import 'package:school_app_flutter/localdatabase/student.dart';
-import 'package:school_app_flutter/main.dart';
+// import '/localdatabase/students/StudentService.dart';
+import '/localdatabase/student.dart';
+import '/main.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 Future<void> showDeleteStudentDialog(BuildContext context, Student student, VoidCallback onDeleted) async {

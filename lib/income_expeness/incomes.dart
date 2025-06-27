@@ -11,7 +11,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
-import 'package:school_app_flutter/main.dart';
+import '/main.dart';
 
 import '../localdatabase/income.dart';
 import '../localdatabase/income_category.dart';

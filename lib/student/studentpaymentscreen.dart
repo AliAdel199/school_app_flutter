@@ -6,8 +6,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:isar/isar.dart';
-import 'package:school_app_flutter/localdatabase/student.dart';
-import 'package:school_app_flutter/localdatabase/user.dart';
+import '/localdatabase/student.dart';
+import '/localdatabase/user.dart';
 import '../localdatabase/income.dart';
 import '../localdatabase/log.dart';
 import '../localdatabase/student_crud.dart';

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:school_app_flutter/employee/add_edit_employee.dart';
+import '/employee/add_edit_employee.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class EmployeeListScreen extends StatefulWidget {

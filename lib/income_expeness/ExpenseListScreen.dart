@@ -10,10 +10,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import 'package:school_app_flutter/localdatabase/expense_category.dart';
-import 'package:school_app_flutter/localdatabase/expense.dart';
+import '/localdatabase/expense_category.dart';
+import '/localdatabase/expense.dart';
 
-import 'package:school_app_flutter/main.dart';
+import '/main.dart';
 
 import '../localdatabase/expense.dart';
 import '../localdatabase/income_category.dart';

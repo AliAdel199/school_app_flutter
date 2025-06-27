@@ -1,5 +1,5 @@
 import 'package:isar/isar.dart';
-import 'package:school_app_flutter/localdatabase/class.dart';
+import '/localdatabase/class.dart';
 import 'student_fee_status.dart';
 import 'student_payment.dart';
 

@@ -2,9 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_expandable_fab/flutter_expandable_fab.dart';
-import 'package:school_app_flutter/localdatabase/class.dart';
-import 'package:school_app_flutter/localdatabase/grade.dart';
-import 'package:school_app_flutter/localdatabase/student_crud.dart';
+import '/localdatabase/class.dart';
+import '/localdatabase/grade.dart';
+import '/localdatabase/student_crud.dart';
 import '../main.dart';
 
 class ClassesListScreen extends StatefulWidget {

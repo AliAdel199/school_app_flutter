@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:isar/isar.dart';
-import 'package:school_app_flutter/localdatabase/user.dart';
+import '/localdatabase/user.dart';
 import '../../main.dart';
 import 'auth_service.dart';
 

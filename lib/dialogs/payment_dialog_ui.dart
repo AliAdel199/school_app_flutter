@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:isar/isar.dart';
-import 'package:school_app_flutter/localdatabase/income_category.dart';
-import 'package:school_app_flutter/localdatabase/student.dart';
-import 'package:school_app_flutter/localdatabase/student_crud.dart';
-import 'package:school_app_flutter/localdatabase/student_fee_status.dart';
+import '/localdatabase/income_category.dart';
+import '/localdatabase/student.dart';
+import '/localdatabase/student_crud.dart';
+import '/localdatabase/student_fee_status.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../localdatabase/income.dart';
