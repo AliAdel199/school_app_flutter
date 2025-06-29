@@ -124,7 +124,7 @@ static Future<bool> trialFileExists() async {
 
   static Future<void> createTrialLicenseFile() async {
     final now = DateTime.now();
-    final trialExpiry = now.add(const Duration(days: 2));
+    final trialExpiry = now.add(const Duration(days: 14));
     final encrypted = _encrypt(trialExpiry.toIso8601String());
     final path = await _getFilePath(_trialFileName);
     await File(path).writeAsString(encrypted);
@@ -140,6 +140,7 @@ static Future<bool> trialFileExists() async {
       final content = await File(path).readAsString();
       final expiryStr = _decrypt(content);
       final expiryDate = DateTime.parse(expiryStr);
+      print('🔒 تاريخ انتهاء الفترة التجريبية: $expiryDate');
       return DateTime.now().isBefore(expiryDate);
     } catch (e) {
       print('🔒 خطأ في التحقق من الفترة التجريبية: $e');

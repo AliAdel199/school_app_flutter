@@ -95,19 +95,19 @@ class _LicenseCheckScreenState extends State<LicenseCheckScreen> {
                       ),
                     ),
                   ),
-                // if (fingerprint.isNotEmpty)
-                //   Padding(
-                //     padding: const EdgeInsets.only(top: 20),
-                //     child: Column(
-                //       children: [
-                //         const Text(
-                //           'بصمة الجهاز:',
-                //           style: TextStyle(fontWeight: FontWeight.bold),
-                //         ),
-                //         SelectableText(fingerprint),
-                //       ],
-                //     ),
-                //   ),
+                if (fingerprint.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 20),
+                    child: Column(
+                      children: [
+                        const Text(
+                          'بصمة الجهاز:',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        SelectableText(fingerprint),
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),

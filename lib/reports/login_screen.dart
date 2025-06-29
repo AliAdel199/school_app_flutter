@@ -1,8 +1,11 @@
 
 import 'package:flutter/material.dart';
+import 'package:school_app_flutter/localdatabase/income_category.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../auth_service.dart';
+import '../localdatabase/income.dart';
+import '../main.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -51,7 +54,20 @@ Future<void> loginIsar() async {
       });
     }
   }
+  Future<void> addIncomeInishial()async{
+    
+              final incomeCategory = IncomeCategory()
+              ..name="قسط طالب";
 
+              await isar.writeTxn(() async {
+                await isar.incomeCategorys.put(incomeCategory);
+              });
+  }
+@override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+  }
   // Future<void> login() async {
   //   if (!_formKey.currentState!.validate()) return;
 

@@ -96,6 +96,8 @@ class _ActivationScreenState extends State<ActivationScreen> {
                             icon: const Icon(Icons.check_circle),
                             label: const Text('تفعيل الآن'),
                           ),
+                    const SizedBox(height: 16),
+                  fingerprint.isNotEmpty?  Text('البصمة: $fingerprint'):Container(),
                   ],
                 ),
               ),

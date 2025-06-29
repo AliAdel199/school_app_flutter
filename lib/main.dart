@@ -114,6 +114,7 @@ class SchoolApp extends StatelessWidget {
 
   SchoolApp({super.key, required this.showInitialSetup, required this.showActivation});
 
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
