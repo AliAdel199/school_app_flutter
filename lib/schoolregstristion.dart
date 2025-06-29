@@ -9,6 +9,7 @@ import '/reports/login_screen.dart';
 import '../main.dart';
 import 'auth_service.dart';
 import 'package:image_picker/image_picker.dart';
+import 'license_manager.dart';
 
 class InitialSetupScreen extends StatefulWidget {
   const InitialSetupScreen({super.key});
@@ -49,9 +50,14 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
     try {
       final existingSchools = await isar.schools.where().findAll();
       if (existingSchools.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم تسجيل المدرسة سابقًا.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم تسجيل المدرسة سابقًا.')),
+        );
         return;
       }
+
+      // 🧪 إنشاء ملف الفترة التجريبية
+      await LicenseManager.createTrialLicenseFile();
 
       await isar.writeTxn(() async {
         final school = School()
@@ -61,14 +67,17 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
           ..address = schoolAddressController.text.trim()
           ..logoUrl = selectedLogo?.path
           ..subscriptionPlan = 'basic'
-          ..subscriptionStatus = 'active'
+          ..subscriptionStatus = 'trial'
           ..createdAt = DateTime.now();
 
         await isar.schools.put(school);
-        print(school.logoUrl);
       });
 
-      await registerUser(usernameController.text.trim(), userEmailController.text.trim(), passwordController.text.trim());
+      await registerUser(
+        usernameController.text.trim(),
+        userEmailController.text.trim(),
+        passwordController.text.trim(),
+      );
 
       Navigator.pushReplacement(
         context,
@@ -76,7 +85,9 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
       );
     } catch (e) {
       debugPrint('Error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('حدث خطأ: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('حدث خطأ: $e')),
+      );
     } finally {
       setState(() => isLoading = false);
     }
@@ -143,7 +154,8 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                             const SizedBox(height: 12),
                             Row(
                               children: [
-                                SizedBox(width: 200,
+                                SizedBox(
+                                  width: 200,
                                   child: ElevatedButton.icon(
                                     onPressed: pickLogoImage,
                                     icon: const Icon(Icons.image),

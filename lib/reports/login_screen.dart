@@ -43,7 +43,7 @@ Future<void> loginIsar() async {
       }
     } catch (e) {
       setState(() {
-        errorText = 'حدث خطأ غير متوقع، حاول مرة أخرى.';
+        errorText = ' $e حدث خطأ غير متوقع، حاول مرة أخرى.';
       });
     } finally {
       setState(() {

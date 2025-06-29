@@ -1,9 +1,10 @@
-
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:isar/isar.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:school_app_flutter/ActivationScreen.dart';
 import '/localdatabase/expense.dart';
 import '/localdatabase/expense_category.dart';
 import '/localdatabase/income.dart';
@@ -17,6 +18,7 @@ import '../income_expeness/incomes.dart';
 import '../reports/classes_list_screen.dart';
 import '../reports/reportsscreen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'LicenseCheckScreen.dart';
 import 'LogsScreen.dart';
 import 'UsersScreen.dart';
 import 'income_expeness/ExpenseListScreen.dart';
@@ -46,19 +48,16 @@ import 'reports/subjectslistscreen.dart';
 late Isar isar; // تعريف متغير Isar عالمي يمكن استخدامه في أي مكان
 bool isCloud = true; // تحديد ما إذا كان التطبيق يعمل في بيئة سحابية
 
-
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initializeDateFormatting('ar', null); // ← هذا السطر الجديد
-
-  final isLicensed = await LicenseManager.verifyLicense();
-  if (!isLicensed) {
-    await LicenseManager.createLicenseFile(); // أول مرة فقط
-  }
+  await initializeDateFormatting('ar', null);
+    final dir2 = await getApplicationSupportDirectory();
+print(dir2.path);
   await Supabase.initialize(
     url: 'https://lhzujcquhgxhsmmjwgdq.supabase.co',
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoenVqY3F1aGd4aHNtbWp3Z2RxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU4MjQ4NjQsImV4cCI6MjA2MTQwMDg2NH0.u7qPHRu_TdmNjPQJhMeXMZVI37xJs8IoX5Dcrg7fxV8',
   );
+
   final dir = Directory.current;
   isar = await Isar.open([
     StudentSchema,
@@ -69,20 +68,51 @@ Future<void> main() async {
     SchoolSchema,
     SubjectSchema,
     UserSchema,
-    IncomeSchema,IncomeCategorySchema,
+    IncomeSchema,
+    IncomeCategorySchema,
     LogSchema,
-    InvoiceCounterSchema
-    ,ExpenseSchema,ExpenseCategorySchema
-  ], directory: dir.path,inspector: true,name: 'school_app_flutter',);
-    final schools = await isar.schools.where().findAll();
+    InvoiceCounterSchema,
+    ExpenseSchema,
+    ExpenseCategorySchema
+  ], directory: dir.path, inspector: true, name: 'school_app_flutter');
 
-  runApp( SchoolApp(showInitialSetup: schools.isEmpty,));
+  final isActivated = await LicenseManager.verifyLicense();
+  final inTrial = await LicenseManager.isTrialValid();
+  final schools = await isar.schools.where().findAll();
+
+if (schools.isEmpty && !isActivated && !inTrial) {
+  // لا تنشئ الفترة التجريبية تلقائيًا – وجّه المستخدم لواجهة التفعيل
+  // أو أنشئها فقط إذا لم يكن هناك ملف إطلاقًا (أول مرة)
+  final trialExists = await LicenseManager.trialFileExists();
+  if (!trialExists) {
+    await LicenseManager.createTrialLicenseFile();
+  }
+}
+  // 🔐 التحقق من الأمان قبل أي شيء
+  if (!isActivated && !inTrial) {
+    runApp(const MaterialApp(       debugShowCheckedModeBanner: false,
+ home: LicenseCheckScreen()));
+    return;
+  }
+
+  // ✅ بعد التأكد من الأمان
+  // final schools = await isar.schools.where().findAll();
+  runApp(SchoolApp(
+    showInitialSetup: schools.isEmpty,
+    showActivation: false,
+  ));
+
+  // runApp(SchoolApp(
+  //   showInitialSetup: schools.isEmpty && (isActivated || inTrial),
+  //   showActivation: schools.isEmpty && !isActivated || !inTrial,
+  // ));
 }
 
 class SchoolApp extends StatelessWidget {
-    final bool showInitialSetup;
+  final bool showInitialSetup;
+  final bool showActivation;
 
-   SchoolApp({super.key, required this.showInitialSetup});
+  SchoolApp({super.key, required this.showInitialSetup, required this.showActivation});
 
   @override
   Widget build(BuildContext context) {
@@ -95,48 +125,47 @@ class SchoolApp extends StatelessWidget {
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
         ),
-        
       ),
-      // home: const LoginScreen(),
-
-         initialRoute: '/',
+      initialRoute: '/',
       routes: {
-        '/': (context) => showInitialSetup?InitialSetupScreen(): LoginScreen(),
+        '/': (context) => showActivation
+            ? const LicenseCheckScreen()
+            : showInitialSetup
+                ? const InitialSetupScreen()
+                : const LoginScreen(),
         '/dashboard': (context) => const DashboardScreen(),
         '/students': (context) => const StudentsListScreen(),
-        '/add-student': (context) =>  AddEditStudentScreen(),
+        '/add-student': (context) => AddEditStudentScreen(),
         '/classes': (context) => const ClassesListScreen(),
         '/add-class': (context) => const AddClassScreen(),
         '/edit-class': (context) => EditClassScreen(
-          classData: ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>,
-        ),
+              classData: ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>,
+            ),
         '/subjects': (context) => const SubjectsListScreen(),
-        '/payment-list':(context) => const PaymentsListScreen(),
+        '/payment-list': (context) => const PaymentsListScreen(),
         '/studentpayments': (context) {
           final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
           return StudentPaymentsScreen(
             studentId: args['studentId'],
             fullName: args['fullName'],
-            // className: args['className'],
           );
         },
         '/financial-reports': (context) => const FinancialReportsScreen(),
         '/reportsscreen': (context) => const ReportsScreen(),
         '/add-edit-employee': (context) => AddEditEmployeeScreen(
-          employee: ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?,
-        ),
+              employee: ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?,
+            ),
         '/employee-list': (context) => const EmployeeListScreen(),
         '/monthly-salary': (context) => const MonthlySalaryScreen(),
         '/salary-report': (context) => const SalaryReportScreen(),
         '/expense-list': (context) => const ExpensesListScreen(),
         '/add-expense': (context) => AddEditExpenseScreen(
-          expense: ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?,
-        ),
+              expense: ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?,
+            ),
         '/income': (context) => const IncomesListScreen(),
         '/user-screen': (context) => const UsersScreen(),
         '/logs-screen': (context) => const LogsScreen(),
       },
-
     );
   }
 }
