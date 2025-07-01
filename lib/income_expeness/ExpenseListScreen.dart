@@ -107,14 +107,14 @@ Future<void> showAddIncomeDialogIsar(BuildContext context, void Function() onSuc
     context: context,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setState) => AlertDialog(
-        title: Text('إضافة إيراد جديد'),
+        title: Text('إضافة مصروف جديد'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: titleController,
-                decoration: InputDecoration(labelText: 'عنوان الإيراد'),
+                decoration: InputDecoration(labelText: 'عنوان المصروف'),
               ),
               TextField(
                 controller: amountController,
@@ -208,7 +208,7 @@ Future<void> showAddIncomeDialogIsar(BuildContext context, void Function() onSuc
   await showDialog(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: Text('إضافة فئة إيراد'),
+      title: Text('إضافة فئة مصروف'),
       content: TextField(
         controller: controller,
         decoration: InputDecoration(labelText: 'اسم الفئة'),
@@ -401,7 +401,7 @@ Widget build(BuildContext context) {
   final formatter = NumberFormat('#,###');
 
   return Scaffold(
-    appBar: AppBar(title: const Text('قائمة الإيرادات'),actions: [ SizedBox(width: 150,
+    appBar: AppBar(title: const Text('قائمة المصروفات'),actions: [ SizedBox(width: 150,
                         child:  ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
     shape: RoundedRectangleBorder(
@@ -435,7 +435,7 @@ Widget build(BuildContext context) {
     ),
   ),
                           icon: Icon(Icons.add),
-                          label: Text('إضافة ايراد'),
+                          label: Text('إضافة مصروف'),
                           onPressed: () => showAddIncomeDialogIsar(context, fetchData),
                         ),),
                       SizedBox(width: 10,),
@@ -662,7 +662,7 @@ Widget build(BuildContext context) {
                       //   child:  ElevatedButton.icon(
 
                       //     icon: Icon(Icons.add),
-                      //     label: Text('إضافة ايراد'),
+                      //     label: Text('إضافة مصروف'),
                       //     onPressed: () => showAddIncomeDialogIsar(context, fetchData),
                       //   ),),
                       // SizedBox(width: 10,),

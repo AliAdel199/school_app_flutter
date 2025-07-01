@@ -27,13 +27,18 @@ const IncomeSchema = CollectionSchema(
       name: r'incomeDate',
       type: IsarType.dateTime,
     ),
-    r'note': PropertySchema(
+    r'isActivated': PropertySchema(
       id: 2,
+      name: r'isActivated',
+      type: IsarType.bool,
+    ),
+    r'note': PropertySchema(
+      id: 3,
       name: r'note',
       type: IsarType.string,
     ),
     r'title': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'title',
       type: IsarType.string,
     )
@@ -83,8 +88,9 @@ void _incomeSerialize(
 ) {
   writer.writeDouble(offsets[0], object.amount);
   writer.writeDateTime(offsets[1], object.incomeDate);
-  writer.writeString(offsets[2], object.note);
-  writer.writeString(offsets[3], object.title);
+  writer.writeBool(offsets[2], object.isActivated);
+  writer.writeString(offsets[3], object.note);
+  writer.writeString(offsets[4], object.title);
 }
 
 Income _incomeDeserialize(
@@ -97,8 +103,9 @@ Income _incomeDeserialize(
   object.amount = reader.readDouble(offsets[0]);
   object.id = id;
   object.incomeDate = reader.readDateTime(offsets[1]);
-  object.note = reader.readStringOrNull(offsets[2]);
-  object.title = reader.readString(offsets[3]);
+  object.isActivated = reader.readBool(offsets[2]);
+  object.note = reader.readStringOrNull(offsets[3]);
+  object.title = reader.readString(offsets[4]);
   return object;
 }
 
@@ -114,8 +121,10 @@ P _incomeDeserializeProp<P>(
     case 1:
       return (reader.readDateTime(offset)) as P;
     case 2:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 3:
+      return (reader.readStringOrNull(offset)) as P;
+    case 4:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -375,6 +384,16 @@ extension IncomeQueryFilter on QueryBuilder<Income, Income, QFilterCondition> {
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Income, Income, QAfterFilterCondition> isActivatedEqualTo(
+      bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isActivated',
+        value: value,
       ));
     });
   }
@@ -697,6 +716,18 @@ extension IncomeQuerySortBy on QueryBuilder<Income, Income, QSortBy> {
     });
   }
 
+  QueryBuilder<Income, Income, QAfterSortBy> sortByIsActivated() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isActivated', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Income, Income, QAfterSortBy> sortByIsActivatedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isActivated', Sort.desc);
+    });
+  }
+
   QueryBuilder<Income, Income, QAfterSortBy> sortByNote() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'note', Sort.asc);
@@ -759,6 +790,18 @@ extension IncomeQuerySortThenBy on QueryBuilder<Income, Income, QSortThenBy> {
     });
   }
 
+  QueryBuilder<Income, Income, QAfterSortBy> thenByIsActivated() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isActivated', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Income, Income, QAfterSortBy> thenByIsActivatedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isActivated', Sort.desc);
+    });
+  }
+
   QueryBuilder<Income, Income, QAfterSortBy> thenByNote() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'note', Sort.asc);
@@ -797,6 +840,12 @@ extension IncomeQueryWhereDistinct on QueryBuilder<Income, Income, QDistinct> {
     });
   }
 
+  QueryBuilder<Income, Income, QDistinct> distinctByIsActivated() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isActivated');
+    });
+  }
+
   QueryBuilder<Income, Income, QDistinct> distinctByNote(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -828,6 +877,12 @@ extension IncomeQueryProperty on QueryBuilder<Income, Income, QQueryProperty> {
   QueryBuilder<Income, DateTime, QQueryOperations> incomeDateProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'incomeDate');
+    });
+  }
+
+  QueryBuilder<Income, bool, QQueryOperations> isActivatedProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isActivated');
     });
   }
 

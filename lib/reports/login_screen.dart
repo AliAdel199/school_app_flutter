@@ -54,15 +54,7 @@ Future<void> loginIsar() async {
       });
     }
   }
-  Future<void> addIncomeInishial()async{
-    
-              final incomeCategory = IncomeCategory()
-              ..name="قسط طالب";
 
-              await isar.writeTxn(() async {
-                await isar.incomeCategorys.put(incomeCategory);
-              });
-  }
 @override
   void initState() {
     // TODO: implement initState

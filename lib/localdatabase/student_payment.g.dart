@@ -37,23 +37,28 @@ const StudentPaymentSchema = CollectionSchema(
       name: r'invoiceSerial',
       type: IsarType.long,
     ),
-    r'notes': PropertySchema(
+    r'isActivated': PropertySchema(
       id: 4,
+      name: r'isActivated',
+      type: IsarType.bool,
+    ),
+    r'notes': PropertySchema(
+      id: 5,
       name: r'notes',
       type: IsarType.string,
     ),
     r'paidAt': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'paidAt',
       type: IsarType.dateTime,
     ),
     r'receiptNumber': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'receiptNumber',
       type: IsarType.string,
     ),
     r'studentId': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'studentId',
       type: IsarType.string,
     )
@@ -117,10 +122,11 @@ void _studentPaymentSerialize(
   writer.writeDouble(offsets[1], object.amount);
   writer.writeDateTime(offsets[2], object.createdAt);
   writer.writeLong(offsets[3], object.invoiceSerial);
-  writer.writeString(offsets[4], object.notes);
-  writer.writeDateTime(offsets[5], object.paidAt);
-  writer.writeString(offsets[6], object.receiptNumber);
-  writer.writeString(offsets[7], object.studentId);
+  writer.writeBool(offsets[4], object.isActivated);
+  writer.writeString(offsets[5], object.notes);
+  writer.writeDateTime(offsets[6], object.paidAt);
+  writer.writeString(offsets[7], object.receiptNumber);
+  writer.writeString(offsets[8], object.studentId);
 }
 
 StudentPayment _studentPaymentDeserialize(
@@ -135,10 +141,11 @@ StudentPayment _studentPaymentDeserialize(
   object.createdAt = reader.readDateTime(offsets[2]);
   object.id = id;
   object.invoiceSerial = reader.readLong(offsets[3]);
-  object.notes = reader.readStringOrNull(offsets[4]);
-  object.paidAt = reader.readDateTime(offsets[5]);
-  object.receiptNumber = reader.readStringOrNull(offsets[6]);
-  object.studentId = reader.readString(offsets[7]);
+  object.isActivated = reader.readBool(offsets[4]);
+  object.notes = reader.readStringOrNull(offsets[5]);
+  object.paidAt = reader.readDateTime(offsets[6]);
+  object.receiptNumber = reader.readStringOrNull(offsets[7]);
+  object.studentId = reader.readString(offsets[8]);
   return object;
 }
 
@@ -158,12 +165,14 @@ P _studentPaymentDeserializeProp<P>(
     case 3:
       return (reader.readLong(offset)) as P;
     case 4:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 5:
-      return (reader.readDateTime(offset)) as P;
-    case 6:
       return (reader.readStringOrNull(offset)) as P;
+    case 6:
+      return (reader.readDateTime(offset)) as P;
     case 7:
+      return (reader.readStringOrNull(offset)) as P;
+    case 8:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -650,6 +659,16 @@ extension StudentPaymentQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentPayment, StudentPayment, QAfterFilterCondition>
+      isActivatedEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isActivated',
+        value: value,
       ));
     });
   }
@@ -1231,6 +1250,20 @@ extension StudentPaymentQuerySortBy
     });
   }
 
+  QueryBuilder<StudentPayment, StudentPayment, QAfterSortBy>
+      sortByIsActivated() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isActivated', Sort.asc);
+    });
+  }
+
+  QueryBuilder<StudentPayment, StudentPayment, QAfterSortBy>
+      sortByIsActivatedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isActivated', Sort.desc);
+    });
+  }
+
   QueryBuilder<StudentPayment, StudentPayment, QAfterSortBy> sortByNotes() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'notes', Sort.asc);
@@ -1352,6 +1385,20 @@ extension StudentPaymentQuerySortThenBy
     });
   }
 
+  QueryBuilder<StudentPayment, StudentPayment, QAfterSortBy>
+      thenByIsActivated() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isActivated', Sort.asc);
+    });
+  }
+
+  QueryBuilder<StudentPayment, StudentPayment, QAfterSortBy>
+      thenByIsActivatedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isActivated', Sort.desc);
+    });
+  }
+
   QueryBuilder<StudentPayment, StudentPayment, QAfterSortBy> thenByNotes() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'notes', Sort.asc);
@@ -1434,6 +1481,13 @@ extension StudentPaymentQueryWhereDistinct
     });
   }
 
+  QueryBuilder<StudentPayment, StudentPayment, QDistinct>
+      distinctByIsActivated() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isActivated');
+    });
+  }
+
   QueryBuilder<StudentPayment, StudentPayment, QDistinct> distinctByNotes(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -1493,6 +1547,12 @@ extension StudentPaymentQueryProperty
   QueryBuilder<StudentPayment, int, QQueryOperations> invoiceSerialProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'invoiceSerial');
+    });
+  }
+
+  QueryBuilder<StudentPayment, bool, QQueryOperations> isActivatedProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isActivated');
     });
   }
 

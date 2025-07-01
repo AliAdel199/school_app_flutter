@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:isar/isar.dart';
+import 'package:school_app_flutter/localdatabase/income_category.dart';
 import '/LogsScreen.dart';
 import '/localdatabase/school.dart';
 import '/localdatabase/user.dart';
@@ -78,7 +79,22 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
         userEmailController.text.trim(),
         passwordController.text.trim(),
       );
+         final identifier = "قسط طالب".toLowerCase().replaceAll(' ', '_');
 
+            final exists = await isar.incomeCategorys
+                .filter()
+                .identifierEqualTo(identifier)
+                .findFirst();
+
+            if (exists == null) {
+              final category = IncomeCategory()
+                ..name = "قسط طالب"
+                ..identifier = identifier;
+
+              await isar.writeTxn(() async {
+                await isar.incomeCategorys.put(category);
+              });
+            }
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => LoginScreen()),
