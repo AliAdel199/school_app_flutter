@@ -61,25 +61,6 @@ Future<void> fetchClassesFromIsar() async {
   }
 }
 
-  // Future<void> fetchClasses() async {
-  //   try {
-  //     final res = await supabase
-  //         .from('classes')
-  //         .select('id, name')
-  //         .order('name', ascending: true);
-
-  //     classOptions = List<Map<String, dynamic>>.from(res);
-  //   } catch (e) {
-  //     debugPrint('خطأ في جلب الصفوف: \n$e');
-  //     if (mounted) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(content: Text('فشل تحميل الصفوف: \n\n$e')),
-  //       );
-  //     }
-  //   }
-  // }
-
-
 
   Future<void> fetchStudentsFromIsar() async {
     setState(() => isLoading = true);
@@ -129,68 +110,7 @@ Future<void> fetchClassesFromIsar() async {
     // fetchClasses();
   }
 
-// Future<void> fetchStudentsFromIsar() async {
-//   setState(() => isLoading = true);
-//   try {
-//   //  StudentService studentService = StudentService(isar);
-//     // final isarStudents = await studentService.getAllStudents();
-//     // students = isarStudents;
-//     filteredStudents = students.where((student) {
-//       final fullName = student.fullName?.toLowerCase() ?? '';
-//       final studentId = student.id?.toString().toLowerCase() ?? '';
-//       final nationalId = student.nationalId?.toLowerCase() ?? '';
-//       // final className = student.classId?.toString();
-//       final status = student.status?.toString();
 
-//       final matchesQuery = fullName.contains(searchQuery.toLowerCase()) ||
-//           studentId.contains(searchQuery.toLowerCase()) ||
-//           nationalId.contains(searchQuery.toLowerCase());
-
-//       // final matchesClass = selectedClassId == null || selectedClassId == className;
-//       final matchesStatus = selectedStatus == null || selectedStatus == status;
-
-//       return matchesQuery && matchesClass && matchesStatus;
-//     }).toList();
-//     filteredStudents.forEach((e) {
-//   print( 'Student: ${e.fullName}, ID: ${e.serverId}, Class: ${e.classId}, Status: ${e.status}');
-//     });
-//     // تحويل الطلاب من Isar إلى Map<String, dynamic> لتسهيل التصفية
-//     // filterStudents();
-//   } catch (e) {
-//     debugPrint('خطأ في جلب الطلاب من Isar: \n$e');
-//     if (mounted) {
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         SnackBar(content: Text('فشل تحميل الطلاب من Isar: \n\n$e')),
-//       );
-//     }
-//   } finally {
-//     if (mounted) {
-//       setState(() => isLoading = false);
-//     }
-//   }
-// }
-// // void filterStudents() {
-// //   setState(() {
-// //     final query = searchQuery.toLowerCase();
-
-// //     filteredStudents = students.where((student) {
-//       final fullName = student.fullName?.toLowerCase() ?? '';
-//       final studentId = student.id?.toString().toLowerCase() ?? '';
-//       final nationalId = student.nationalId?.toLowerCase() ?? '';
-//       final className = student.classId?.toString();
-//       final status = student.status?.toString();
-
-//       final matchesQuery = fullName.contains(query) ||
-//           studentId.contains(query) ||
-//           nationalId.contains(query);
-
-//       final matchesClass = selectedClassId == null || selectedClassId == className;
-//       final matchesStatus = selectedStatus == null || selectedStatus == status;
-
-//       return matchesQuery && matchesClass && matchesStatus;
-//     }).toList();
-//   });
-// }
 
 
 Future<void> exportToExcel() async {
@@ -248,46 +168,7 @@ for (final student in filteredStudents) {
 
 
 
-// Future<void> fetchStudents() async {
-//   setState(() => isLoading = true);
-//   try {
-//     final classRes = await supabase
-//     .from('classes')
-//     .select('id, name');
 
-// classOptions = List<Map<String, dynamic>>.from(classRes);
-
-//     // جلب school_id من ملف التعريف للمستخدم الحالي
-//     final profile = await supabase
-//         .from('profiles')
-//         .select('school_id')
-//         .eq('id', supabase.auth.currentUser!.id)
-//         .single();
-
-//     final schoolId = profile['school_id'];
-
-//     // جلب الطلاب المرتبطين فقط بهذه المدرسة
-//  final res = await supabase
-//     .from('students')
-//     .select('*, classes(name)')
-//     .eq('school_id', schoolId)
-//     .order('full_name', ascending: true);
-
-//     students = List<Map<String, dynamic>>.from(res);
-//     filterStudents(); // لتطبيق البحث إذا كان هناك استعلام
-//   } catch (e) {
-//     debugPrint('خطأ في جلب الطلاب: \n$e');
-//     if (mounted) {
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         SnackBar(content: Text('فشل تحميل الطلاب: \n\n$e')),
-//       );
-//     }
-//   } finally {
-//     if (mounted) {
-//       setState(() => isLoading = false);
-//     }
-//   }
-// }
 
   Color getStatusColor(String status) {
     switch (status) {
@@ -321,103 +202,7 @@ for (final student in filteredStudents) {
  
 
         ],
-  //       bottom: PreferredSize(
-  //         preferredSize: const Size.fromHeight(60),
-  //         child: Padding(
-  //           padding: const EdgeInsets.all(12),
-  //           child:
-  //             Wrap(alignment: WrapAlignment.spaceAround,runAlignment: WrapAlignment.spaceAround,
-  //   spacing: 12,
-  //   runSpacing: 12,
-  //   children: [
-  //              Padding(
-  //                padding: const EdgeInsets.only(top: 8.0),
-  //                child: SizedBox(
-  //                  width: 200,
-  //                  child: ElevatedButton.icon(
-  //                    onPressed: exportToExcel,
-  //                    icon: const Icon(Icons.file_download),
-  //                    label: const Text('تصدير Excel'),
-  //                  ),
-  //                ),
-  //              ),
-  //     SizedBox(width: 250,
-  //       child: Card(elevation: 2,
-  //         child: DropdownButton<String>(elevation: 5,isExpanded: true,borderRadius: BorderRadius.circular(12),underline: const SizedBox(),
-  //           hint: const Text('تصفية حسب الصف'),
-  //           value: selectedClassId,
-  //           onChanged: (val) {
-  //             setState(() {
-  //               selectedClassId = val;
-  //               filterStudents();
-  //             });
-  //           },
-  //           items: [
-  //   const DropdownMenuItem(
-  //     value: null,
-  //     child: Text('إظهار الجميع'),
-  //   ),
-  //   ...classOptions.map((c) {
-  //     return DropdownMenuItem(
-  //       value: c['name'].toString(),
-  //       child: Text(c['name'] ?? '_'),
-  //     );
-  //   }).toList(),
-  // ],
-  //         ),
-  //       ),
-  //     ),
-  //       Padding(
-  //          padding: const EdgeInsets.only(top: 7.0),
-  //          child: SizedBox(width: 400,
-  //                   child: TextField(
-  //                     decoration: InputDecoration(
-  //                       hintText: 'ابحث عن طالب بالاسم...',
-  //                       filled: true,
-  //                       fillColor: Colors.white,
-  //                       prefixIcon: const Icon(Icons.search),
-  //                       border: OutlineInputBorder(
-  //                           borderRadius: BorderRadius.circular(12)),
-  //                     ),
-  //                     onChanged: (val) {
-  //                       searchQuery = val;
-  //                       filterStudents();
-  //                     },
-  //                   ),
-  //                 ),
-  //        ),
-  //     SizedBox(width: 250,
-  //       child:  Card(elevation: 2,
-  //         child: DropdownButton<String>(elevation: 5,isExpanded: true,borderRadius: BorderRadius.circular(12),underline: const SizedBox(),
-  //           hint: const Text('تصفية حسب الحالة'),
-  //           value: selectedStatus,
-  //           onChanged: (val) {
-  //             setState(() {
-  //               selectedStatus = val;
-  //               filterStudents();
-  //             });
-  //           },
-  //           items: const [
-  //               DropdownMenuItem(
-  //     value: null,
-  //     child: Text('إظهار الجميع'),
-  //   ),
-  //             DropdownMenuItem(value: 'active', child: Text('فعال')),
-  //             DropdownMenuItem(value: 'inactive', child: Text('غير فعال')),
-  //             DropdownMenuItem(value: 'graduated', child: Text('متخرج')),
-  //             DropdownMenuItem(value: 'transferred', child: Text('منقول')),
-  //           ],
-  //         ),
-  //       ),
-  //     ),
-       
-              
-  //   ],
-  // ),
-
-         
-  //         ),
-  //       ),
+  
       ),
       body:
       
@@ -458,8 +243,8 @@ for (final student in filteredStudents) {
             onChanged: (val) {
               setState(() {
                 selectedClassId = val;
-                // fetchStudentsFromIsar();
               });
+              fetchStudentsFromIsar();
             },
             items: [
     const DropdownMenuItem(
@@ -490,7 +275,7 @@ for (final student in filteredStudents) {
                       ),
                       onChanged: (val) {
                         searchQuery = val;
-                        // fetchStudentsFromIsar();
+                        fetchStudentsFromIsar();
                       },
                     ),
                   ),
@@ -503,8 +288,8 @@ for (final student in filteredStudents) {
             onChanged: (val) {
               setState(() {
                 selectedStatus = val;
-                // fetchStudentsFromIsar();
               });
+              fetchStudentsFromIsar();
             },
             items: const [
                 DropdownMenuItem(
