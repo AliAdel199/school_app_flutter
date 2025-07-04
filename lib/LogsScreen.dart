@@ -18,8 +18,9 @@ class _LogsScreenState extends State<LogsScreen> {
   DateTime? selectedDate;
 
   @override
-  void initState() {
+   void initState() {
     super.initState();
+    loadAcademicYear();
     fetchLogs();
   }
 

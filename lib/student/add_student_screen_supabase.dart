@@ -114,8 +114,9 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
 
   // دالة تهيئة الحالة عند فتح الشاشة
   @override
-  void initState() {
+   void initState() {
     super.initState();
+    loadAcademicYear();
     fetchClasses();
     fetchGradesIsar();
     // إذا كان هناك طالب موجود، قم بملء الحقول  

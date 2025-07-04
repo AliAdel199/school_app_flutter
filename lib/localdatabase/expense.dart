@@ -11,7 +11,7 @@ class Expense {
   late double amount;          // المبلغ
   String? note;                // ملاحظات
   late DateTime expenseDate;   // تاريخ المصروف
-bool isActivated=false;
+bool archived=false;
 
   final category = IsarLink<ExpenseCategory>(); // ربط بتصنيف المصروف
 }

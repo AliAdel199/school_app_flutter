@@ -8,6 +8,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
     import 'package:path_provider/path_provider.dart';
       import 'package:file_picker/file_picker.dart';
 
+import '../main.dart';
+
 class SalaryReportScreen extends StatefulWidget {
   const SalaryReportScreen({super.key});
 
@@ -54,8 +56,9 @@ class _SalaryReportScreenState extends State<SalaryReportScreen> {
   }
 
   @override
-  void initState() {
+   void initState() {
     super.initState();
+    loadAcademicYear();
     fetchSalaries();
   }
 

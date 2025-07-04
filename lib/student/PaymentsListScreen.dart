@@ -25,8 +25,9 @@ class _PaymentsListScreenState extends State<PaymentsListScreen> {
   final searchController = TextEditingController();
 
   @override
-  void initState() {
+   void initState() {
     super.initState();
+    loadAcademicYear();
     loadPayments();
   }
 

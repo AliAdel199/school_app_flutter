@@ -45,8 +45,23 @@ import 'student/studentpaymentscreen.dart';
 import 'student/students_list_screen_supabase.dart';
 import 'reports/subjectslistscreen.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 late Isar isar; // تعريف متغير Isar عالمي يمكن استخدامه في أي مكان
+
+String academicYear = '';
+
 bool isCloud = true; // تحديد ما إذا كان التطبيق يعمل في بيئة سحابية
+
+Future<void> loadAcademicYear() async {
+  final prefs = await SharedPreferences.getInstance();
+  academicYear = prefs.getString('academicYear') ?? '';
+}
+
+Future<void> saveAcademicYear(String year) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString('academicYear', year);
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -76,11 +91,11 @@ print(dir2.path);
     ExpenseCategorySchema
   ], directory: dir.path, inspector: true, name: 'school_app_flutter');
 
-  final isActivated = await LicenseManager.verifyLicense();
+  final archived = await LicenseManager.verifyLicense();
   final inTrial = await LicenseManager.isTrialValid();
   final schools = await isar.schools.where().findAll();
 
-if (schools.isEmpty && !isActivated && !inTrial) {
+if (schools.isEmpty && !archived && !inTrial) {
   // لا تنشئ الفترة التجريبية تلقائيًا – وجّه المستخدم لواجهة التفعيل
   // أو أنشئها فقط إذا لم يكن هناك ملف إطلاقًا (أول مرة)
   final trialExists = await LicenseManager.trialFileExists();
@@ -89,7 +104,7 @@ if (schools.isEmpty && !isActivated && !inTrial) {
   }
 }
   // 🔐 التحقق من الأمان قبل أي شيء
-  if (!isActivated && !inTrial) {
+  if (!archived && !inTrial) {
     runApp(const MaterialApp(       debugShowCheckedModeBanner: false,
  home: LicenseCheckScreen()));
     return;
@@ -103,8 +118,8 @@ if (schools.isEmpty && !isActivated && !inTrial) {
   ));
 
   // runApp(SchoolApp(
-  //   showInitialSetup: schools.isEmpty && (isActivated || inTrial),
-  //   showActivation: schools.isEmpty && !isActivated || !inTrial,
+  //   showInitialSetup: schools.isEmpty && (archived || inTrial),
+  //   showActivation: schools.isEmpty && !archived || !inTrial,
   // ));
 }
 

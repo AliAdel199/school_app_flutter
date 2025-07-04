@@ -14,7 +14,7 @@ class StudentFeeStatus {
   DateTime? lastPaymentDate;
   DateTime? nextDueDate;
   DateTime createdAt = DateTime.now();
-
+late String className;
   // الربط مع الطالب
   final student = IsarLink<Student>();
   late String studentId;

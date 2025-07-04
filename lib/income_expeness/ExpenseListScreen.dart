@@ -35,8 +35,9 @@ class _IncomesListScreenState extends State<ExpensesListScreen> {
   DateTime? filterEndDate;
 
   @override
-  void initState() {
+   void initState() {
     super.initState();
+    loadAcademicYear();
     fetchData();
   }
 

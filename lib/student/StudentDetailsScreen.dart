@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../main.dart';
 import 'addstudentfeestatusscreen .dart';
 
 class StudentDetailsScreen extends StatefulWidget {
@@ -17,8 +18,9 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> {
   bool isLoading = true;
 
   @override
-  void initState() {
+   void initState() {
     super.initState();
+    loadAcademicYear();
     checkFeeStatus();
   }
 

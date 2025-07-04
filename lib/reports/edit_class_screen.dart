@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../main.dart';
+
 class EditClassScreen extends StatefulWidget {
   final Map<String, dynamic> classData;
   const EditClassScreen({super.key, required this.classData});
@@ -22,8 +24,9 @@ class _EditClassScreenState extends State<EditClassScreen> {
   bool isLoading = false;
 
   @override
-  void initState() {
+   void initState() {
     super.initState();
+    loadAcademicYear();
     nameController.text = widget.classData['name'];
 setState(() {
       selectedGradeId = widget.classData['grade_id'];

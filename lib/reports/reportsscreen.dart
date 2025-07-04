@@ -42,8 +42,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
   DateTime? endDate;
 
   @override
-  void initState() {
+   void initState() {
     super.initState();
+    loadAcademicYear();
     // افتراضياً يعرض جميع البيانات بدون فلترة، بإمكانك وضع فلترة أولية مثلاً شهر واحد سابق
 
     startDate=DateTime.now().subtract(Duration(days: 1));

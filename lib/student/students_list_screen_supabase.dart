@@ -4,6 +4,9 @@ import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
 import 'package:isar/isar.dart';
 import 'package:printing/printing.dart';
+import 'package:school_app_flutter/localdatabase/expense.dart';
+import 'package:school_app_flutter/localdatabase/student_fee_status.dart';
+import '../localdatabase/expense_category.dart';
 import '/dashboard_screen.dart';
 import '/localdatabase/class.dart';
 // import '/localdatabase/students/StudentService.dart';
@@ -30,10 +33,12 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
   String searchQuery = '';
 
   @override
-  void initState() {
+   void initState() {
     super.initState();
+    loadAcademicYear();
     // fetchStudentsFromIsar();
     fetchStudentsFromIsar();
+   
   }
 List<Map<String, dynamic>> classOptions = [];
 
@@ -351,6 +356,248 @@ for (final student in filteredStudents) {
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
+                                    TextButton.icon(
+  onPressed: () async {
+    final refundController = TextEditingController();
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('تأكيد انسحاب الطالب'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('هل تريد تسجيل انسحاب الطالب "${student.fullName}"؟'),
+            const SizedBox(height: 10),
+            TextField(
+              controller: refundController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'مبلغ الاسترجاع',
+                hintText: 'أدخل المبلغ بالدينار',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('تأكيد'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      final refundAmount = double.tryParse(refundController.text) ?? 0;
+
+await isar.writeTxn(() async {
+  // تحديث حالة الطالب
+  student.status = 'inactive';
+  await isar.students.put(student);
+
+  // تصفير المبلغ المتبقي إن وجد
+  final feeStatus = await isar.studentFeeStatus
+      .filter()
+      .studentIdEqualTo(student.id.toString())
+      .findFirst();
+  if (feeStatus != null) {
+    feeStatus.dueAmount = 0;
+    await isar.studentFeeStatus.put(feeStatus);
+  }
+
+  // جلب فئة المصروف "استرجاع قسط" أو إنشائها إذا لم تكن موجودة
+  ExpenseCategory? refundCategory = await isar.expenseCategorys
+      .filter()
+      .nameEqualTo('استرجاع قسط')
+      .findFirst();
+
+  if (refundCategory == null) {
+    refundCategory = ExpenseCategory()
+      ..name = 'استرجاع قسط'
+      ..identifier = 'refund_fee';
+    refundCategory.id = await isar.expenseCategorys.put(refundCategory);
+  }
+
+  // إضافة مصروف استرجاع
+  final expense = Expense()
+    ..title = 'استرجاع قسط للطالب ${student.fullName}'
+    ..amount = refundAmount
+    ..expenseDate = DateTime.now()
+    ..note = 'استرجاع قسط للطالب ${student.fullName}'
+    ..archived = false
+    ..category.value = refundCategory;
+  await isar.expenses.put(expense);
+  await expense.category.save();
+});
+
+      fetchStudentsFromIsar(); // تحديث الواجهة
+    }
+  },
+  icon: const Icon(Icons.exit_to_app),
+  label: const Text('انسحاب'),
+  style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+),
+TextButton.icon(
+  icon: const Icon(Icons.arrow_upward, color: Colors.blue),
+  label: const Text('ترحيل', style: TextStyle(color: Colors.blue)),
+  onPressed: () async {
+    final currentClass = student.schoolclass.value;
+    final higherClasses = classOptions
+        .where((c) => c['name'].compareTo(currentClass?.name ?? '') > 0)
+        .toList();
+
+    String? selectedNewClassId;
+    final annualFeeController = TextEditingController(
+      text: student.annualFee?.toString() ?? '',
+    );
+
+    if (higherClasses.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('لا توجد صفوف أعلى لترحيل الطالب إليها.')),
+      );
+      return;
+    }
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) => AlertDialog(
+            title: const Text('ترحيل الطالب'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('اختر الصف الجديد للطالب "${student.fullName}"'),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<String>(
+                  value: selectedNewClassId,
+                  items: higherClasses.map((c) {
+                    return DropdownMenuItem(
+                      value: c['id'].toString(),
+                      child: Text(c['name'] ?? ''),
+                    );
+                  }).toList(),
+                  onChanged: (val) async {
+                    setState(() {
+                      selectedNewClassId = val;
+                    });
+                    if (val != null) {
+                      final newClass = await isar.schoolClass.get(int.parse(val));
+                      setState(() {
+                        annualFeeController.text = newClass?.annualFee?.toString() ?? '';
+                      });
+                    }
+                  },
+                  decoration: const InputDecoration(
+                    labelText: 'الصف الجديد',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: annualFeeController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'القسط السنوي الجديد',
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('إلغاء'),
+              ),
+              TextButton(
+                onPressed: () async {
+if (selectedNewClassId != null) {
+  final newClass = await isar.schoolClass.get(int.parse(selectedNewClassId!));
+  final newFee = double.tryParse(annualFeeController.text) ?? student.annualFee ?? 0;
+
+  await isar.writeTxn(() async {
+    // تحديث بيانات الطالب
+    student.schoolclass.value = newClass;
+    student.annualFee = newFee;
+    await isar.students.put(student);
+    student.schoolclass.save();
+
+    // فحص إذا كان هناك سجل قسط لنفس الطالب ولنفس الصف ولنفس السنة الأكاديمية
+    final existingFeeStatus = await isar.studentFeeStatus
+        .filter()
+        .studentIdEqualTo(student.id.toString())
+        .classNameEqualTo(newClass!.name)
+        .academicYearEqualTo(academicYear)
+        .findFirst();
+
+    if (existingFeeStatus == null) {
+      // إنشاء سجل قسط جديد إذا لم يوجد
+      final newFeeStatus = StudentFeeStatus()
+        ..studentId = student.id.toString()
+        ..className = newClass.name
+        ..academicYear = academicYear
+        ..annualFee = newFee
+        ..dueAmount = newFee
+        ..paidAmount = 0
+        ..student.value = student
+        // ..archived = false
+        ..createdAt = DateTime.now();
+      await isar.studentFeeStatus.put(newFeeStatus);
+      newFeeStatus.student.save();
+            ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('تم ترحيل الطالب بنجاح.')),
+    );
+    } else {
+      // إذا كان موجود، لا تنشئ سجل جديد
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('الطالب في الصف الجديد بالفعل.')),
+      );
+    }
+    // إذا كان موجود لا تنشئ سجل جديد
+
+  });
+
+  fetchStudentsFromIsar();
+}
+                  Navigator.pop(context, true);
+
+
+                },
+                child: const Text('تأكيد'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (result == true && selectedNewClassId != null) {
+      final newClass = await isar.schoolClass.get(int.parse(selectedNewClassId!));
+      final newFee = double.tryParse(annualFeeController.text) ?? student.annualFee ?? 0;
+
+      await isar.writeTxn(() async {
+        student.schoolclass.value = newClass;
+        student.annualFee = newFee;
+        await isar.students.put(student);
+
+        // تحديث حالة القسط إذا لزم الأمر
+        final feeStatus = await isar.studentFeeStatus
+            .filter()
+            .studentIdEqualTo(student.id.toString())
+            .findFirst();
+        if (feeStatus != null) {
+          feeStatus.annualFee = newFee;
+          await isar.studentFeeStatus.put(feeStatus);
+        }
+      });
+
+      fetchStudentsFromIsar();
+    }
+  },
+),
                                     TextButton.icon(
                                       onPressed: () {
                                         Navigator.push(

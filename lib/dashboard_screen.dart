@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../license_manager.dart';
 import 'LicenseCheckScreen.dart';
+import 'main.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -18,9 +19,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool isLoading = false;
 
   @override
-  void initState() {
+   void initState() {
     super.initState();
+    loadAcademicYear();
     fetchStats();
+    
   }
 
   Future<void> fetchStats() async {
@@ -56,7 +59,53 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('لوحة التحكم'),
+        title:  Row(
+          children: [
+            // Text('لوحة التحكم'),
+            // const SizedBox(width: 8),
+            Text(' ${academicYear==''? 'غير محدد':academicYear} :العام الدراسي', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+            const SizedBox(width: 8),
+            IconButton(onPressed: (){
+              showDialog(
+                context: context,
+                builder: (context) {
+                  final TextEditingController yearController = TextEditingController(text: academicYear);
+                  return AlertDialog(
+                    title: const Text('تعديل العام الدراسي'),
+                    content: TextField(
+                      controller: yearController,
+                      decoration: const InputDecoration(hintText: 'مثال: 2023-2024',
+                        labelText: 'العام الدراسي',
+                        border: OutlineInputBorder(),
+                      ),
+                      textDirection: TextDirection.rtl,
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('إلغاء'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            saveAcademicYear(yearController.text);
+                                loadAcademicYear();
+
+                           
+                          });
+                          Navigator.of(context).pop();
+                        },
+                        child: const Text('حفظ'),
+                      ),
+                    ],
+                  );
+                },
+              );
+
+            }, icon: Icon(Icons.edit_outlined)),
+
+          ],
+        ),
         actions: [
               if (isTrial)
       TextButton.icon(

@@ -20,8 +20,9 @@ class _ClassesListScreenState extends State<ClassesListScreen> {
   bool isLoading = true;
 
   @override
-  void initState() {
+   void initState() {
     super.initState();
+    loadAcademicYear();
     fetchClasses();
     fetchGrades();
   }

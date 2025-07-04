@@ -15,8 +15,9 @@ class _UsersScreenState extends State<UsersScreen> {
   List<User> users = [];
 
   @override
-  void initState() {
+   void initState() {
     super.initState();
+    loadAcademicYear();
     fetchUsers();
   }
 

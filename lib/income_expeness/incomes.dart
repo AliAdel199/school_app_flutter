@@ -27,22 +27,23 @@ class _IncomesListScreenState extends State<IncomesListScreen> {
   List<Income> incomes = [];
   List<IncomeCategory> categories = [];
   bool isLoading = true;
-  bool isActivated = false;
+  bool archived = false;
 
   String? selectedFilterCategory;
   DateTime? filterStartDate;
   DateTime? filterEndDate;
 
   @override
-  void initState() {
+   void initState() {
     super.initState();
+    loadAcademicYear();
     fetchData();
   }
 
   Future<void> fetchData() async {
     setState(() => isLoading = true);
     // incomes = await isar.incomes.where().sortByIncomeDateDesc().findAll();
-        incomes = await isar.incomes.filter().isActivatedEqualTo(isActivated).sortByIncomeDateDesc().findAll();
+        incomes = await isar.incomes.filter().archivedEqualTo(archived).sortByIncomeDateDesc().findAll();
 
     categories = await isar.incomeCategorys.where().findAll();
     setState(() => isLoading = false);

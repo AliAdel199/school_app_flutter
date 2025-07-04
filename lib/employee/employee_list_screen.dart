@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../main.dart';
 import '/employee/add_edit_employee.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -14,8 +15,9 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
   late Future<List<dynamic>> _employeesFuture;
 
   @override
-  void initState() {
+   void initState() {
     super.initState();
+    loadAcademicYear();
     _employeesFuture = fetchEmployees();
   }
 
@@ -127,8 +129,9 @@ class _EmployeeEditScreenState extends State<EmployeeEditScreen> {
   String status = '';
 
   @override
-  void initState() {
+   void initState() {
     super.initState();
+    loadAcademicYear();
     nameController = TextEditingController(text: widget.employee['full_name']);
     jobController = TextEditingController(text: widget.employee['job_title']);
     departmentController = TextEditingController(text: widget.employee['department']);

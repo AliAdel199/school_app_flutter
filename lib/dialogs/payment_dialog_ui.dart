@@ -271,6 +271,7 @@ Future<bool?> showAddPaymentDialogIsar({
                           final feeStatus = await isar.studentFeeStatus
                               .filter()
                               .studentIdEqualTo(studentId)
+                              .academicYearEqualTo(academicYear)
                               .findFirst();
 
                           if (feeStatus != null) {
@@ -287,6 +288,7 @@ Future<bool?> showAddPaymentDialogIsar({
                             feeStatus.paidAmount = totalPaid;
                             feeStatus.dueAmount = feeStatus.annualFee - totalPaid;
                             feeStatus.lastPaymentDate = lastDate;
+                            feeStatus.academicYear = academicYear;
                             feeStatus.nextDueDate = nextDueDate;
 
                             await isar.studentFeeStatus.put(feeStatus);

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../dialogs/payment_dialog_ui.dart';
+import '../main.dart';
 
 class AddEditEmployeeScreen extends StatefulWidget {
   final Map<String, dynamic>? employee;
@@ -134,8 +135,9 @@ Future<void> saveEmployeeData() async {
 
 
   @override
-  void initState() {
+   void initState() {
     super.initState();
+    loadAcademicYear();
     if (widget.employee != null) {
       _nameController.text = widget.employee!['full_name'] ?? '';
       _nationalIdController.text = widget.employee!['department'] ?? '';

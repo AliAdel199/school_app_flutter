@@ -402,8 +402,7 @@ theme: pw.ThemeData.withFont(
                                 fontSize: 13,
                                 fontWeight: pw.FontWeight.bold,
                                 color: PdfColors.blueGrey700)),
-                      ],
-                    ),
+                    
                     pw.Container(
                       width: 44,
                       height: 44,
@@ -412,12 +411,18 @@ theme: pw.ThemeData.withFont(
                         shape: pw.BoxShape.circle,
                         border: pw.Border.all(color: PdfColors.blueGrey300, width: 1),
                       ),
-                      child: pw.Center(
-                        child: pw.Text('🔖', style: pw.TextStyle(fontSize: 22)),
+                      child:pw.Center(
+                        child: pw.Text(
+                          school.name?.substring(0, 1) ?? 'م',
+                          style: pw.TextStyle(
+                              fontSize: 24,
+                              fontWeight: pw.FontWeight.bold,
+                              color: PdfColors.blue800),
+                        ),
                       ),
                     ),
-                  ],
-                ),
+                      ],
+                    ),
                 pw.SizedBox(height: 8),
                 pw.Divider(thickness: 1, color: PdfColors.blueGrey200),
 
@@ -538,10 +543,201 @@ theme: pw.ThemeData.withFont(
                   ],
                 ),
               ],
-            ),
-          ),
-        );
+            )])));
+                                                                                                    
+          
+        
       },
+    ),
+  );
+
+  await Printing.layoutPdf(
+    onLayout: (PdfPageFormat format) async => pdf.save(),
+  );
+}
+
+Future<void> printStudentPayments(Student student, String academicYear) async {
+  // جلب الدفعات من Isar حسب الطالب والسنة الأكاديمية
+  final payments = await isar.studentPayments
+      .filter()
+      .studentIdEqualTo(student.id.toString())
+      .academicYearEqualTo(academicYear)
+      .findAll();
+
+  // Preload fonts before building the PDF page
+
+  final amiriRegular = await PdfGoogleFonts.amiriRegular();
+  final amiriBold = await PdfGoogleFonts.amiriBold();
+
+  final pdf = pw.Document();
+
+  pdf.addPage(
+    pw.Page(
+      theme: pw.ThemeData.withFont(
+  base: amiriRegular,
+  bold: amiriBold,
+  fontFallback: [await PdfGoogleFonts.notoColorEmoji()], // ✅ إضافة fallback
+),
+      build: (context) => pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+            pw.Text('دفعات الطالب: ${student.fullName ?? ''}',
+            style: pw.TextStyle(
+              fontSize: 20,
+              fontWeight: pw.FontWeight.bold,
+              fontFallback: [amiriRegular],
+            ),
+            textDirection: pw.TextDirection.rtl,
+            ),
+            pw.SizedBox(height: 10),
+            pw.Text('العام الدراسي: $academicYear',
+            style: pw.TextStyle(
+              fontSize: 14,
+              fontWeight: pw.FontWeight.bold,
+              color: PdfColors.blue800,
+              fontFallback: [amiriRegular],
+            ),
+            textDirection: pw.TextDirection.rtl,
+            ),
+            pw.SizedBox(height: 20),
+            pw.Container(
+            decoration: pw.BoxDecoration(
+              color: PdfColors.blueGrey50,
+              borderRadius: pw.BorderRadius.circular(8),
+              border: pw.Border.all(color: PdfColors.blueGrey200, width: 1),
+            ),
+            padding: const pw.EdgeInsets.all(8),
+            child: pw.Table(
+              border: pw.TableBorder.all(color: PdfColors.blueGrey200, width: 0.5),
+              defaultVerticalAlignment: pw.TableCellVerticalAlignment.middle,
+              columnWidths: {
+              0: const pw.FlexColumnWidth(2),
+              1: const pw.FlexColumnWidth(2),
+              2: const pw.FlexColumnWidth(2),
+              3: const pw.FlexColumnWidth(2),
+              },
+              children: [
+              pw.TableRow(
+                decoration: pw.BoxDecoration(color: PdfColors.blue100),
+                children: [
+                pw.Padding(
+                  padding: const pw.EdgeInsets.symmetric(vertical: 6),
+                  child: pw.Text('كود الوصل',
+                  style: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    fontFallback: [amiriBold],
+                  ),
+                  textAlign: pw.TextAlign.center,
+                  textDirection: pw.TextDirection.rtl,
+                  ),
+                ),
+                pw.Padding(
+                  padding: const pw.EdgeInsets.symmetric(vertical: 6),
+                  child: pw.Text('الملاحظات',
+                  style: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    fontFallback: [amiriBold],
+                  ),
+                  textAlign: pw.TextAlign.center,
+                  textDirection: pw.TextDirection.rtl,
+                  ),
+                ),
+                pw.Padding(
+                  padding: const pw.EdgeInsets.symmetric(vertical: 6),
+                  child: pw.Text('التاريخ',
+                  style: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    fontFallback: [amiriBold],
+                  ),
+                  textAlign: pw.TextAlign.center,
+                  textDirection: pw.TextDirection.rtl,
+                  ),
+                ),
+                pw.Padding(
+                  padding: const pw.EdgeInsets.symmetric(vertical: 6),
+                  child: pw.Text('القسط المدفوع',
+                  style: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    fontFallback: [amiriBold],
+                  ),
+                  textAlign: pw.TextAlign.center,
+                  textDirection: pw.TextDirection.rtl,
+                  ),
+                ),
+                ],
+              ),
+              ...payments.map((p) => pw.TableRow(
+                children: [
+                     pw.Padding(
+                  padding: const pw.EdgeInsets.symmetric(vertical: 4),
+                  child: pw.Text(
+                
+                    p.receiptNumber ?? 'غير متوفر',
+                  
+                  style: pw.TextStyle(
+                    fontFallback: [amiriRegular],
+                  ),
+                  textAlign: pw.TextAlign.center,
+                  textDirection: pw.TextDirection.rtl,
+                  ),
+                ),
+
+
+                pw.Padding(
+                  padding: const pw.EdgeInsets.symmetric(vertical: 4),
+                  child: pw.Text(
+                  // هنا يجب إظهار المبلغ المتبقي وليس العام الدراسي
+                
+                    (p.notes ?? ''),
+                
+                  style: pw.TextStyle(
+                    color: PdfColors.red800,
+                    fontFallback: [amiriRegular],
+                  ),
+                  textAlign: pw.TextAlign.center,
+                  textDirection: pw.TextDirection.rtl,
+                  ),
+                ),
+                pw.Padding(
+                  padding: const pw.EdgeInsets.symmetric(vertical: 4),
+                  child: pw.Text(
+                  p.paidAt != null
+                    ? DateFormat('yyyy/MM/dd', 'ar').format(p.paidAt)
+                    : '',
+                  style: pw.TextStyle(fontFallback: [amiriRegular]),
+                  textAlign: pw.TextAlign.center,
+                  textDirection: pw.TextDirection.rtl,
+                  ),
+                ),
+              
+               pw.Padding(
+                  padding: const pw.EdgeInsets.symmetric(vertical: 4),
+                  child: pw.Text(
+                  NumberFormat('#,###', 'ar').format(p.amount ?? 0),
+                  style: pw.TextStyle(
+                    color: PdfColors.green800,
+                    fontFallback: [amiriRegular],
+                  ),
+                  textAlign: pw.TextAlign.center,
+                  textDirection: pw.TextDirection.rtl,
+                  ),
+                ),
+                ],
+              )),
+              ],
+            ),
+            ),
+          pw.SizedBox(height: 16),
+          pw.Text('ملاحظة: جميع المبالغ بالدينار العراقي.',
+            style: pw.TextStyle(
+              fontSize: 12,
+              color: PdfColors.blueGrey700,
+              fontFallback: [amiriRegular],
+            ),
+            textDirection: pw.TextDirection.rtl,
+          ),
+        ],
+      ),
     ),
   );
 

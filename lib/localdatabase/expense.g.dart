@@ -22,15 +22,15 @@ const ExpenseSchema = CollectionSchema(
       name: r'amount',
       type: IsarType.double,
     ),
-    r'expenseDate': PropertySchema(
+    r'archived': PropertySchema(
       id: 1,
+      name: r'archived',
+      type: IsarType.bool,
+    ),
+    r'expenseDate': PropertySchema(
+      id: 2,
       name: r'expenseDate',
       type: IsarType.dateTime,
-    ),
-    r'isActivated': PropertySchema(
-      id: 2,
-      name: r'isActivated',
-      type: IsarType.bool,
     ),
     r'note': PropertySchema(
       id: 3,
@@ -87,8 +87,8 @@ void _expenseSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeDouble(offsets[0], object.amount);
-  writer.writeDateTime(offsets[1], object.expenseDate);
-  writer.writeBool(offsets[2], object.isActivated);
+  writer.writeBool(offsets[1], object.archived);
+  writer.writeDateTime(offsets[2], object.expenseDate);
   writer.writeString(offsets[3], object.note);
   writer.writeString(offsets[4], object.title);
 }
@@ -101,9 +101,9 @@ Expense _expenseDeserialize(
 ) {
   final object = Expense();
   object.amount = reader.readDouble(offsets[0]);
-  object.expenseDate = reader.readDateTime(offsets[1]);
+  object.archived = reader.readBool(offsets[1]);
+  object.expenseDate = reader.readDateTime(offsets[2]);
   object.id = id;
-  object.isActivated = reader.readBool(offsets[2]);
   object.note = reader.readStringOrNull(offsets[3]);
   object.title = reader.readString(offsets[4]);
   return object;
@@ -119,9 +119,9 @@ P _expenseDeserializeProp<P>(
     case 0:
       return (reader.readDouble(offset)) as P;
     case 1:
-      return (reader.readDateTime(offset)) as P;
-    case 2:
       return (reader.readBool(offset)) as P;
+    case 2:
+      return (reader.readDateTime(offset)) as P;
     case 3:
       return (reader.readStringOrNull(offset)) as P;
     case 4:
@@ -284,6 +284,16 @@ extension ExpenseQueryFilter
     });
   }
 
+  QueryBuilder<Expense, Expense, QAfterFilterCondition> archivedEqualTo(
+      bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'archived',
+        value: value,
+      ));
+    });
+  }
+
   QueryBuilder<Expense, Expense, QAfterFilterCondition> expenseDateEqualTo(
       DateTime value) {
     return QueryBuilder.apply(this, (query) {
@@ -385,16 +395,6 @@ extension ExpenseQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
-      ));
-    });
-  }
-
-  QueryBuilder<Expense, Expense, QAfterFilterCondition> isActivatedEqualTo(
-      bool value) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'isActivated',
-        value: value,
       ));
     });
   }
@@ -708,6 +708,18 @@ extension ExpenseQuerySortBy on QueryBuilder<Expense, Expense, QSortBy> {
     });
   }
 
+  QueryBuilder<Expense, Expense, QAfterSortBy> sortByArchived() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'archived', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterSortBy> sortByArchivedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'archived', Sort.desc);
+    });
+  }
+
   QueryBuilder<Expense, Expense, QAfterSortBy> sortByExpenseDate() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'expenseDate', Sort.asc);
@@ -717,18 +729,6 @@ extension ExpenseQuerySortBy on QueryBuilder<Expense, Expense, QSortBy> {
   QueryBuilder<Expense, Expense, QAfterSortBy> sortByExpenseDateDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'expenseDate', Sort.desc);
-    });
-  }
-
-  QueryBuilder<Expense, Expense, QAfterSortBy> sortByIsActivated() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isActivated', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Expense, Expense, QAfterSortBy> sortByIsActivatedDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isActivated', Sort.desc);
     });
   }
 
@@ -771,6 +771,18 @@ extension ExpenseQuerySortThenBy
     });
   }
 
+  QueryBuilder<Expense, Expense, QAfterSortBy> thenByArchived() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'archived', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterSortBy> thenByArchivedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'archived', Sort.desc);
+    });
+  }
+
   QueryBuilder<Expense, Expense, QAfterSortBy> thenByExpenseDate() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'expenseDate', Sort.asc);
@@ -792,18 +804,6 @@ extension ExpenseQuerySortThenBy
   QueryBuilder<Expense, Expense, QAfterSortBy> thenByIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.desc);
-    });
-  }
-
-  QueryBuilder<Expense, Expense, QAfterSortBy> thenByIsActivated() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isActivated', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Expense, Expense, QAfterSortBy> thenByIsActivatedDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isActivated', Sort.desc);
     });
   }
 
@@ -840,15 +840,15 @@ extension ExpenseQueryWhereDistinct
     });
   }
 
-  QueryBuilder<Expense, Expense, QDistinct> distinctByExpenseDate() {
+  QueryBuilder<Expense, Expense, QDistinct> distinctByArchived() {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'expenseDate');
+      return query.addDistinctBy(r'archived');
     });
   }
 
-  QueryBuilder<Expense, Expense, QDistinct> distinctByIsActivated() {
+  QueryBuilder<Expense, Expense, QDistinct> distinctByExpenseDate() {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'isActivated');
+      return query.addDistinctBy(r'expenseDate');
     });
   }
 
@@ -881,15 +881,15 @@ extension ExpenseQueryProperty
     });
   }
 
-  QueryBuilder<Expense, DateTime, QQueryOperations> expenseDateProperty() {
+  QueryBuilder<Expense, bool, QQueryOperations> archivedProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'expenseDate');
+      return query.addPropertyName(r'archived');
     });
   }
 
-  QueryBuilder<Expense, bool, QQueryOperations> isActivatedProperty() {
+  QueryBuilder<Expense, DateTime, QQueryOperations> expenseDateProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'isActivated');
+      return query.addPropertyName(r'expenseDate');
     });
   }
 

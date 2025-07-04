@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../main.dart';
+
 class AddEditExpenseScreen extends StatefulWidget {
   final Map<String, dynamic>? expense;
   const AddEditExpenseScreen({super.key, this.expense});
@@ -21,8 +23,9 @@ class _AddEditExpenseScreenState extends State<AddEditExpenseScreen> {
   List categories = [];
 
   @override
-  void initState() {
+   void initState() {
     super.initState();
+    loadAcademicYear();
     titleController = TextEditingController(text: widget.expense?['title'] ?? '');
     amountController = TextEditingController(text: widget.expense?['amount']?.toString() ?? '');
     noteController = TextEditingController(text: widget.expense?['note'] ?? '');

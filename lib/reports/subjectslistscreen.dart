@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../main.dart';
+
 class SubjectsListScreen extends StatefulWidget {
   const SubjectsListScreen({super.key});
 
@@ -15,8 +17,9 @@ class _SubjectsListScreenState extends State<SubjectsListScreen> {
   bool isLoading = true;
 
   @override
-  void initState() {
+   void initState() {
     super.initState();
+    loadAcademicYear();
     fetchSubjects();
     fetchGrades();
   }

@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../main.dart';
+
 class AddClassScreen extends StatefulWidget {
   const AddClassScreen({super.key});
 
@@ -21,8 +23,9 @@ class _AddClassScreenState extends State<AddClassScreen> {
   bool isLoading = false;
 
   @override
-  void initState() {
+   void initState() {
     super.initState();
+    loadAcademicYear();
     fetchGrades();
   }
   Future<void> fetchGrades() async {

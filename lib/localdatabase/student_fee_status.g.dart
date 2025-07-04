@@ -27,33 +27,38 @@ const StudentFeeStatusSchema = CollectionSchema(
       name: r'annualFee',
       type: IsarType.double,
     ),
-    r'createdAt': PropertySchema(
+    r'className': PropertySchema(
       id: 2,
+      name: r'className',
+      type: IsarType.string,
+    ),
+    r'createdAt': PropertySchema(
+      id: 3,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'dueAmount': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'dueAmount',
       type: IsarType.double,
     ),
     r'lastPaymentDate': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'lastPaymentDate',
       type: IsarType.dateTime,
     ),
     r'nextDueDate': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'nextDueDate',
       type: IsarType.dateTime,
     ),
     r'paidAmount': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'paidAmount',
       type: IsarType.double,
     ),
     r'studentId': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'studentId',
       type: IsarType.string,
     )
@@ -86,6 +91,7 @@ int _studentFeeStatusEstimateSize(
 ) {
   var bytesCount = offsets.last;
   bytesCount += 3 + object.academicYear.length * 3;
+  bytesCount += 3 + object.className.length * 3;
   bytesCount += 3 + object.studentId.length * 3;
   return bytesCount;
 }
@@ -98,12 +104,13 @@ void _studentFeeStatusSerialize(
 ) {
   writer.writeString(offsets[0], object.academicYear);
   writer.writeDouble(offsets[1], object.annualFee);
-  writer.writeDateTime(offsets[2], object.createdAt);
-  writer.writeDouble(offsets[3], object.dueAmount);
-  writer.writeDateTime(offsets[4], object.lastPaymentDate);
-  writer.writeDateTime(offsets[5], object.nextDueDate);
-  writer.writeDouble(offsets[6], object.paidAmount);
-  writer.writeString(offsets[7], object.studentId);
+  writer.writeString(offsets[2], object.className);
+  writer.writeDateTime(offsets[3], object.createdAt);
+  writer.writeDouble(offsets[4], object.dueAmount);
+  writer.writeDateTime(offsets[5], object.lastPaymentDate);
+  writer.writeDateTime(offsets[6], object.nextDueDate);
+  writer.writeDouble(offsets[7], object.paidAmount);
+  writer.writeString(offsets[8], object.studentId);
 }
 
 StudentFeeStatus _studentFeeStatusDeserialize(
@@ -115,13 +122,14 @@ StudentFeeStatus _studentFeeStatusDeserialize(
   final object = StudentFeeStatus();
   object.academicYear = reader.readString(offsets[0]);
   object.annualFee = reader.readDouble(offsets[1]);
-  object.createdAt = reader.readDateTime(offsets[2]);
-  object.dueAmount = reader.readDoubleOrNull(offsets[3]);
+  object.className = reader.readString(offsets[2]);
+  object.createdAt = reader.readDateTime(offsets[3]);
+  object.dueAmount = reader.readDoubleOrNull(offsets[4]);
   object.id = id;
-  object.lastPaymentDate = reader.readDateTimeOrNull(offsets[4]);
-  object.nextDueDate = reader.readDateTimeOrNull(offsets[5]);
-  object.paidAmount = reader.readDouble(offsets[6]);
-  object.studentId = reader.readString(offsets[7]);
+  object.lastPaymentDate = reader.readDateTimeOrNull(offsets[5]);
+  object.nextDueDate = reader.readDateTimeOrNull(offsets[6]);
+  object.paidAmount = reader.readDouble(offsets[7]);
+  object.studentId = reader.readString(offsets[8]);
   return object;
 }
 
@@ -137,16 +145,18 @@ P _studentFeeStatusDeserializeProp<P>(
     case 1:
       return (reader.readDouble(offset)) as P;
     case 2:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 3:
-      return (reader.readDoubleOrNull(offset)) as P;
+      return (reader.readDateTime(offset)) as P;
     case 4:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 5:
       return (reader.readDateTimeOrNull(offset)) as P;
     case 6:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 7:
+      return (reader.readDouble(offset)) as P;
+    case 8:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -446,6 +456,142 @@ extension StudentFeeStatusQueryFilter
         upper: upper,
         includeUpper: includeUpper,
         epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      classNameEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'className',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      classNameGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'className',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      classNameLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'className',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      classNameBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'className',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      classNameStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'className',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      classNameEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'className',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      classNameContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'className',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      classNameMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'className',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      classNameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'className',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      classNameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'className',
+        value: '',
       ));
     });
   }
@@ -1048,6 +1194,20 @@ extension StudentFeeStatusQuerySortBy
   }
 
   QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterSortBy>
+      sortByClassName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'className', Sort.asc);
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterSortBy>
+      sortByClassNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'className', Sort.desc);
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterSortBy>
       sortByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
@@ -1159,6 +1319,20 @@ extension StudentFeeStatusQuerySortThenBy
       thenByAnnualFeeDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'annualFee', Sort.desc);
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterSortBy>
+      thenByClassName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'className', Sort.asc);
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterSortBy>
+      thenByClassNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'className', Sort.desc);
     });
   }
 
@@ -1277,6 +1451,13 @@ extension StudentFeeStatusQueryWhereDistinct
   }
 
   QueryBuilder<StudentFeeStatus, StudentFeeStatus, QDistinct>
+      distinctByClassName({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'className', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QDistinct>
       distinctByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'createdAt');
@@ -1337,6 +1518,12 @@ extension StudentFeeStatusQueryProperty
   QueryBuilder<StudentFeeStatus, double, QQueryOperations> annualFeeProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'annualFee');
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, String, QQueryOperations> classNameProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'className');
     });
   }
 

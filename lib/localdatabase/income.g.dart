@@ -22,15 +22,15 @@ const IncomeSchema = CollectionSchema(
       name: r'amount',
       type: IsarType.double,
     ),
-    r'incomeDate': PropertySchema(
+    r'archived': PropertySchema(
       id: 1,
+      name: r'archived',
+      type: IsarType.bool,
+    ),
+    r'incomeDate': PropertySchema(
+      id: 2,
       name: r'incomeDate',
       type: IsarType.dateTime,
-    ),
-    r'isActivated': PropertySchema(
-      id: 2,
-      name: r'isActivated',
-      type: IsarType.bool,
     ),
     r'note': PropertySchema(
       id: 3,
@@ -87,8 +87,8 @@ void _incomeSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeDouble(offsets[0], object.amount);
-  writer.writeDateTime(offsets[1], object.incomeDate);
-  writer.writeBool(offsets[2], object.isActivated);
+  writer.writeBool(offsets[1], object.archived);
+  writer.writeDateTime(offsets[2], object.incomeDate);
   writer.writeString(offsets[3], object.note);
   writer.writeString(offsets[4], object.title);
 }
@@ -101,9 +101,9 @@ Income _incomeDeserialize(
 ) {
   final object = Income();
   object.amount = reader.readDouble(offsets[0]);
+  object.archived = reader.readBool(offsets[1]);
   object.id = id;
-  object.incomeDate = reader.readDateTime(offsets[1]);
-  object.isActivated = reader.readBool(offsets[2]);
+  object.incomeDate = reader.readDateTime(offsets[2]);
   object.note = reader.readStringOrNull(offsets[3]);
   object.title = reader.readString(offsets[4]);
   return object;
@@ -119,9 +119,9 @@ P _incomeDeserializeProp<P>(
     case 0:
       return (reader.readDouble(offset)) as P;
     case 1:
-      return (reader.readDateTime(offset)) as P;
-    case 2:
       return (reader.readBool(offset)) as P;
+    case 2:
+      return (reader.readDateTime(offset)) as P;
     case 3:
       return (reader.readStringOrNull(offset)) as P;
     case 4:
@@ -283,6 +283,16 @@ extension IncomeQueryFilter on QueryBuilder<Income, Income, QFilterCondition> {
     });
   }
 
+  QueryBuilder<Income, Income, QAfterFilterCondition> archivedEqualTo(
+      bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'archived',
+        value: value,
+      ));
+    });
+  }
+
   QueryBuilder<Income, Income, QAfterFilterCondition> idEqualTo(Id value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -384,16 +394,6 @@ extension IncomeQueryFilter on QueryBuilder<Income, Income, QFilterCondition> {
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
-      ));
-    });
-  }
-
-  QueryBuilder<Income, Income, QAfterFilterCondition> isActivatedEqualTo(
-      bool value) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'isActivated',
-        value: value,
       ));
     });
   }
@@ -704,6 +704,18 @@ extension IncomeQuerySortBy on QueryBuilder<Income, Income, QSortBy> {
     });
   }
 
+  QueryBuilder<Income, Income, QAfterSortBy> sortByArchived() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'archived', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Income, Income, QAfterSortBy> sortByArchivedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'archived', Sort.desc);
+    });
+  }
+
   QueryBuilder<Income, Income, QAfterSortBy> sortByIncomeDate() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'incomeDate', Sort.asc);
@@ -713,18 +725,6 @@ extension IncomeQuerySortBy on QueryBuilder<Income, Income, QSortBy> {
   QueryBuilder<Income, Income, QAfterSortBy> sortByIncomeDateDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'incomeDate', Sort.desc);
-    });
-  }
-
-  QueryBuilder<Income, Income, QAfterSortBy> sortByIsActivated() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isActivated', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Income, Income, QAfterSortBy> sortByIsActivatedDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isActivated', Sort.desc);
     });
   }
 
@@ -766,6 +766,18 @@ extension IncomeQuerySortThenBy on QueryBuilder<Income, Income, QSortThenBy> {
     });
   }
 
+  QueryBuilder<Income, Income, QAfterSortBy> thenByArchived() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'archived', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Income, Income, QAfterSortBy> thenByArchivedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'archived', Sort.desc);
+    });
+  }
+
   QueryBuilder<Income, Income, QAfterSortBy> thenById() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.asc);
@@ -787,18 +799,6 @@ extension IncomeQuerySortThenBy on QueryBuilder<Income, Income, QSortThenBy> {
   QueryBuilder<Income, Income, QAfterSortBy> thenByIncomeDateDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'incomeDate', Sort.desc);
-    });
-  }
-
-  QueryBuilder<Income, Income, QAfterSortBy> thenByIsActivated() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isActivated', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Income, Income, QAfterSortBy> thenByIsActivatedDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isActivated', Sort.desc);
     });
   }
 
@@ -834,15 +834,15 @@ extension IncomeQueryWhereDistinct on QueryBuilder<Income, Income, QDistinct> {
     });
   }
 
-  QueryBuilder<Income, Income, QDistinct> distinctByIncomeDate() {
+  QueryBuilder<Income, Income, QDistinct> distinctByArchived() {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'incomeDate');
+      return query.addDistinctBy(r'archived');
     });
   }
 
-  QueryBuilder<Income, Income, QDistinct> distinctByIsActivated() {
+  QueryBuilder<Income, Income, QDistinct> distinctByIncomeDate() {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'isActivated');
+      return query.addDistinctBy(r'incomeDate');
     });
   }
 
@@ -874,15 +874,15 @@ extension IncomeQueryProperty on QueryBuilder<Income, Income, QQueryProperty> {
     });
   }
 
-  QueryBuilder<Income, DateTime, QQueryOperations> incomeDateProperty() {
+  QueryBuilder<Income, bool, QQueryOperations> archivedProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'incomeDate');
+      return query.addPropertyName(r'archived');
     });
   }
 
-  QueryBuilder<Income, bool, QQueryOperations> isActivatedProperty() {
+  QueryBuilder<Income, DateTime, QQueryOperations> incomeDateProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'isActivated');
+      return query.addPropertyName(r'incomeDate');
     });
   }
 

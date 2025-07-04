@@ -17,7 +17,7 @@ class StudentPayment {
   String? academicYear;
    int invoiceSerial=0; // ✅ الرقم التسلسلي للفاتورة
 
-bool isActivated=false;
+bool archived=false;
 
   // ربط IsarLink
   final student = IsarLink<Student>();

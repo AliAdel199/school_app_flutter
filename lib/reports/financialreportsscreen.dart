@@ -8,6 +8,8 @@ import 'package:pdf/pdf.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 
+import '../main.dart';
+
 class FinancialReportsScreen extends StatefulWidget {
   const FinancialReportsScreen({super.key});
 
@@ -26,8 +28,9 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
   final List<String> statusOptions = ['الكل', 'مكتمل', 'متأخر', 'غير مكتمل'];
 
   @override
-  void initState() {
+   void initState() {
     super.initState();
+    loadAcademicYear();
     fetchReports();
   }
 
