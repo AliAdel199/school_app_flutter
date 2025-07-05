@@ -527,10 +527,10 @@ theme: pw.ThemeData.withFont(
                     pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.end,
                       children: [
-                        pw.Text('📞 0780 000 0000',
+                        pw.Text('📞 ${school.phone}',
                             style: pw.TextStyle(
                                 fontSize: 11, color: PdfColors.blueGrey600)),
-                        pw.Text('📍 بغداد - شارع الربيعي',
+                        pw.Text('📍 ${school.address}',
                             style: pw.TextStyle(
                                 fontSize: 11, color: PdfColors.blueGrey600)),
                       ],
