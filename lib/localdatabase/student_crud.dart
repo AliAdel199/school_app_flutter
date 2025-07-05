@@ -402,7 +402,8 @@ theme: pw.ThemeData.withFont(
                                 fontSize: 13,
                                 fontWeight: pw.FontWeight.bold,
                                 color: PdfColors.blueGrey700)),
-                    
+                      ],
+                    ),
                     pw.Container(
                       width: 44,
                       height: 44,
@@ -411,18 +412,12 @@ theme: pw.ThemeData.withFont(
                         shape: pw.BoxShape.circle,
                         border: pw.Border.all(color: PdfColors.blueGrey300, width: 1),
                       ),
-                      child:pw.Center(
-                        child: pw.Text(
-                          school.name?.substring(0, 1) ?? 'م',
-                          style: pw.TextStyle(
-                              fontSize: 24,
-                              fontWeight: pw.FontWeight.bold,
-                              color: PdfColors.blue800),
-                        ),
+                      child: pw.Center(
+                        child: pw.Text('🔖', style: pw.TextStyle(fontSize: 22)),
                       ),
                     ),
-                      ],
-                    ),
+                  ],
+                ),
                 pw.SizedBox(height: 8),
                 pw.Divider(thickness: 1, color: PdfColors.blueGrey200),
 
@@ -543,10 +538,9 @@ theme: pw.ThemeData.withFont(
                   ],
                 ),
               ],
-            )])));
-                                                                                                    
-          
-        
+            ),
+          ),
+        );
       },
     ),
   );
