@@ -37,8 +37,16 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
   Future<void> pickLogoImage() async {
     final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (picked != null) {
+      final appDir = Directory('assets/images');
+      if (!await appDir.exists()) {
+        await appDir.create(recursive: true);
+      }
+      final fileName = 'school_logo${DateTime.now().millisecondsSinceEpoch}${picked.path.split('.').last.isNotEmpty ? '.' + picked.path.split('.').last : ''}';
+      final newLogoPath = '${appDir.path}/$fileName';
+      final newLogoFile = await File(picked.path).copy(newLogoPath);
+
       setState(() {
-        selectedLogo = File(picked.path);
+        selectedLogo = newLogoFile;
       });
     }
   }

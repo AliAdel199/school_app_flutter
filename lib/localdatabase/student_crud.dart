@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+
+import 'package:flutter/services.dart';
 import 'package:isar/isar.dart';
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
@@ -34,8 +37,8 @@ Future<void> addStudent(Isar isar, Student student) async {
       ..annualFee=student.annualFee!
       ..dueAmount = student.annualFee // Assuming annualFee is the total fee
       ..studentId = student.id.toString()
-      ..lastPaymentDate
       ..academicYear = student.registrationYear ?? DateTime.now().year.toString()
+      ..className = student.schoolclass.value?.name ?? 'غير محدد'
       ..createdAt = DateTime.now()
       ..paidAmount = 0.0 // Initial paid amount
       ..lastPaymentDate = null // No payments made yet  
@@ -344,6 +347,20 @@ Future<void> deleteSubject(Isar isar, int id) async {
     await isar.subjects.delete(id);
   });
 }
+  Future<Uint8List> _loadAsset(String path) async {
+    try {
+      // Ensure the path is relative to the assets directory, e.g., 'assets/images/logo.jpg'
+      ByteData data = await rootBundle.load(path);
+      return data.buffer.asUint8List();
+    } catch (e) {
+      // Return an empty Uint8List or load a default image if asset not found
+      print('Asset load error: $e');
+      // Optionally, load a default image asset here if you have one
+      // ByteData defaultData = await rootBundle.load('assets/images/default_logo.jpg');
+      // return defaultData.buffer.asUint8List();
+      return Uint8List(0);
+    }
+  }
 void printArabicInvoice2({
   required String studentName,
   required String receiptNumber,
@@ -361,6 +378,10 @@ School school = await isar.schools.where().findFirst() ?? School();
 
   final baseFont = await PdfGoogleFonts.amiriRegular();
   final boldFont = await PdfGoogleFonts.amiriBold();
+   final Uint8List header =
+        await _loadAsset(school.logoUrl ?? '');
+    final pw.ImageProvider? imageProvider1 =
+        (header.isNotEmpty) ? pw.MemoryImage(header) : null;
 
   pdf.addPage(
     pw.Page(
@@ -388,7 +409,7 @@ theme: pw.ThemeData.withFont(
                 // Header
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
+                    children: [
                     pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
@@ -404,18 +425,39 @@ theme: pw.ThemeData.withFont(
                                 color: PdfColors.blueGrey700)),
                       ],
                     ),
-                    pw.Container(
-                      width: 44,
-                      height: 44,
-                      decoration: pw.BoxDecoration(
-                        color: PdfColors.blue50,
-                        shape: pw.BoxShape.circle,
-                        border: pw.Border.all(color: PdfColors.blueGrey300, width: 1),
-                      ),
-                      child: pw.Center(
-                        child: pw.Text('🔖', style: pw.TextStyle(fontSize: 22)),
-                      ),
-                    ),
+                    imageProvider1 != null
+                        ? pw.Container(
+                            width: 44,
+                            height: 44,
+                            decoration: pw.BoxDecoration(
+                              color: PdfColors.blue50,
+                              shape: pw.BoxShape.circle,
+                              border: pw.Border.all(
+                                  color: PdfColors.blueGrey300, width: 1),
+                            ),
+                            child: pw.ClipOval(
+                              child: pw.Image(
+                                imageProvider1,
+                                fit: pw.BoxFit.cover,
+                                width: 75,
+                                height: 75,
+                              ),
+                            ),
+                          )
+                        : pw.Container(
+                            width: 44,
+                            height: 44,
+                            decoration: pw.BoxDecoration(
+                              color: PdfColors.blue50,
+                              shape: pw.BoxShape.circle,
+                              border: pw.Border.all(
+                                  color: PdfColors.blueGrey300, width: 1),
+                            ),
+                            child: pw.Center(
+                              child: pw.Text('🔖',
+                                  style: pw.TextStyle(fontSize: 22)),
+                            ),
+                          ),
                   ],
                 ),
                 pw.SizedBox(height: 8),

@@ -78,7 +78,8 @@ flutter:
     - assets/fonts/Amiri-Regular.ttf
     - assets/fonts/Amiri-Bold.ttf
     - assets/fonts/Amiri-Italic.ttf
-  #   - images/a_dot_ham.jpeg
+    - assets/images/logo.png
+    - assets/images/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
