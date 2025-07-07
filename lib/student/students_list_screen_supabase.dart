@@ -14,6 +14,7 @@ import '/student/add_student_screen_supabase.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../localdatabase/student.dart';
 import '../main.dart';
+import '../reports/student_transfer_helper.dart';
 import 'edit_student_screen.dart';
 import 'delete_student_dialog.dart';
 import 'studentpaymentscreen.dart';
@@ -53,6 +54,7 @@ Future<void> fetchClassesFromIsar() async {
         .map((c) => {
               'id': c.id,
               'name': c.name,
+              'level': c.level, // أضف هذا
             })
         .toList();
     if (mounted) setState(() {});
@@ -447,14 +449,10 @@ TextButton.icon(
   label: const Text('ترحيل', style: TextStyle(color: Colors.blue)),
   onPressed: () async {
     final currentClass = student.schoolclass.value;
+    final currentLevel = currentClass?.level ?? 0;
     final higherClasses = classOptions
-        .where((c) => c['name'].compareTo(currentClass?.name ?? '') > 0)
+        .where((c) => (c['level'] ?? 0) > currentLevel)
         .toList();
-
-    String? selectedNewClassId;
-    final annualFeeController = TextEditingController(
-      text: student.annualFee?.toString() ?? '',
-    );
 
     if (higherClasses.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -462,6 +460,12 @@ TextButton.icon(
       );
       return;
     }
+
+    String? selectedNewClassId;
+    final annualFeeController = TextEditingController(
+      text: student.annualFee?.toString() ?? '',
+    );
+    final newAcademicYearController = TextEditingController(text: academicYear);
 
     final result = await showDialog<bool>(
       context: context,
@@ -505,6 +509,13 @@ TextButton.icon(
                     labelText: 'القسط السنوي الجديد',
                   ),
                 ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: newAcademicYearController,
+                  decoration: const InputDecoration(
+                    labelText: 'السنة الدراسية الجديدة',
+                  ),
+                ),
               ],
             ),
             actions: [
@@ -514,57 +525,27 @@ TextButton.icon(
               ),
               TextButton(
                 onPressed: () async {
-if (selectedNewClassId != null) {
-  final newClass = await isar.schoolClass.get(int.parse(selectedNewClassId!));
-  final newFee = double.tryParse(annualFeeController.text) ?? student.annualFee ?? 0;
-
-  await isar.writeTxn(() async {
-    // تحديث بيانات الطالب
-    student.schoolclass.value = newClass;
-    student.annualFee = newFee;
-    await isar.students.put(student);
-    student.schoolclass.save();
-
-    // فحص إذا كان هناك سجل قسط لنفس الطالب ولنفس الصف ولنفس السنة الأكاديمية
-    final existingFeeStatus = await isar.studentFeeStatus
-        .filter()
-        .studentIdEqualTo(student.id.toString())
-        .classNameEqualTo(newClass!.name)
-        .academicYearEqualTo(academicYear)
-        .findFirst();
-
-    if (existingFeeStatus == null) {
-      // إنشاء سجل قسط جديد إذا لم يوجد
-      final newFeeStatus = StudentFeeStatus()
-        ..studentId = student.id.toString()
-        ..className = newClass.name
-        ..academicYear = academicYear
-        ..annualFee = newFee
-        ..dueAmount = newFee
-        ..paidAmount = 0
-        ..student.value = student
-        // ..archived = false
-        ..createdAt = DateTime.now();
-      await isar.studentFeeStatus.put(newFeeStatus);
-      newFeeStatus.student.save();
-            ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تم ترحيل الطالب بنجاح.')),
-    );
-    } else {
-      // إذا كان موجود، لا تنشئ سجل جديد
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('الطالب في الصف الجديد بالفعل.')),
-      );
-    }
-    // إذا كان موجود لا تنشئ سجل جديد
-
-  });
-
-  fetchStudentsFromIsar();
-}
+                  if (selectedNewClassId == null || newAcademicYearController.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('يرجى اختيار الصف الجديد وإدخال السنة الدراسية الجديدة.')),
+                    );
+                    return;
+                  }
+                  
+                  final newAcademicYear = newAcademicYearController.text.trim();
+                  final exists = await isar.studentFeeStatus
+                      .filter()
+                      .studentIdEqualTo(student.id.toString())
+                      .academicYearEqualTo(newAcademicYear)
+                      .findFirst();
+                      
+                  if (exists != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('الطالب لديه سجل قسط لنفس السنة الدراسية بالفعل!')),
+                    );
+                    return;
+                  }
                   Navigator.pop(context, true);
-
-
                 },
                 child: const Text('تأكيد'),
               ),
@@ -577,27 +558,142 @@ if (selectedNewClassId != null) {
     if (result == true && selectedNewClassId != null) {
       final newClass = await isar.schoolClass.get(int.parse(selectedNewClassId!));
       final newFee = double.tryParse(annualFeeController.text) ?? student.annualFee ?? 0;
+      final newAcademicYear = newAcademicYearController.text.trim();
 
-      await isar.writeTxn(() async {
-        student.schoolclass.value = newClass;
-        student.annualFee = newFee;
-        await isar.students.put(student);
+      // جلب آخر سجل قسط للطالب (أحدث سنة دراسية)
+      final allFeeStatuses = await isar.studentFeeStatus
+          .filter()
+          .studentIdEqualTo(student.id.toString())
+          .sortByAcademicYearDesc()
+          .findAll();
+      
+      final currentFeeStatus = allFeeStatuses.isNotEmpty ? allFeeStatuses.first : null;
 
-        // تحديث حالة القسط إذا لزم الأمر
-        final feeStatus = await isar.studentFeeStatus
+      debugPrint('البحث عن سجل القسط للطالب ID: ${student.id}');
+      debugPrint('جميع سجلات الأقساط للطالب: ${allFeeStatuses.length}');
+      if (currentFeeStatus != null) {
+        debugPrint('آخر سجل قسط: السنة ${currentFeeStatus.academicYear}, الصف ${currentFeeStatus.className}');
+      } else {
+        debugPrint('لا يوجد أي سجل قسط للطالب');
+      }
+      
+      double previousDue = 0;
+      if (currentFeeStatus != null) {
+        // حساب المبلغ المتبقي الفعلي
+        final totalRequired = currentFeeStatus.annualFee + currentFeeStatus.transferredDebtAmount;
+        final totalPaid = currentFeeStatus.paidAmount;
+        previousDue = totalRequired - totalPaid;
+        
+        debugPrint('القسط السنوي: ${currentFeeStatus.annualFee}');
+        debugPrint('الدين المنقول: ${currentFeeStatus.transferredDebtAmount}');
+        debugPrint('المبلغ المدفوع: ${totalPaid}');
+        debugPrint('المبلغ المتبقي المحسوب: $previousDue');
+      } else {
+        debugPrint('⚠️ لا يوجد سجل قسط للطالب في هذه السنة الدراسية');
+        // يمكن أن نبحث في جميع سجلات الأقساط للطالب
+        final allFeeStatuses = await isar.studentFeeStatus
             .filter()
             .studentIdEqualTo(student.id.toString())
-            .findFirst();
-        if (feeStatus != null) {
-          feeStatus.annualFee = newFee;
-          await isar.studentFeeStatus.put(feeStatus);
+            .findAll();
+        debugPrint('جميع سجلات الأقساط للطالب: ${allFeeStatuses.length}');
+        for (var status in allFeeStatuses) {
+          debugPrint('- السنة: ${status.academicYear}, القسط: ${status.annualFee}, المدفوع: ${status.paidAmount}, المتبقي: ${status.dueAmount}');
         }
-      });
+      }
 
-      fetchStudentsFromIsar();
+      if (previousDue > 0) {
+        debugPrint('يوجد مبلغ متبقي: $previousDue - سيتم عرض حوار التسوية');
+        
+        // إضافة تفاصيل عن طبيعة الدين
+        String debtDetails = '';
+        if (currentFeeStatus != null) {
+          final currentYearDebt = previousDue - currentFeeStatus.transferredDebtAmount;
+          if (currentFeeStatus.transferredDebtAmount > 0) {
+            debtDetails = '\n\nتفاصيل الدين:\n'
+                '• دين من سنوات سابقة: ${currentFeeStatus.transferredDebtAmount.toStringAsFixed(2)} د.ع\n'
+                '• دين السنة الحالية: ${currentYearDebt.toStringAsFixed(2)} د.ع\n'
+                '• السنة الأصلية للدين: ${currentFeeStatus.originalDebtAcademicYear ?? "غير معروف"}\n'
+                '• الصف الأصلي للدين: ${currentFeeStatus.originalDebtClassName ?? "غير معروف"}';
+          } else {
+            debtDetails = '\n\nهذا دين من السنة الحالية فقط.';
+          }
+        }
+        
+        // إذا كان هناك مبلغ متبقي، اعرض خيارات التسوية
+        final action = await showDialog<String>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('تسوية الأقساط السابقة'),
+            content: Text(
+                'يوجد مبلغ متبقي (${previousDue.toStringAsFixed(2)} د.ع) من القسط السابق.$debtDetails\n\nاختر طريقة التسوية:'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, 'pay_all'),
+                child: const Text('دفع المتبقي بالكامل'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, 'move_due'),
+                child: const Text('نقل المتبقي مع القسط الجديد'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, null),
+                child: const Text('إلغاء'),
+              ),
+            ],
+          ),
+        );
+
+        if (action == null) return;
+
+        // استخدام الـ Helper الجديد للترحيل
+        final transferHelper = StudentTransferHelper(isar);
+        final success = await transferHelper.transferStudent(
+          student: student,
+          newClass: newClass!,
+          newAnnualFee: newFee,
+          newAcademicYear: newAcademicYear,
+          currentAcademicYear: academicYear,
+          debtHandlingAction: action,
+        );
+
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('تم ترحيل الطالب بنجاح.')),
+          );
+          fetchStudentsFromIsar();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('فشل في ترحيل الطالب.')),
+          );
+        }
+      } else {
+        debugPrint('لا يوجد مبلغ متبقي: $previousDue - سيتم الترحيل العادي');
+        // إذا لم يكن هناك متبقي، نفذ الترحيل العادي
+        final transferHelper = StudentTransferHelper(isar);
+        final success = await transferHelper.transferStudent(
+          student: student,
+          newClass: newClass!,
+          newAnnualFee: newFee,
+          newAcademicYear: newAcademicYear,
+          currentAcademicYear: academicYear,
+          debtHandlingAction: 'pay_all', // لا يهم لأنه لا يوجد دين
+        );
+
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('تم ترحيل الطالب بنجاح.')),
+          );
+          fetchStudentsFromIsar();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('فشل في ترحيل الطالب.')),
+          );
+        }
+      }
     }
   },
 ),
+                
                                     TextButton.icon(
                                       onPressed: () {
                                         Navigator.push(

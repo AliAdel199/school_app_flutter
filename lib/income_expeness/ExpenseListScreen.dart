@@ -14,8 +14,6 @@ import '/localdatabase/expense_category.dart';
 import '/localdatabase/expense.dart';
 
 import '/main.dart';
-
-import '../localdatabase/expense.dart';
 import '../localdatabase/income_category.dart';
 
 class ExpensesListScreen extends StatefulWidget {
@@ -53,7 +51,7 @@ class _IncomesListScreenState extends State<ExpensesListScreen> {
       bool matchesCategory = selectedFilterCategory == null ||
           selectedFilterCategory == 'all' ||
           Expense.category.value?.id.toString() == selectedFilterCategory;
-      DateTime expensesDate = Expense.expenseDate ?? DateTime.now();
+      DateTime expensesDate = Expense.expenseDate;
       bool matchesStart = filterStartDate == null ||
           expensesDate.isAfter(filterStartDate!.subtract(const Duration(days: 1)));
       bool matchesEnd = filterEndDate == null ||
@@ -63,7 +61,7 @@ class _IncomesListScreenState extends State<ExpensesListScreen> {
   }
 
   double getTotalAmount(List<Expense> filteredExpenses) {
-    return filteredExpenses.fold(0, (sum, item) => sum + (item.amount ?? 0));
+    return filteredExpenses.fold(0, (sum, item) => sum + item.amount);
   }
 
   String getCategoryName(ExpenseCategory? category) => category?.name ?? '-';
@@ -80,10 +78,10 @@ class _IncomesListScreenState extends State<ExpensesListScreen> {
     ]);
     for (var exp in filteredExpenses) {
       sheetObject.appendRow([
-        TextCellValue(exp.title ?? ''),
-        TextCellValue(exp.amount?.toString() ?? ''),
+        TextCellValue(exp.title),
+        TextCellValue(exp.amount.toString()),
         TextCellValue(getCategoryName(exp.category.value)),
-        TextCellValue(exp.expenseDate?.toIso8601String().split('T').first ?? ''),
+        TextCellValue(exp.expenseDate.toIso8601String().split('T').first),
         TextCellValue(exp.note ?? '')
       ]);
     }
@@ -184,6 +182,7 @@ Future<void> showAddIncomeDialogIsar(BuildContext context, void Function() onSuc
                 ..amount = amount
                 ..note = noteController.text.trim()
                 ..expenseDate = selectedDate
+                ..academicYear = academicYear // إضافة السنة الدراسية الحالية
                 ..category.value = selectedCategory;
 
               await isar.writeTxn(() async {
@@ -281,10 +280,10 @@ Future<void> showAddIncomeDialogIsar(BuildContext context, void Function() onSuc
                 pw.Table.fromTextArray(
                   headers: ['العنوان', 'المبلغ', 'التصنيف', 'التاريخ', 'الملاحظات'],
                   data: filteredExpenses.map((e) => [
-                        e.title ?? '',
-                        e.amount?.toString() ?? '',
+                        e.title,
+                        e.amount.toString(),
                         getCategoryName(e.category.value),
-                        e.expenseDate?.toIso8601String().split('T').first ?? '',
+                        e.expenseDate.toIso8601String().split('T').first,
                         e.note ?? ''
                       ]).toList(),
                   headerStyle: pw.TextStyle(font: arabicBoldFont, fontSize: 12),
@@ -372,6 +371,7 @@ Future<void> showEditIncomeDialog(BuildContext context, Expense Expense, void Fu
               Expense.amount = double.tryParse(amountController.text.trim()) ?? 0;
               Expense.note = noteController.text.trim();
               Expense.expenseDate = selectedDate;
+              Expense.academicYear = academicYear; // تحديث السنة الدراسية
               Expense.category.value = selectedCategory;
 
               await isar.writeTxn(() async {
@@ -577,7 +577,7 @@ Widget build(BuildContext context) {
                       return Card(
                         margin: const EdgeInsets.symmetric(vertical: 6),
                         child: ListTile(
-                          title: Text(Expense.title ?? ''),
+                          title: Text(Expense.title),
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [

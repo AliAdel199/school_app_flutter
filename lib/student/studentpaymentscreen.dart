@@ -218,7 +218,7 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
           final result = await showAddPaymentDialogIsar(
             context: context,
             studentId: widget.studentId.toString(),
-            academicYear: selectedAcademicYear ?? 'غير معروف',
+            academicYear: selectedAcademicYear ?? academicYear, // استخدام السنة العامة عند عدم وجود سنة محلية
             student: widget.student!,
             isar: isar,
           );
@@ -273,13 +273,31 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
                     ),
                   const SizedBox(height: 10),
                   if (feeStatus != null)
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
+                    Column(
                       children: [
-                        _buildStatCard('القسط السنوي', '${formatter.format(feeStatus!.annualFee)} د.ع', Colors.blue),
-                        _buildStatCard('المدفوع', '${formatter.format(feeStatus!.paidAmount)} د.ع', Colors.green),
-                        _buildStatCard('المتبقي', '${formatter.format(feeStatus!.dueAmount)} د.ع', Colors.red),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: [
+                            _buildStatCard('القسط السنوي', '${formatter.format(feeStatus!.annualFee)} د.ع', Colors.blue),
+                            _buildStatCard('المدفوع', '${formatter.format(feeStatus!.paidAmount)} د.ع', Colors.green),
+                            _buildStatCard('المتبقي', '${formatter.format(feeStatus!.dueAmount)} د.ع', Colors.red),
+                            if (feeStatus!.transferredDebtAmount > 0)
+                              _buildStatCard('دين منقول', '${formatter.format(feeStatus!.transferredDebtAmount)} د.ع', Colors.orange),
+                          ],
+                        ),
+                        if (feeStatus!.transferredDebtAmount > 0 && feeStatus!.originalDebtAcademicYear != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: Text(
+                              'دين منقول من: ${feeStatus!.originalDebtAcademicYear} - ${feeStatus!.originalDebtClassName ?? ""}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.orange,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   if (feeStatus == null)

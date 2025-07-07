@@ -54,7 +54,7 @@ class _IncomesListScreenState extends State<IncomesListScreen> {
       bool matchesCategory = selectedFilterCategory == null ||
           selectedFilterCategory == 'all' ||
           income.category.value?.id.toString() == selectedFilterCategory;
-      DateTime incomeDate = income.incomeDate ?? DateTime.now();
+      DateTime incomeDate = income.incomeDate;
       bool matchesStart = filterStartDate == null ||
           incomeDate.isAfter(filterStartDate!.subtract(const Duration(days: 1)));
       bool matchesEnd = filterEndDate == null ||
@@ -64,7 +64,7 @@ class _IncomesListScreenState extends State<IncomesListScreen> {
   }
 
   double getTotalAmount(List<Income> filteredIncomes) {
-    return filteredIncomes.fold(0, (sum, item) => sum + (item.amount ?? 0));
+    return filteredIncomes.fold(0, (sum, item) => sum + item.amount);
   }
 
   String getCategoryName(IncomeCategory? category) => category?.name ?? '-';
@@ -81,10 +81,10 @@ class _IncomesListScreenState extends State<IncomesListScreen> {
     ]);
     for (var inc in filteredIncomes) {
       sheetObject.appendRow([
-        TextCellValue(inc.title ?? ''),
-        TextCellValue(inc.amount?.toString() ?? ''),
+        TextCellValue(inc.title),
+        TextCellValue(inc.amount.toString()),
         TextCellValue(getCategoryName(inc.category.value)),
-        TextCellValue(inc.incomeDate?.toIso8601String().split('T').first ?? ''),
+        TextCellValue(inc.incomeDate.toIso8601String().split('T').first),
         TextCellValue(inc.note ?? '')
       ]);
     }
@@ -185,6 +185,7 @@ Future<void> showAddIncomeDialogIsar(BuildContext context, void Function() onSuc
                 ..amount = amount
                 ..note = noteController.text.trim()
                 ..incomeDate = selectedDate
+                ..academicYear = academicYear // إضافة السنة الدراسية الحالية
                 ..category.value = selectedCategory;
 
               await isar.writeTxn(() async {
@@ -282,10 +283,10 @@ Future<void> showAddIncomeDialogIsar(BuildContext context, void Function() onSuc
                 pw.Table.fromTextArray(
                   headers: ['العنوان', 'المبلغ', 'التصنيف', 'التاريخ', 'الملاحظات'],
                   data: filteredIncomes.map((e) => [
-                        e.title ?? '',
-                        e.amount?.toString() ?? '',
+                        e.title,
+                        e.amount.toString(),
                         getCategoryName(e.category.value),
-                        e.incomeDate?.toIso8601String().split('T').first ?? '',
+                        e.incomeDate.toIso8601String().split('T').first,
                         e.note ?? ''
                       ]).toList(),
                   headerStyle: pw.TextStyle(font: arabicBoldFont, fontSize: 12),
@@ -373,6 +374,7 @@ Future<void> showEditIncomeDialog(BuildContext context, Income income, void Func
               income.amount = double.tryParse(amountController.text.trim()) ?? 0;
               income.note = noteController.text.trim();
               income.incomeDate = selectedDate;
+              income.academicYear = academicYear; // تحديث السنة الدراسية
               income.category.value = selectedCategory;
 
               await isar.writeTxn(() async {
@@ -578,7 +580,7 @@ Widget build(BuildContext context) {
                       return Card(
                         margin: const EdgeInsets.symmetric(vertical: 6),
                         child: ListTile(
-                          title: Text(income.title ?? ''),
+                          title: Text(income.title),
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [

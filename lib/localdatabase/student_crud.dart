@@ -445,8 +445,8 @@ theme: pw.ThemeData.withFont(
                             ),
                           )
                         : pw.Container(
-                            width: 44,
-                            height: 44,
+                            width: 75,
+                            height: 75,
                             decoration: pw.BoxDecoration(
                               color: PdfColors.blue50,
                               shape: pw.BoxShape.circle,

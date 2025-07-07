@@ -18,6 +18,9 @@ class _ClassesListScreenState extends State<ClassesListScreen> {
   List<SchoolClass> classes = [];
   List<Grade> grades = [];
   bool isLoading = true;
+   final classNameController = TextEditingController();
+                final annualFeeController = TextEditingController();
+  final levelController = TextEditingController(); // <-- أضف هذا
 
   @override
    void initState() {
@@ -135,8 +138,7 @@ class _ClassesListScreenState extends State<ClassesListScreen> {
           ),
           SizedBox(width: 200,
             child: ElevatedButton(onPressed: () async {
-              final classNameController = TextEditingController();
-                final annualFeeController = TextEditingController();
+             
                 int? selectedGradeId;
                 await fetchGrades();
             
@@ -148,6 +150,7 @@ class _ClassesListScreenState extends State<ClassesListScreen> {
                       builder: (context, setState) => Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+
                           TextField(
                             controller: classNameController,
                             decoration:
@@ -159,6 +162,11 @@ class _ClassesListScreenState extends State<ClassesListScreen> {
                                 const InputDecoration(labelText: 'القسط السنوي'),
                             keyboardType: TextInputType.number,
                           ),
+                            TextField(
+            controller: levelController,
+            decoration: const InputDecoration(labelText: 'ترتيب الصف (رقم)'),
+            keyboardType: TextInputType.number,
+          ),
                           DropdownButtonFormField<int>(
                             value: selectedGradeId,
                             items: grades
@@ -197,6 +205,7 @@ class _ClassesListScreenState extends State<ClassesListScreen> {
                           final schoolClass = SchoolClass()
                             ..name = name
                             ..annualFee = annualFee.toDouble()
+                            ..level = int.tryParse(levelController.text.trim()) ?? 0
                             ..grade.value = grade;
             
                           await addClass(isar, schoolClass);
@@ -206,47 +215,18 @@ class _ClassesListScreenState extends State<ClassesListScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('تمت إضافة الصف: $name')),
                           );
+
+                                      levelController.clear();
+                          classNameController.clear();
+                          annualFeeController.clear();
+
                   
             
             
             }, child: Text('إضافة صف')
                      
                       ),
-                     
-          //             ElevatedButton(
-          //               onPressed: ()async{
-          // final gradeController = TextEditingController();
-          //     final formKey = GlobalKey<FormState>();
-
-          //     await showDialog(
-          //       context: context,
-          //       builder: (context) => 
-          //       AlertDialog(
-          //         title: const Text('إضافة مرحلة دراسية'),
-          //         content: Form(
-          //           key: formKey,
-          //           child: TextFormField(
-          //             controller: gradeController,
-          //             decoration:
-          //                 const InputDecoration(labelText: 'اسم المرحلة'),
-          //             validator: (val) =>
-          //                 val == null || val.isEmpty ? 'مطلوب' : null,
-          //           ),
-          //         ),
-          //         actions: [
-          //           TextButton(
-          //             onPressed: () => Navigator.pop(context),
-          //             child: const Text('إلغاء'),
-          //           ),
-    
-          //         ],
-          //       ),
-          //     );
-          //   },
-      
-                      
-          //               child: Text('إضافة مرحلة')  ),
-                    
+        
                     ],
                   ),
                 );
@@ -287,8 +267,94 @@ class _ClassesListScreenState extends State<ClassesListScreen> {
                           children: [
                             IconButton(
                               icon: const Icon(Icons.edit),
-                              onPressed: () {
-                                // يمكنك إضافة شاشة تعديل الصف هنا
+                                onPressed: () async {
+                                final classNameController = TextEditingController(text: classItem.name);
+                                final annualFeeController = TextEditingController(text: classItem.annualFee?.toStringAsFixed(0) ?? '');
+                                final levelController = TextEditingController(text: classItem.level.toString());
+                                int? selectedGradeId = classItem.grade.value?.id;
+                                await fetchGrades();
+
+                                await showDialog(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                  title: const Text('تعديل الصف'),
+                                  content: StatefulBuilder(
+                                    builder: (context, setState) => Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      TextField(
+                                      controller: classNameController,
+                                      decoration: const InputDecoration(labelText: 'اسم الصف'),
+                                      ),
+                                      
+
+                                      TextField(
+                                      controller: annualFeeController,
+                                      decoration: const InputDecoration(labelText: 'القسط السنوي'),
+                                      keyboardType: TextInputType.number,
+                                      ),
+                                        TextField(
+            controller: levelController,
+            decoration: const InputDecoration(labelText: 'ترتيب الصف (رقم)'),
+            keyboardType: TextInputType.number,
+          ),
+                                      DropdownButtonFormField<int>(
+                                      value: selectedGradeId,
+                                      items: grades
+                                        .map((grade) => DropdownMenuItem<int>(
+                                            value: grade.id,
+                                            child: Text(grade.name),
+                                          ))
+                                        .toList(),
+                                      onChanged: (val) => setState(() {
+                                        selectedGradeId = val;
+                                      }),
+                                      decoration: const InputDecoration(labelText: 'المرحلة'),
+                                      ),
+                                    ],
+                                    ),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text('إلغاء'),
+                                    ),
+                                    ElevatedButton(
+                                    onPressed: () async {
+                                      final name = classNameController.text.trim();
+                                      final annualFee = int.tryParse(annualFeeController.text.trim()) ?? 0;
+                                      final level = int.tryParse(levelController.text.trim()) ?? 0;
+
+                                      if (name.isEmpty || selectedGradeId == null) return;
+
+                                      final grade = await isar.grades.get(selectedGradeId!);
+                                      if (grade == null) return;
+
+                                      classItem.name = name;
+                                      classItem.annualFee = annualFee.toDouble();
+                                      classItem.level = level;
+                                      classItem.grade.value = grade;
+
+                                      await isar.writeTxn(() async {
+                                      await isar.schoolClass.put(classItem);
+                                      await classItem.grade.save();
+                                      });
+                                      levelController.clear();
+                                       classNameController.clear();
+                          annualFeeController.clear();
+
+                                      Navigator.pop(context);
+                                      fetchClasses();
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('تم تعديل الصف: $name')),
+                                      );
+                                    },
+                                    child: const Text('حفظ التعديلات'),
+                                    ),
+                                  ],
+                                  ),
+                                );
+                                
                               },
                             ),
                             IconButton(
@@ -304,152 +370,7 @@ class _ClassesListScreenState extends State<ClassesListScreen> {
                 ),
               ),
             ),
-// floatingActionButton: FloatingActionButton(
 
-//           ),
-
-      // floatingActionButtonLocation: ExpandableFab.location,
-      // floatingActionButton: ExpandableFab(
-      //   type: ExpandableFabType.up,
-      //   pos: ExpandableFabPos.center,
-      //   fanAngle: 180,
-      //   distance: 70,
-      //   children: [
-      //     FloatingActionButton.extended(
-      //       heroTag: 'add_class',
-      //       label: const Text('إضافة صف'),
-      //       icon: const Icon(Icons.add),
-      //       onPressed: () async {
-      //         final classNameController = TextEditingController();
-      //         final annualFeeController = TextEditingController();
-      //         int? selectedGradeId;
-      //         await fetchGrades();
-
-      //         await showDialog(
-      //           context: context,
-      //           builder: (context) => AlertDialog(
-      //             title: const Text('إضافة صف جديد'),
-      //             content: StatefulBuilder(
-      //               builder: (context, setState) => Column(
-      //                 mainAxisSize: MainAxisSize.min,
-      //                 children: [
-      //                   TextField(
-      //                     controller: classNameController,
-      //                     decoration:
-      //                         const InputDecoration(labelText: 'اسم الصف'),
-      //                   ),
-      //                   TextField(
-      //                     controller: annualFeeController,
-      //                     decoration:
-      //                         const InputDecoration(labelText: 'القسط السنوي'),
-      //                     keyboardType: TextInputType.number,
-      //                   ),
-      //                   DropdownButtonFormField<int>(
-      //                     value: selectedGradeId,
-      //                     items: grades
-      //                         .map((grade) => DropdownMenuItem<int>(
-      //                               value: grade.id,
-      //                               child: Text(grade.name),
-      //                             ))
-      //                         .toList(),
-      //                     onChanged: (val) => setState(() {
-      //                       selectedGradeId = val;
-      //                     }),
-      //                     decoration:
-      //                         const InputDecoration(labelText: 'المرحلة'),
-      //                   ),
-      //                 ],
-      //               ),
-      //             ),
-      //             actions: [
-      //               TextButton(
-      //                 onPressed: () => Navigator.pop(context),
-      //                 child: const Text('إلغاء'),
-      //               ),
-      //               ElevatedButton(
-      //                 onPressed: () async {
-      //                   final name = classNameController.text.trim();
-      //                   final annualFee =
-      //                       int.tryParse(annualFeeController.text.trim()) ?? 0;
-
-      //                   if (name.isEmpty || selectedGradeId == null) return;
-
-      //                   final grade =
-      //                       await isar.grades.get(selectedGradeId!);
-      //                   if (grade == null) return;
-
-      //                   final schoolClass = SchoolClass()
-      //                     ..name = name
-      //                     ..annualFee = annualFee.toDouble()
-      //                     ..grade.value = grade;
-
-      //                   await addClass(isar, schoolClass);
-
-      //                   Navigator.pop(context);
-      //                   fetchClasses();
-      //                   ScaffoldMessenger.of(context).showSnackBar(
-      //                     SnackBar(content: Text('تمت إضافة الصف: $name')),
-      //                   );
-      //                 },
-      //                 child: const Text('إضافة'),
-      //               ),
-      //             ],
-      //           ),
-      //         );
-      //       },
-      //     ),
-      //     FloatingActionButton.extended(
-      //       heroTag: 'add_grade',
-      //       label: const Text('إضافة مرحلة'),
-      //       icon: const Icon(Icons.school),
-      //       onPressed: () async {
-      //         final gradeController = TextEditingController();
-      //         final formKey = GlobalKey<FormState>();
-
-      //         await showDialog(
-      //           context: context,
-      //           builder: (context) => AlertDialog(
-      //             title: const Text('إضافة مرحلة دراسية'),
-      //             content: Form(
-      //               key: formKey,
-      //               child: TextFormField(
-      //                 controller: gradeController,
-      //                 decoration:
-      //                     const InputDecoration(labelText: 'اسم المرحلة'),
-      //                 validator: (val) =>
-      //                     val == null || val.isEmpty ? 'مطلوب' : null,
-      //               ),
-      //             ),
-      //             actions: [
-      //               TextButton(
-      //                 onPressed: () => Navigator.pop(context),
-      //                 child: const Text('إلغاء'),
-      //               ),
-      //               ElevatedButton(
-      //                 onPressed: () async {
-      //                   if (!formKey.currentState!.validate()) return;
-      //                   final grade =
-      //                       Grade()..name = gradeController.text.trim();
-
-      //                   await addGrade(isar, grade);
-
-      //                   Navigator.pop(context);
-      //                   fetchGrades();
-      //                   ScaffoldMessenger.of(context).showSnackBar(
-      //                     SnackBar(
-      //                         content:
-      //                             Text('تمت إضافة المرحلة: ${grade.name}')),
-      //                   );
-      //                 },
-      //                 child: const Text('إضافة'),
-      //               ),
-      //             ],
-      //           ),
-      //         );
-      //       },
-      //     ),
-      //   ],
-      // ),
    
     );
   }

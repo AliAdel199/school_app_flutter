@@ -6,12 +6,35 @@ import '/localdatabase/expense.dart';
 import '/localdatabase/income.dart';
 import '/localdatabase/student.dart';
 import '/localdatabase/student_fee_status.dart';
+import '/localdatabase/student_payment.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 import '../main.dart';
+
+/*
+ * ملاحظة مهمة للمطورين:
+ * 
+ * للتأكد من عمل فلترة الإيرادات والمصروفات بالسنة الدراسية بشكل صحيح،
+ * يجب ضمان ما يلي عند إضافة إيراد أو مصروف جديد:
+ * 
+ * 1. تعيين قيمة academicYear عند إنشاء الإيراد/المصروف:
+ *    income.academicYear = academicYear; // المتغير العام للسنة الحالية
+ *    expense.academicYear = academicYear;
+ * 
+ * 2. يجب أن تكون قيمة academicYear متطابقة في:
+ *    - جدول students
+ *    - جدول student_fee_status  
+ *    - جدول student_payments
+ *    - جدول incomes
+ *    - جدول expenses
+ * 
+ * 3. تنسيق السنة الدراسية يجب أن يكون موحد (مثل: "2023-2024")
+ * 
+ * 4. تحديث المتغير العام academicYear في main.dart عند تغيير السنة
+ */
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -40,17 +63,74 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   DateTime? startDate;
   DateTime? endDate;
+  
+  List<String> academicYears = [];
+  String? selectedAcademicYear;
 
   @override
    void initState() {
     super.initState();
     loadAcademicYear();
-    // افتراضياً يعرض جميع البيانات بدون فلترة، بإمكانك وضع فلترة أولية مثلاً شهر واحد سابق
+    loadAcademicYears();
+    // تعيين فترة زمنية افتراضية (العام الحالي) - ستظهر فقط إذا لم يتم اختيار سنة دراسية
+    final now = DateTime.now();
+    startDate = DateTime(now.year, 1, 1); // بداية السنة الحالية
+    endDate = DateTime(now.year, 12, 31); // نهاية السنة الحالية
 
-    startDate=DateTime.now().subtract(Duration(days: 1));
-    endDate = DateTime.now().add(Duration(days: 1));
-
-        fetchReportData();
+    fetchReportData();
+  }
+  
+  Future<void> loadAcademicYears() async {
+    try {
+      // جلب السنوات من جدول student_fee_status
+      final feeStatusYears = await isar.studentFeeStatus
+          .where()
+          .distinctByAcademicYear()
+          .findAll();
+      
+      // جلب السنوات من جدول student_payments
+      final allPayments = await isar.studentPayments.where().findAll();
+      final paymentYears = allPayments.where((p) => p.academicYear != null && p.academicYear!.isNotEmpty).map((p) => p.academicYear!).toSet();
+      
+      // جلب السنوات من جدول الإيرادات
+      final allIncomes = await isar.incomes.where().findAll();
+      final incomeYears = allIncomes.where((i) => i.academicYear.isNotEmpty).map((i) => i.academicYear).toSet();
+      
+      // جلب السنوات من جدول المصروفات
+      final allExpenses = await isar.expenses.where().findAll();
+      final expenseYears = allExpenses.where((e) => e.academicYear.isNotEmpty).map((e) => e.academicYear).toSet();
+      
+      Set<String> yearsSet = {};
+      yearsSet.addAll(feeStatusYears.map((f) => f.academicYear).where((year) => year.isNotEmpty));
+      yearsSet.addAll(paymentYears);
+      yearsSet.addAll(incomeYears);
+      yearsSet.addAll(expenseYears);
+      
+      // إضافة السنة الدراسية الحالية من الإعدادات إذا لم تكن موجودة
+      if (academicYear.isNotEmpty) {
+        yearsSet.add(academicYear);
+      }
+      
+      setState(() {
+        academicYears = yearsSet.toList();
+        academicYears.sort((a, b) => b.compareTo(a)); // ترتيب تنازلي (الأحدث أولاً)
+        
+        // إذا لم تكن هناك سنة مختارة، لا نختار أي سنة افتراضياً
+        // بل نترك المستخدم يختار أو يستخدم فلتر التاريخ
+        // if (selectedAcademicYear == null) {
+        //   if (academicYears.contains(academicYear)) {
+        //     selectedAcademicYear = academicYear; // السنة الحالية من الإعدادات
+        //   } else if (academicYears.isNotEmpty) {
+        //     selectedAcademicYear = academicYears.first; // أحدث سنة متوفرة
+        //   }
+        // }
+      });
+      
+      debugPrint('تم تحميل ${academicYears.length} سنة دراسية: $academicYears');
+      debugPrint('السنة المختارة: $selectedAcademicYear');
+    } catch (e) {
+      debugPrint('خطأ في تحميل السنوات الدراسية: $e');
+    }
   }
   // استبدل fetchReportData للعمل مع Isar بدلاً من Supabase
   // تأكد من استيراد مكتبة isar المناسبة في أعلى الملف:
@@ -84,32 +164,73 @@ class _ReportsScreenState extends State<ReportsScreen> {
       graduatedStudents = students.where((s) => s.status == 'graduated').length;
       withdrawnStudents = students.where((s) => s.status == 'منسحب').length;
 
-      final studentIds = students.map((s) => s.id).toList();
-
-      // جلب الأقساط
-      final fees = await isar.studentFeeStatus
-          .where().findAll();
+      // جلب الأقساط مع فلتر السنة الدراسية إذا كانت محددة
+      List<StudentFeeStatus> fees;
+      if (selectedAcademicYear != null) {
+        fees = await isar.studentFeeStatus
+            .filter()
+            .academicYearEqualTo(selectedAcademicYear!)
+            .findAll();
+      } else {
+        fees = await isar.studentFeeStatus.where().findAll();
+      }
 
       for (var fee in fees) {
-        totalAnnualFees += (fee.annualFee ?? 0).toDouble();
-        totalPaid += (fee.paidAmount ?? 0).toDouble();
+        totalAnnualFees += fee.annualFee.toDouble();
+        totalPaid += fee.paidAmount.toDouble();
         totalDue += (fee.dueAmount ?? 0).toDouble();
       }
-// جلب الإيرادات بين تاريخين
-final incomes = await isar.incomes
-    .filter()
-    .incomeDateBetween(startDate!, endDate!)
-    .findAll();
+// جلب الإيرادات والمصروفات
+// إذا تم اختيار سنة دراسية، استخدم التواريخ المحددة لها
+// وإلا استخدم التواريخ المحددة يدوياً أو الافتراضية
+DateTime searchStartDate = startDate ?? DateTime.now().subtract(Duration(days: 365));
+DateTime searchEndDate = endDate ?? DateTime.now();
 
-totalIncomes = incomes.fold(0.0, (sum, i) => sum + (i.amount ?? 0));
+debugPrint('البحث عن الإيرادات والمصروفات من ${DateFormat('yyyy-MM-dd').format(searchStartDate)} إلى ${DateFormat('yyyy-MM-dd').format(searchEndDate)}');
 
-// جلب المصروفات بين تاريخين
-final expenses = await isar.expenses
-    .filter()
-    .expenseDateBetween(startDate!, endDate!)
-    .findAll();
+// جلب الإيرادات
+List<Income> incomes;
+if (selectedAcademicYear != null) {
+  // البحث بالسنة الدراسية مباشرة (أسرع وأدق)
+  incomes = await isar.incomes
+      .filter()
+      .academicYearEqualTo(selectedAcademicYear!)
+      .findAll();
+  debugPrint('البحث في الإيرادات بالسنة الدراسية: $selectedAcademicYear');
+} else {
+  // البحث بالتاريخ عند عدم اختيار سنة دراسية
+  incomes = await isar.incomes
+      .filter()
+      .incomeDateBetween(searchStartDate, searchEndDate)
+      .findAll();
+  debugPrint('البحث في الإيرادات بالتاريخ من ${DateFormat('yyyy-MM-dd').format(searchStartDate)} إلى ${DateFormat('yyyy-MM-dd').format(searchEndDate)}');
+}
 
-totalExpenses = expenses.fold(0.0, (sum, e) => sum + (e.amount ?? 0));
+totalIncomes = incomes.fold(0.0, (sum, i) => sum + i.amount.toDouble());
+
+// جلب المصروفات
+List<Expense> expenses;
+if (selectedAcademicYear != null) {
+  // البحث بالسنة الدراسية مباشرة (أسرع وأدق)
+  expenses = await isar.expenses
+      .filter()
+      .academicYearEqualTo(selectedAcademicYear!)
+      .findAll();
+  debugPrint('البحث في المصروفات بالسنة الدراسية: $selectedAcademicYear');
+} else {
+  // البحث بالتاريخ عند عدم اختيار سنة دراسية
+  expenses = await isar.expenses
+      .filter()
+      .expenseDateBetween(searchStartDate, searchEndDate)
+      .findAll();
+  debugPrint('البحث في المصروفات بالتاريخ من ${DateFormat('yyyy-MM-dd').format(searchStartDate)} إلى ${DateFormat('yyyy-MM-dd').format(searchEndDate)}');
+}
+
+totalExpenses = expenses.fold(0.0, (sum, e) => sum + e.amount.toDouble());
+
+debugPrint('تم العثور على ${incomes.length} إيراد بإجمالي ${totalIncomes.toStringAsFixed(2)} د.ع');
+debugPrint('تم العثور على ${expenses.length} مصروف بإجمالي ${totalExpenses.toStringAsFixed(2)} د.ع');
+debugPrint('الرصيد الصافي: ${netBalance.toStringAsFixed(2)} د.ع');
 
       netBalance = totalIncomes - totalExpenses;
     } catch (e) {
@@ -118,98 +239,7 @@ totalExpenses = expenses.fold(0.0, (sum, e) => sum + (e.amount ?? 0));
       if (mounted) setState(() => isLoading = false);
     }
   }
-  // Future<void> fetchReportData() async {
-  //   setState(() => isLoading = true);
-  //   try {
-  //     totalStudents = 0;
-  //     activeStudents = 0;
-  //     inactiveStudents = 0;
-  //     graduatedStudents = 0;
-  //     withdrawnStudents = 0;
-  //     totalAnnualFees = 0;
-  //     totalPaid = 0;
-  //     totalDue = 0;
-  //     totalIncomes = 0;
-  //     totalExpenses = 0;
-  //     netBalance = 0;
-
-  //     final userId = supabase.auth.currentUser!.id;
-  //     final profile = await supabase
-  //         .from('profiles')
-  //         .select('school_id')
-  //         .eq('id', userId)
-  //         .single();
-  //     final schoolId = profile['school_id'];
-
-  //     final studentsRes = await supabase
-  //         .from('students')
-  //         .select('id, status')
-  //         .eq('school_id', schoolId);
-
-  //     final students = List<Map<String, dynamic>>.from(studentsRes);
-  //     totalStudents = students.length;
-  //     activeStudents = students.where((s) => s['status'] == 'active').length;
-  //     inactiveStudents = students.where((s) => s['status'] == 'inactive').length;
-  //     graduatedStudents = students.where((s) => s['status'] == 'graduated').length;
-  //     withdrawnStudents = students.where((s) => s['status'] == 'منسحب').length;
-
-  //     final studentIds = students.map((s) => s['id']).toList();
-
-  //     // الأقساط الدراسية غير مرتبطة مباشرة بفترة زمنية، تُعرض كلها
-  //     final feeRes = await supabase
-  //         .from('student_fee_status')
-  //         .select('annual_fee, paid_amount, due_amount, student_id')
-  //         .inFilter('student_id', studentIds);
-  //     final fees = List<Map<String, dynamic>>.from(feeRes);
-
-  //     for (var fee in fees) {
-  //       totalAnnualFees += (fee['annual_fee'] ?? 0).toDouble();
-  //       totalPaid += (fee['paid_amount'] ?? 0).toDouble();
-  //       totalDue += (fee['due_amount'] ?? 0).toDouble();
-  //     }
-
-  //     // جلب الإيرادات والمصروفات حسب الفترة
-  //     var incomeQuery = supabase
-  //         .from('incomes')
-  //         .select('amount, income_date')
-  //         .eq('school_id', schoolId);
-
-  //     var expenseQuery = supabase
-  //         .from('expenses')
-  //         .select('amount, expense_date')
-  //         .eq('school_id', schoolId);
-
-  //     if (startDate != null) {
-  //       final from = DateFormat('yyyy-MM-dd').format(startDate!);
-  //       incomeQuery = incomeQuery.gte('income_date', from);
-  //       expenseQuery = expenseQuery.gte('expense_date', from);
-  //     }
-  //     if (endDate != null) {
-  //       final to = DateFormat('yyyy-MM-dd').format(endDate!);
-  //       incomeQuery = incomeQuery.lte('income_date', to);
-  //       expenseQuery = expenseQuery.lte('expense_date', to);
-  //     }
-
-  //     final incomeRes = await incomeQuery;
-  //     final expenseRes = await expenseQuery;
-
-  //     totalIncomes = 0;
-  //     for (var income in incomeRes) {
-  //       totalIncomes += (income['amount'] ?? 0).toDouble();
-  //     }
-  //     totalExpenses = 0;
-  //     for (var exp in expenseRes) {
-  //       totalExpenses += (exp['amount'] ?? 0).toDouble();
-  //     }
-  //     netBalance = totalIncomes - totalExpenses;
-
-  //   } catch (e) {
-  //     debugPrint('خطأ في تحميل التقارير: \n$e');
-  //   } finally {
-  //     if (mounted) setState(() => isLoading = false);
-  //   }
-  // }
-
+ 
   Future<void> printReportPdf() async {
     final pdf = pw.Document();
     final formatter = NumberFormat('#,###');
@@ -241,13 +271,24 @@ totalExpenses = expenses.fold(0.0, (sum, e) => sum + (e.amount ?? 0));
                   ),
                 ),
                 pw.SizedBox(height: 12),
-                if (startDate != null || endDate != null)
-                  pw.Text(
-                    'الفترة: '
-                    '${startDate != null ? DateFormat('yyyy-MM-dd').format(startDate!) : '---'} '
-                    'إلى '
-                    '${endDate != null ? DateFormat('yyyy-MM-dd').format(endDate!) : '---'}',
-                    style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold),
+                if (startDate != null || endDate != null || selectedAcademicYear != null)
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      if (selectedAcademicYear != null)
+                        pw.Text(
+                          'السنة الدراسية: $selectedAcademicYear',
+                          style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold),
+                        ),
+                      if (startDate != null || endDate != null)
+                        pw.Text(
+                          'الفترة: '
+                          '${startDate != null ? DateFormat('yyyy-MM-dd').format(startDate!) : '---'} '
+                          'إلى '
+                          '${endDate != null ? DateFormat('yyyy-MM-dd').format(endDate!) : '---'}',
+                          style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold),
+                        ),
+                    ],
                   ),
                 pw.SizedBox(height: 16),
                 pw.Container(
@@ -347,67 +388,188 @@ totalExpenses = expenses.fold(0.0, (sum, e) => sum + (e.amount ?? 0));
           : Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        TextButton.icon(
-                          icon: const Icon(Icons.calendar_today),
-                          label: Text(startDate == null
-                              ? 'من تاريخ'
-                              : DateFormat('yyyy-MM-dd').format(startDate!)),
-                          onPressed: () async {
-                            final picked = await showDatePicker(
-                              context: context,
-                              initialDate: startDate ?? DateTime.now(),
-                              firstDate: DateTime(2022),
-                              lastDate: DateTime(2100),
-                            );
-                            if (picked != null) setState(() => startDate = picked);
-                          },
-                        ),
-                        const SizedBox(width: 10),
-                        TextButton.icon(
-                          icon: const Icon(Icons.calendar_today),
-                          label: Text(endDate == null
-                              ? 'إلى تاريخ'
-                              : DateFormat('yyyy-MM-dd').format(endDate!)),
-                          onPressed: () async {
-                            final picked = await showDatePicker(
-                              context: context,
-                              initialDate: endDate ?? DateTime.now(),
-                              firstDate: DateTime(2022),
-                              lastDate: DateTime(2100),
-                            );
-                            if (picked != null) setState(() => endDate = picked);
-                          },
-                        ),
-                        const SizedBox(width: 12),
-                        SizedBox(width: 150,
-                          child: ElevatedButton(
-                            onPressed: fetchReportData,
-                            child: const Text('تطبيق الفلترة'),
+                        // فلتر السنة الدراسية
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              DropdownButton<String>(
+                                value: selectedAcademicYear,
+                                hint: const Text('جميع السنوات'),
+                                underline: Container(),
+                                items: [
+                                  const DropdownMenuItem<String>(
+                                    value: null,
+                                    child: Text('جميع السنوات'),
+                                  ),
+                                  ...academicYears.map((year) => DropdownMenuItem<String>(
+                                    value: year,
+                                    child: Text(year),
+                                  )),
+                                ],
+                                onChanged: (value) {
+                                  setState(() {
+                                    selectedAcademicYear = value;
+                                    // تحديث الفترة الزمنية تلقائياً بناءً على السنة الدراسية
+                                    if (value != null) {
+                                      // استخراج السنة من النص (مثلاً: "2023-2024" -> 2023)
+                                      try {
+                                        final yearParts = value.split('-');
+                                        if (yearParts.length >= 2) {
+                                          final startYear = int.parse(yearParts[0]);
+                                          final endYear = int.parse(yearParts[1]);
+                                          startDate = DateTime(endYear, 1, 1); // بداية السنة الدراسية (يناير)
+                                          endDate = DateTime(startYear, 12, 31); // نهاية السنة الدراسية (ديسمبر)
+                                        } else {
+                                          // إذا كان تنسيق مختلف، استخدم السنة الحالية
+                                          final year = int.parse(value);
+                                          startDate = DateTime(year, 1, 1);
+                                          endDate = DateTime(year, 12, 31);
+                                        }
+                                      } catch (e) {
+                                        // في حالة فشل التحليل، استخدم التواريخ الافتراضية
+                                        startDate = DateTime.now().subtract(Duration(days: 365));
+                                        endDate = DateTime.now();
+                                      }
+                                    }
+                                  });
+                                  fetchReportData();
+                                },
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.refresh, size: 18),
+                                tooltip: 'تحديث السنوات',
+                                onPressed: () {
+                                  loadAcademicYears();
+                                },
+                              ),
+                            ],
                           ),
                         ),
                         const SizedBox(width: 12),
-                        if (startDate != null || endDate != null)
+                        // إظهار اختيار التاريخ فقط إذا لم يتم اختيار سنة دراسية محددة
+                        if (selectedAcademicYear == null) ...[
+                          TextButton.icon(
+                            icon: const Icon(Icons.calendar_today),
+                            label: Text(startDate == null
+                                ? 'من تاريخ'
+                                : DateFormat('yyyy-MM-dd').format(startDate!)),
+                            onPressed: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: startDate ?? DateTime.now(),
+                                firstDate: DateTime(2022),
+                                lastDate: DateTime(2100),
+                              );
+                              if (picked != null) {
+                                setState(() => startDate = picked);
+                                fetchReportData();
+                              }
+                            },
+                          ),
+                          const SizedBox(width: 10),
+                          TextButton.icon(
+                            icon: const Icon(Icons.calendar_today),
+                            label: Text(endDate == null
+                                ? 'إلى تاريخ'
+                                : DateFormat('yyyy-MM-dd').format(endDate!)),
+                            onPressed: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: endDate ?? DateTime.now(),
+                                firstDate: DateTime(2022),
+                                lastDate: DateTime(2100),
+                              );
+                              if (picked != null) {
+                                setState(() => endDate = picked);
+                                fetchReportData();
+                              }
+                            },
+                          ),
+                          const SizedBox(width: 12),
+                        ],
+                        // زر تطبيق الفلترة فقط إذا لم يتم اختيار سنة دراسية
+                        if (selectedAcademicYear == null)
+                          SizedBox(
+                            width: 150,
+                            child: ElevatedButton(
+                              onPressed: fetchReportData,
+                              child: const Text('تطبيق الفلترة'),
+                            ),
+                          ),
+                        const SizedBox(width: 12),
+                        if (selectedAcademicYear != null || (selectedAcademicYear == null && (startDate != null || endDate != null)))
                           IconButton(
                             icon: const Icon(Icons.clear),
                             tooltip: 'إلغاء الفلترة',
                             onPressed: () {
                               setState(() {
-                                startDate = null;
-                                endDate = null;
-                                fetchReportData();
+                                selectedAcademicYear = null;
+                                // إعادة تعيين التواريخ إلى العام الحالي
+                                final now = DateTime.now();
+                                startDate = DateTime(now.year, 1, 1);
+                                endDate = DateTime(now.year, 12, 31);
                               });
+                              fetchReportData();
                             },
                           ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 16),
+                  // عرض معلومات السنوات الدراسية المتوفرة
+                  if (academicYears.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.info_outline, color: Colors.blue[700], size: 18),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              selectedAcademicYear != null
+                                  ? 'السنة الدراسية: $selectedAcademicYear (${DateFormat('dd/MM/yyyy').format(startDate!)} - ${DateFormat('dd/MM/yyyy').format(endDate!)})'
+                                  : 'عرض عام - الفترة: ${DateFormat('dd/MM/yyyy').format(startDate!)} - ${DateFormat('dd/MM/yyyy').format(endDate!)} | ${academicYears.length} سنة متوفرة',
+                              style: TextStyle(
+                                color: Colors.blue[700],
+                                fontWeight: FontWeight.w500,
+                                fontSize: 13,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          TextButton.icon(
+                            onPressed: () {
+                              _showAcademicYearsDialog();
+                            },
+                            icon: const Icon(Icons.list, size: 16),
+                            label: const Text('عرض جميع السنوات'),
+                            style: TextButton.styleFrom(
+                              textStyle: const TextStyle(fontSize: 12),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   Expanded(
                     child: Wrap(
                       spacing: 25,
@@ -457,6 +619,98 @@ totalExpenses = expenses.fold(0.0, (sum, e) => sum + (e.amount ?? 0));
           ),
         ),
       ),
+    );
+  }
+
+  void _showAcademicYearsDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text(
+            'السنوات الدراسية المتوفرة',
+            textAlign: TextAlign.center,
+          ),
+          content: Container(
+            width: double.maxFinite,
+            constraints: const BoxConstraints(maxHeight: 400),
+            child: academicYears.isEmpty
+                ? const Center(
+                    child: Text(
+                      'لا توجد سنوات دراسية محفوظة',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  )
+                : ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: academicYears.length,
+                    itemBuilder: (context, index) {
+                      final year = academicYears[index];
+                      final isSelected = year == selectedAcademicYear;
+                      
+                      return Card(
+                        margin: const EdgeInsets.symmetric(vertical: 2),
+                        color: isSelected ? Colors.blue.withOpacity(0.1) : null,
+                        child: ListTile(
+                          leading: Icon(
+                            Icons.calendar_today,
+                            color: isSelected ? Colors.blue : Colors.grey,
+                          ),
+                          title: Text(
+                            year,
+                            style: TextStyle(
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              color: isSelected ? Colors.blue : null,
+                            ),
+                          ),
+                          trailing: isSelected
+                              ? Icon(Icons.check_circle, color: Colors.green)
+                              : null,
+                          onTap: () {
+                            setState(() {
+                              selectedAcademicYear = year;
+                              // تحديث التواريخ بناءً على السنة المختارة
+                              try {
+                                final yearParts = year.split('-');
+                                if (yearParts.length >= 2) {
+                                  final startYear = int.parse(yearParts[0]);
+                                  final endYear = int.parse(yearParts[1]);
+                                  startDate = DateTime(startYear, 9, 1);
+                                  endDate = DateTime(endYear, 6, 30);
+                                }
+                              } catch (e) {
+                                // في حالة فشل التحليل، استخدم التواريخ الافتراضية
+                                final now = DateTime.now();
+                                startDate = DateTime(now.year, 1, 1);
+                                endDate = DateTime(now.year, 12, 31);
+                              }
+                            });
+                            Navigator.of(context).pop();
+                            fetchReportData();
+                          },
+                        ),
+                      );
+                    },
+                  ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  selectedAcademicYear = null;
+                });
+                Navigator.of(context).pop();
+                fetchReportData();
+              },
+              child: const Text('جميع السنوات'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('إغلاق'),
+            ),
+          ],
+        );
+      },
     );
   }
 }

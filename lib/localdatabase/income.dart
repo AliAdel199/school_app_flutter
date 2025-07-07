@@ -10,7 +10,10 @@ class Income {
   late String title;          // عنوان الإيراد
   late double amount;         // المبلغ
   String? note;               // ملاحظات
-  late DateTime incomeDate;   // تاريخ الإيراد
+  late DateTime incomeDate; 
+  late String academicYear; // تاريخ المصروف
+
+  // تاريخ الإيراد
 bool archived=false;
   final category = IsarLink<IncomeCategory>(); // ربط بتصنيف الإيراد
 }

@@ -22,8 +22,13 @@ const SchoolClassSchema = CollectionSchema(
       name: r'annualFee',
       type: IsarType.double,
     ),
-    r'name': PropertySchema(
+    r'level': PropertySchema(
       id: 1,
+      name: r'level',
+      type: IsarType.long,
+    ),
+    r'name': PropertySchema(
+      id: 2,
       name: r'name',
       type: IsarType.string,
     )
@@ -72,7 +77,8 @@ void _schoolClassSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeDouble(offsets[0], object.annualFee);
-  writer.writeString(offsets[1], object.name);
+  writer.writeLong(offsets[1], object.level);
+  writer.writeString(offsets[2], object.name);
 }
 
 SchoolClass _schoolClassDeserialize(
@@ -84,7 +90,8 @@ SchoolClass _schoolClassDeserialize(
   final object = SchoolClass();
   object.annualFee = reader.readDoubleOrNull(offsets[0]);
   object.id = id;
-  object.name = reader.readString(offsets[1]);
+  object.level = reader.readLong(offsets[1]);
+  object.name = reader.readString(offsets[2]);
   return object;
 }
 
@@ -98,6 +105,8 @@ P _schoolClassDeserializeProp<P>(
     case 0:
       return (reader.readDoubleOrNull(offset)) as P;
     case 1:
+      return (reader.readLong(offset)) as P;
+    case 2:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -336,6 +345,60 @@ extension SchoolClassQueryFilter
     });
   }
 
+  QueryBuilder<SchoolClass, SchoolClass, QAfterFilterCondition> levelEqualTo(
+      int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'level',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SchoolClass, SchoolClass, QAfterFilterCondition>
+      levelGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'level',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SchoolClass, SchoolClass, QAfterFilterCondition> levelLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'level',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SchoolClass, SchoolClass, QAfterFilterCondition> levelBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'level',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
   QueryBuilder<SchoolClass, SchoolClass, QAfterFilterCondition> nameEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -562,6 +625,18 @@ extension SchoolClassQuerySortBy
     });
   }
 
+  QueryBuilder<SchoolClass, SchoolClass, QAfterSortBy> sortByLevel() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'level', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SchoolClass, SchoolClass, QAfterSortBy> sortByLevelDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'level', Sort.desc);
+    });
+  }
+
   QueryBuilder<SchoolClass, SchoolClass, QAfterSortBy> sortByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -601,6 +676,18 @@ extension SchoolClassQuerySortThenBy
     });
   }
 
+  QueryBuilder<SchoolClass, SchoolClass, QAfterSortBy> thenByLevel() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'level', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SchoolClass, SchoolClass, QAfterSortBy> thenByLevelDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'level', Sort.desc);
+    });
+  }
+
   QueryBuilder<SchoolClass, SchoolClass, QAfterSortBy> thenByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -619,6 +706,12 @@ extension SchoolClassQueryWhereDistinct
   QueryBuilder<SchoolClass, SchoolClass, QDistinct> distinctByAnnualFee() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'annualFee');
+    });
+  }
+
+  QueryBuilder<SchoolClass, SchoolClass, QDistinct> distinctByLevel() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'level');
     });
   }
 
@@ -641,6 +734,12 @@ extension SchoolClassQueryProperty
   QueryBuilder<SchoolClass, double?, QQueryOperations> annualFeeProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'annualFee');
+    });
+  }
+
+  QueryBuilder<SchoolClass, int, QQueryOperations> levelProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'level');
     });
   }
 

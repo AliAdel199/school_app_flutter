@@ -52,15 +52,30 @@ const StudentFeeStatusSchema = CollectionSchema(
       name: r'nextDueDate',
       type: IsarType.dateTime,
     ),
-    r'paidAmount': PropertySchema(
+    r'originalDebtAcademicYear': PropertySchema(
       id: 7,
+      name: r'originalDebtAcademicYear',
+      type: IsarType.string,
+    ),
+    r'originalDebtClassName': PropertySchema(
+      id: 8,
+      name: r'originalDebtClassName',
+      type: IsarType.string,
+    ),
+    r'paidAmount': PropertySchema(
+      id: 9,
       name: r'paidAmount',
       type: IsarType.double,
     ),
     r'studentId': PropertySchema(
-      id: 8,
+      id: 10,
       name: r'studentId',
       type: IsarType.string,
+    ),
+    r'transferredDebtAmount': PropertySchema(
+      id: 11,
+      name: r'transferredDebtAmount',
+      type: IsarType.double,
     )
   },
   estimateSize: _studentFeeStatusEstimateSize,
@@ -92,6 +107,18 @@ int _studentFeeStatusEstimateSize(
   var bytesCount = offsets.last;
   bytesCount += 3 + object.academicYear.length * 3;
   bytesCount += 3 + object.className.length * 3;
+  {
+    final value = object.originalDebtAcademicYear;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.originalDebtClassName;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.studentId.length * 3;
   return bytesCount;
 }
@@ -109,8 +136,11 @@ void _studentFeeStatusSerialize(
   writer.writeDouble(offsets[4], object.dueAmount);
   writer.writeDateTime(offsets[5], object.lastPaymentDate);
   writer.writeDateTime(offsets[6], object.nextDueDate);
-  writer.writeDouble(offsets[7], object.paidAmount);
-  writer.writeString(offsets[8], object.studentId);
+  writer.writeString(offsets[7], object.originalDebtAcademicYear);
+  writer.writeString(offsets[8], object.originalDebtClassName);
+  writer.writeDouble(offsets[9], object.paidAmount);
+  writer.writeString(offsets[10], object.studentId);
+  writer.writeDouble(offsets[11], object.transferredDebtAmount);
 }
 
 StudentFeeStatus _studentFeeStatusDeserialize(
@@ -128,8 +158,11 @@ StudentFeeStatus _studentFeeStatusDeserialize(
   object.id = id;
   object.lastPaymentDate = reader.readDateTimeOrNull(offsets[5]);
   object.nextDueDate = reader.readDateTimeOrNull(offsets[6]);
-  object.paidAmount = reader.readDouble(offsets[7]);
-  object.studentId = reader.readString(offsets[8]);
+  object.originalDebtAcademicYear = reader.readStringOrNull(offsets[7]);
+  object.originalDebtClassName = reader.readStringOrNull(offsets[8]);
+  object.paidAmount = reader.readDouble(offsets[9]);
+  object.studentId = reader.readString(offsets[10]);
+  object.transferredDebtAmount = reader.readDouble(offsets[11]);
   return object;
 }
 
@@ -155,9 +188,15 @@ P _studentFeeStatusDeserializeProp<P>(
     case 6:
       return (reader.readDateTimeOrNull(offset)) as P;
     case 7:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 8:
+      return (reader.readStringOrNull(offset)) as P;
+    case 9:
+      return (reader.readDouble(offset)) as P;
+    case 10:
       return (reader.readString(offset)) as P;
+    case 11:
+      return (reader.readDouble(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -941,6 +980,317 @@ extension StudentFeeStatusQueryFilter
   }
 
   QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      originalDebtAcademicYearIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'originalDebtAcademicYear',
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      originalDebtAcademicYearIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'originalDebtAcademicYear',
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      originalDebtAcademicYearEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'originalDebtAcademicYear',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      originalDebtAcademicYearGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'originalDebtAcademicYear',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      originalDebtAcademicYearLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'originalDebtAcademicYear',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      originalDebtAcademicYearBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'originalDebtAcademicYear',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      originalDebtAcademicYearStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'originalDebtAcademicYear',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      originalDebtAcademicYearEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'originalDebtAcademicYear',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      originalDebtAcademicYearContains(String value,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'originalDebtAcademicYear',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      originalDebtAcademicYearMatches(String pattern,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'originalDebtAcademicYear',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      originalDebtAcademicYearIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'originalDebtAcademicYear',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      originalDebtAcademicYearIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'originalDebtAcademicYear',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      originalDebtClassNameIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'originalDebtClassName',
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      originalDebtClassNameIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'originalDebtClassName',
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      originalDebtClassNameEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'originalDebtClassName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      originalDebtClassNameGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'originalDebtClassName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      originalDebtClassNameLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'originalDebtClassName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      originalDebtClassNameBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'originalDebtClassName',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      originalDebtClassNameStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'originalDebtClassName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      originalDebtClassNameEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'originalDebtClassName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      originalDebtClassNameContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'originalDebtClassName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      originalDebtClassNameMatches(String pattern,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'originalDebtClassName',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      originalDebtClassNameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'originalDebtClassName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      originalDebtClassNameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'originalDebtClassName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
       paidAmountEqualTo(
     double value, {
     double epsilon = Query.epsilon,
@@ -1141,6 +1491,72 @@ extension StudentFeeStatusQueryFilter
       ));
     });
   }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      transferredDebtAmountEqualTo(
+    double value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'transferredDebtAmount',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      transferredDebtAmountGreaterThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'transferredDebtAmount',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      transferredDebtAmountLessThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'transferredDebtAmount',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterFilterCondition>
+      transferredDebtAmountBetween(
+    double lower,
+    double upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'transferredDebtAmount',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
 }
 
 extension StudentFeeStatusQueryObject
@@ -1264,6 +1680,34 @@ extension StudentFeeStatusQuerySortBy
   }
 
   QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterSortBy>
+      sortByOriginalDebtAcademicYear() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'originalDebtAcademicYear', Sort.asc);
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterSortBy>
+      sortByOriginalDebtAcademicYearDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'originalDebtAcademicYear', Sort.desc);
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterSortBy>
+      sortByOriginalDebtClassName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'originalDebtClassName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterSortBy>
+      sortByOriginalDebtClassNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'originalDebtClassName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterSortBy>
       sortByPaidAmount() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'paidAmount', Sort.asc);
@@ -1288,6 +1732,20 @@ extension StudentFeeStatusQuerySortBy
       sortByStudentIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'studentId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterSortBy>
+      sortByTransferredDebtAmount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'transferredDebtAmount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterSortBy>
+      sortByTransferredDebtAmountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'transferredDebtAmount', Sort.desc);
     });
   }
 }
@@ -1406,6 +1864,34 @@ extension StudentFeeStatusQuerySortThenBy
   }
 
   QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterSortBy>
+      thenByOriginalDebtAcademicYear() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'originalDebtAcademicYear', Sort.asc);
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterSortBy>
+      thenByOriginalDebtAcademicYearDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'originalDebtAcademicYear', Sort.desc);
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterSortBy>
+      thenByOriginalDebtClassName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'originalDebtClassName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterSortBy>
+      thenByOriginalDebtClassNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'originalDebtClassName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterSortBy>
       thenByPaidAmount() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'paidAmount', Sort.asc);
@@ -1430,6 +1916,20 @@ extension StudentFeeStatusQuerySortThenBy
       thenByStudentIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'studentId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterSortBy>
+      thenByTransferredDebtAmount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'transferredDebtAmount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QAfterSortBy>
+      thenByTransferredDebtAmountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'transferredDebtAmount', Sort.desc);
     });
   }
 }
@@ -1486,6 +1986,22 @@ extension StudentFeeStatusQueryWhereDistinct
   }
 
   QueryBuilder<StudentFeeStatus, StudentFeeStatus, QDistinct>
+      distinctByOriginalDebtAcademicYear({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'originalDebtAcademicYear',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QDistinct>
+      distinctByOriginalDebtClassName({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'originalDebtClassName',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QDistinct>
       distinctByPaidAmount() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'paidAmount');
@@ -1496,6 +2012,13 @@ extension StudentFeeStatusQueryWhereDistinct
       distinctByStudentId({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'studentId', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, StudentFeeStatus, QDistinct>
+      distinctByTransferredDebtAmount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'transferredDebtAmount');
     });
   }
 }
@@ -1555,6 +2078,20 @@ extension StudentFeeStatusQueryProperty
     });
   }
 
+  QueryBuilder<StudentFeeStatus, String?, QQueryOperations>
+      originalDebtAcademicYearProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'originalDebtAcademicYear');
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, String?, QQueryOperations>
+      originalDebtClassNameProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'originalDebtClassName');
+    });
+  }
+
   QueryBuilder<StudentFeeStatus, double, QQueryOperations>
       paidAmountProperty() {
     return QueryBuilder.apply(this, (query) {
@@ -1565,6 +2102,13 @@ extension StudentFeeStatusQueryProperty
   QueryBuilder<StudentFeeStatus, String, QQueryOperations> studentIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'studentId');
+    });
+  }
+
+  QueryBuilder<StudentFeeStatus, double, QQueryOperations>
+      transferredDebtAmountProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'transferredDebtAmount');
     });
   }
 }

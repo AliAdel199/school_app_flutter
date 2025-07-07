@@ -119,6 +119,7 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
     loadAcademicYear();
     fetchClasses();
     fetchGradesIsar();
+    registrationYearController.text = academicYear;
     // إذا كان هناك طالب موجود، قم بملء الحقول  
     if (widget.student != null) {
       final s = widget.student!;
@@ -274,6 +275,12 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
                               focusNode: fullNameFocus,
                               textInputAction: TextInputAction.next,
                               onFieldSubmitted: (_) {
+                                                   List<String> parts = fullNameController.text.trim().split(" ");
+                if (parts.length >= 2) {
+                  parentNameController.text = parts[1]; // اسم الأب
+                } else {
+                  parentNameController.text = '';
+                }
                                 FocusScope.of(context).requestFocus(parentNameFocus);
                               },
                               decoration: const InputDecoration(labelText: 'الاسم الكامل'),
@@ -284,6 +291,7 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
                               focusNode: nationalIdFocus,
                               textInputAction: TextInputAction.next,
                               onFieldSubmitted: (_) {
+                
                                 FocusScope.of(context).requestFocus(phoneFocus);
                               },
                               decoration: const InputDecoration(labelText: 'الرقم الوطني'),
@@ -479,6 +487,7 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
                                             ..email = emailController.text.trim()
                                             ..gender = gender
                                             ..status = status
+                                            
                                             ..parentName = parentNameController.text.trim()
                                             ..parentPhone = parentPhoneController.text.trim()
                                             ..phone = phoneController.text.trim()

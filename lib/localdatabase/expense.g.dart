@@ -17,28 +17,33 @@ const ExpenseSchema = CollectionSchema(
   name: r'Expense',
   id: -4604318666888508206,
   properties: {
-    r'amount': PropertySchema(
+    r'academicYear': PropertySchema(
       id: 0,
+      name: r'academicYear',
+      type: IsarType.string,
+    ),
+    r'amount': PropertySchema(
+      id: 1,
       name: r'amount',
       type: IsarType.double,
     ),
     r'archived': PropertySchema(
-      id: 1,
+      id: 2,
       name: r'archived',
       type: IsarType.bool,
     ),
     r'expenseDate': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'expenseDate',
       type: IsarType.dateTime,
     ),
     r'note': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'note',
       type: IsarType.string,
     ),
     r'title': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'title',
       type: IsarType.string,
     )
@@ -70,6 +75,7 @@ int _expenseEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  bytesCount += 3 + object.academicYear.length * 3;
   {
     final value = object.note;
     if (value != null) {
@@ -86,11 +92,12 @@ void _expenseSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeDouble(offsets[0], object.amount);
-  writer.writeBool(offsets[1], object.archived);
-  writer.writeDateTime(offsets[2], object.expenseDate);
-  writer.writeString(offsets[3], object.note);
-  writer.writeString(offsets[4], object.title);
+  writer.writeString(offsets[0], object.academicYear);
+  writer.writeDouble(offsets[1], object.amount);
+  writer.writeBool(offsets[2], object.archived);
+  writer.writeDateTime(offsets[3], object.expenseDate);
+  writer.writeString(offsets[4], object.note);
+  writer.writeString(offsets[5], object.title);
 }
 
 Expense _expenseDeserialize(
@@ -100,12 +107,13 @@ Expense _expenseDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = Expense();
-  object.amount = reader.readDouble(offsets[0]);
-  object.archived = reader.readBool(offsets[1]);
-  object.expenseDate = reader.readDateTime(offsets[2]);
+  object.academicYear = reader.readString(offsets[0]);
+  object.amount = reader.readDouble(offsets[1]);
+  object.archived = reader.readBool(offsets[2]);
+  object.expenseDate = reader.readDateTime(offsets[3]);
   object.id = id;
-  object.note = reader.readStringOrNull(offsets[3]);
-  object.title = reader.readString(offsets[4]);
+  object.note = reader.readStringOrNull(offsets[4]);
+  object.title = reader.readString(offsets[5]);
   return object;
 }
 
@@ -117,14 +125,16 @@ P _expenseDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 1:
-      return (reader.readBool(offset)) as P;
+      return (reader.readDouble(offset)) as P;
     case 2:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 3:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDateTime(offset)) as P;
     case 4:
+      return (reader.readStringOrNull(offset)) as P;
+    case 5:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -222,6 +232,137 @@ extension ExpenseQueryWhere on QueryBuilder<Expense, Expense, QWhereClause> {
 
 extension ExpenseQueryFilter
     on QueryBuilder<Expense, Expense, QFilterCondition> {
+  QueryBuilder<Expense, Expense, QAfterFilterCondition> academicYearEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'academicYear',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterFilterCondition> academicYearGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'academicYear',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterFilterCondition> academicYearLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'academicYear',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterFilterCondition> academicYearBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'academicYear',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterFilterCondition> academicYearStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'academicYear',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterFilterCondition> academicYearEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'academicYear',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterFilterCondition> academicYearContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'academicYear',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterFilterCondition> academicYearMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'academicYear',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterFilterCondition> academicYearIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'academicYear',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterFilterCondition>
+      academicYearIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'academicYear',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<Expense, Expense, QAfterFilterCondition> amountEqualTo(
     double value, {
     double epsilon = Query.epsilon,
@@ -696,6 +837,18 @@ extension ExpenseQueryLinks
 }
 
 extension ExpenseQuerySortBy on QueryBuilder<Expense, Expense, QSortBy> {
+  QueryBuilder<Expense, Expense, QAfterSortBy> sortByAcademicYear() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'academicYear', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterSortBy> sortByAcademicYearDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'academicYear', Sort.desc);
+    });
+  }
+
   QueryBuilder<Expense, Expense, QAfterSortBy> sortByAmount() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'amount', Sort.asc);
@@ -759,6 +912,18 @@ extension ExpenseQuerySortBy on QueryBuilder<Expense, Expense, QSortBy> {
 
 extension ExpenseQuerySortThenBy
     on QueryBuilder<Expense, Expense, QSortThenBy> {
+  QueryBuilder<Expense, Expense, QAfterSortBy> thenByAcademicYear() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'academicYear', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterSortBy> thenByAcademicYearDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'academicYear', Sort.desc);
+    });
+  }
+
   QueryBuilder<Expense, Expense, QAfterSortBy> thenByAmount() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'amount', Sort.asc);
@@ -834,6 +999,13 @@ extension ExpenseQuerySortThenBy
 
 extension ExpenseQueryWhereDistinct
     on QueryBuilder<Expense, Expense, QDistinct> {
+  QueryBuilder<Expense, Expense, QDistinct> distinctByAcademicYear(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'academicYear', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<Expense, Expense, QDistinct> distinctByAmount() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'amount');
@@ -872,6 +1044,12 @@ extension ExpenseQueryProperty
   QueryBuilder<Expense, int, QQueryOperations> idProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'id');
+    });
+  }
+
+  QueryBuilder<Expense, String, QQueryOperations> academicYearProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'academicYear');
     });
   }
 

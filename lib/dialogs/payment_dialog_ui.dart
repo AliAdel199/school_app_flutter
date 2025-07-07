@@ -249,6 +249,13 @@ Future<bool?> showAddPaymentDialogIsar({
                       if (!formKey.currentState!.validate()) return;
                       setState(() => isLoading = true);
                       try {
+                        debugPrint('بدء عملية الدفع - السنة الدراسية: $academicYear');
+                        
+                        // التحقق من صحة السنة الدراسية
+                        if (academicYear.isEmpty) {
+                          throw Exception('السنة الدراسية غير محددة');
+                        }
+                        
                         final amount = double.parse(amountController.text);
                         final receiptNumber = 'R-${DateTime.now().millisecondsSinceEpoch}';
                         
@@ -278,6 +285,7 @@ Future<bool?> showAddPaymentDialogIsar({
                             final allPayments = await isar.studentPayments
                                 .filter()
                                 .studentIdEqualTo(studentId)
+                                .academicYearEqualTo(academicYear)
                                 .findAll();
 
                             double totalPaid = allPayments.fold(0.0, (sum, p) => sum + p.amount);
@@ -286,7 +294,9 @@ Future<bool?> showAddPaymentDialogIsar({
                                 : null;
 
                             feeStatus.paidAmount = totalPaid;
-                            feeStatus.dueAmount = feeStatus.annualFee - totalPaid;
+                            // احسب المبلغ المتبقي مع الأخذ في الاعتبار الدين المنقول
+                            final totalDue = feeStatus.annualFee + feeStatus.transferredDebtAmount;
+                            feeStatus.dueAmount = totalDue - totalPaid;
                             feeStatus.lastPaymentDate = lastDate;
                             feeStatus.academicYear = academicYear;
                             feeStatus.nextDueDate = nextDueDate;
@@ -295,21 +305,29 @@ Future<bool?> showAddPaymentDialogIsar({
                           }
 
                           // إضافة الإيراد وربطه بالفئة "قسط طالب"
-                          final category = await isar.incomeCategorys
+                          var category = await isar.incomeCategorys
                               .filter()
                               .nameEqualTo('قسط طالب')
                               .findFirst();
 
-                          final finalCategory = category ;
+                          // إنشاء الفئة إذا لم تكن موجودة
+                          if (category == null) {
+                            category = IncomeCategory()
+                              ..name = 'قسط طالب'
+                              ..identifier = 'student_tuition';
+                            await isar.incomeCategorys.put(category);
+                            debugPrint('تم إنشاء فئة جديدة: قسط طالب');
+                          }
 
+                          debugPrint('إنشاء إيراد - السنة الدراسية: $academicYear, العنوان: ${student.fullName}');
                           final income = Income()
                             ..title = student.fullName
                             ..amount = amount
                             ..note = notesController.text
                             ..incomeDate = DateTime.now()
-                            ..category.value = finalCategory;
+                            ..academicYear = academicYear
+                            ..category.value = category;
 
-                          await isar.incomeCategorys.put(finalCategory!);
                           await isar.incomes.put(income);
                           await income.category.save();
                         });

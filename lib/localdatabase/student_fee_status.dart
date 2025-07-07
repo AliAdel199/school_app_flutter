@@ -14,7 +14,13 @@ class StudentFeeStatus {
   DateTime? lastPaymentDate;
   DateTime? nextDueDate;
   DateTime createdAt = DateTime.now();
-late String className;
+  late String className;
+  
+  // حقول لتتبع الديون المنقولة من سنوات سابقة
+  double transferredDebtAmount = 0; // المبلغ المنقول من سنة سابقة
+  String? originalDebtAcademicYear; // السنة الدراسية الأصلية للدين
+  String? originalDebtClassName; // الصف الأصلي للدين
+  
   // الربط مع الطالب
   final student = IsarLink<Student>();
   late String studentId;

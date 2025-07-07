@@ -14,6 +14,7 @@ class SchoolClass {
 
   late String name;
   double? annualFee;
+  late int level; 
 
   final grade = IsarLink<Grade>();
 

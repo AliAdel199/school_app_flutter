@@ -56,6 +56,25 @@ bool isCloud = true; // تحديد ما إذا كان التطبيق يعمل ف
 Future<void> loadAcademicYear() async {
   final prefs = await SharedPreferences.getInstance();
   academicYear = prefs.getString('academicYear') ?? '';
+  
+  // إذا لم تكن السنة الدراسية محفوظة، أنشئ قيمة افتراضية
+  if (academicYear.isEmpty) {
+    final currentDate = DateTime.now();
+    final currentYear = currentDate.year;
+    final currentMonth = currentDate.month;
+    
+    // إذا كان الشهر بين سبتمبر وديسمبر، فالسنة الدراسية تبدأ من السنة الحالية
+    // إذا كان بين يناير وأغسطس، فالسنة الدراسية بدأت من السنة السابقة
+    if (currentMonth >= 9) {
+      academicYear = '$currentYear-${currentYear + 1}';
+    } else {
+      academicYear = '${currentYear - 1}-$currentYear';
+    }
+    
+    // حفظ السنة الدراسية الافتراضية
+    await saveAcademicYear(academicYear);
+    debugPrint('تم إنشاء سنة دراسية افتراضية: $academicYear');
+  }
 }
 
 Future<void> saveAcademicYear(String year) async {
@@ -90,6 +109,10 @@ print(dir2.path);
     ExpenseSchema,
     ExpenseCategorySchema
   ], directory: dir.path, inspector: true, name: 'school_app_flutter');
+
+  // تحميل السنة الدراسية من الإعدادات
+  await loadAcademicYear();
+  debugPrint('السنة الدراسية المحملة: $academicYear');
 
   final archived = await LicenseManager.verifyLicense();
   final inTrial = await LicenseManager.isTrialValid();

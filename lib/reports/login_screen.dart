@@ -143,9 +143,11 @@ Future<void> loginIsar() async {
                           TextFormField(
                             controller: passwordController,
                             obscureText: true,
+                            onFieldSubmitted: (value) => loginIsar(),
                             decoration: const InputDecoration(
                               labelText: 'كلمة المرور',
                               border: OutlineInputBorder(),
+                              
                             ),
                             validator: (value) =>
                                 value!.isEmpty ? 'يرجى إدخال كلمة المرور' : null,
