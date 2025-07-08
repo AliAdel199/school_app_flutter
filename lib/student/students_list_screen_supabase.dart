@@ -580,7 +580,7 @@ TextButton.icon(
       double previousDue = 0;
       if (currentFeeStatus != null) {
         // حساب المبلغ المتبقي الفعلي
-        final totalRequired = currentFeeStatus.annualFee + currentFeeStatus.transferredDebtAmount;
+        final totalRequired = currentFeeStatus.annualFee + currentFeeStatus.transferredDebtAmount - currentFeeStatus.discountAmount;
         final totalPaid = currentFeeStatus.paidAmount;
         previousDue = totalRequired - totalPaid;
         

@@ -282,6 +282,7 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
                             _buildStatCard('القسط السنوي', '${formatter.format(feeStatus!.annualFee)} د.ع', Colors.blue),
                             _buildStatCard('المدفوع', '${formatter.format(feeStatus!.paidAmount)} د.ع', Colors.green),
                             _buildStatCard('المتبقي', '${formatter.format(feeStatus!.dueAmount)} د.ع', Colors.red),
+                            _buildStatCard('الخصم', '${formatter.format(feeStatus!.discountAmount)} د.ع', Colors.orangeAccent),
                             if (feeStatus!.transferredDebtAmount > 0)
                               _buildStatCard('دين منقول', '${formatter.format(feeStatus!.transferredDebtAmount)} د.ع', Colors.orange),
                           ],

@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:isar/isar.dart';
+import 'package:school_app_flutter/localdatabase/student_discount.dart';
 import 'package:school_app_flutter/localdatabase/student_payment.dart';
+import 'package:school_app_flutter/main.dart';
 import '../localdatabase/student.dart';
 import '../localdatabase/student_fee_status.dart';
 import '../localdatabase/class.dart';
@@ -478,4 +480,207 @@ class StudentTransferHelper {
       'yearsCount': debtHistory.length,
     };
   }
+
+  Future<void> _transferStudentFeeStatus({
+  required Student student,
+  required SchoolClass newClass,
+  required String newAcademicYear,
+}) async {
+  try {
+    print('🔄 ترحيل حالة القسط للطالب ${student.fullName}...');
+    
+    // جلب حالة القسط الحالية
+    final currentFeeStatus = await isar.studentFeeStatus
+        .filter()
+        .studentIdEqualTo(student.id.toString())
+        .academicYearEqualTo(academicYear) // السنة الحالية
+        .findFirst();
+
+    if (currentFeeStatus == null) {
+      print('⚠️ لا توجد حالة قسط حالية للطالب');
+      return;
+    }
+
+    print('📊 حالة القسط الحالية:');
+    print('- القسط السنوي: ${currentFeeStatus.annualFee}');
+    print('- المدفوع: ${currentFeeStatus.paidAmount}');
+    print('- الخصم: ${currentFeeStatus.discountAmount}');
+    print('- المتبقي: ${currentFeeStatus.dueAmount}');
+
+    // حساب المبلغ الفعلي المتبقي (بعد خصم الخصومات والدفعات)
+    final actualDueAmount = (currentFeeStatus.annualFee + currentFeeStatus.transferredDebtAmount) 
+                           - currentFeeStatus.discountAmount 
+                           - currentFeeStatus.paidAmount;
+
+    print('💰 المبلغ الفعلي المتبقي (بعد الخصومات): $actualDueAmount');
+
+    // إذا كان هناك دين فعلي، انقله
+    if (actualDueAmount > 0) {
+      // إنشاء إيراد لتسوية الجزء المدفوع والمخصوم
+      final settledAmount = currentFeeStatus.paidAmount + currentFeeStatus.discountAmount;
+      if (settledAmount > 0) {
+        await _createDebtSettlementIncome(currentFeeStatus, settledAmount);
+      }
+
+      // إنشاء حالة قسط جديدة للسنة الجديدة مع الدين المنقول
+      final newFeeStatus = StudentFeeStatus()
+        ..studentId = student.id.toString()
+        ..className = newClass.name
+        ..academicYear = newAcademicYear
+        ..annualFee = student.annualFee ?? newClass.annualFee ?? 0.0
+        ..paidAmount = 0.0
+        ..discountAmount = 0.0 // ستحتاج لإعادة تطبيق الخصومات إذا كانت مستمرة
+        ..transferredDebtAmount = actualDueAmount // المبلغ الفعلي المتبقي فقط
+        ..dueAmount = (student.annualFee ?? newClass.annualFee ?? 0.0) + actualDueAmount
+        ..originalDebtAcademicYear = currentFeeStatus.academicYear
+        ..originalDebtClassName = currentFeeStatus.className
+        ..createdAt = DateTime.now()
+        ..student.value = student;
+
+      await isar.writeTxn(() async {
+        await isar.studentFeeStatus.put(newFeeStatus);
+        await newFeeStatus.student.save();
+      });
+
+      print('✅ تم إنشاء حالة قسط جديدة:');
+      print('- القسط الجديد: ${newFeeStatus.annualFee}');
+      print('- الدين المنقول: ${newFeeStatus.transferredDebtAmount}');
+      print('- إجمالي المتبقي: ${newFeeStatus.dueAmount}');
+    } else {
+      print('✅ لا يوجد دين للنقل - القسط مدفوع بالكامل أو مغطى بالخصومات');
+      
+      // إنشاء إيراد لتسوية القسط كاملاً
+      await _createDebtSettlementIncome(currentFeeStatus, currentFeeStatus.annualFee);
+
+      // إنشاء حالة قسط جديدة بدون دين منقول
+      final newFeeStatus = StudentFeeStatus()
+        ..studentId = student.id.toString()
+        ..className = newClass.name
+        ..academicYear = newAcademicYear
+        ..annualFee = student.annualFee ?? newClass.annualFee ?? 0.0
+        ..paidAmount = 0.0
+        ..discountAmount = 0.0
+        ..transferredDebtAmount = 0.0
+        ..dueAmount = student.annualFee ?? newClass.annualFee ?? 0.0
+        ..originalDebtAcademicYear = ''
+        ..originalDebtClassName = ''
+        ..createdAt = DateTime.now()
+        ..student.value = student;
+
+      await isar.writeTxn(() async {
+        await isar.studentFeeStatus.put(newFeeStatus);
+        await newFeeStatus.student.save();
+      });
+    }
+
+    // تطبيق الخصومات المستمرة للسنة الجديدة (إن وجدت)
+    await _transferContinuousDiscounts(student, newAcademicYear,currentFeeStatus.academicYear);
+
+  } catch (e) {
+    print('❌ خطأ في ترحيل حالة القسط: $e');
+    rethrow;
+  }
+}
+
+/// تطبيق الخصومات المستمرة للسنة الجديدة
+Future<void> _transferContinuousDiscounts(Student student, String newAcademicYear,String prevYear) async {
+  try {
+    // جلب الخصومات من السنة السابقة
+    final previousDiscounts = await isar.studentDiscounts
+        .filter()
+        .studentIdEqualTo(student.id.toString())
+        .academicYearEqualTo(prevYear) // السنة السابقة
+        .isActiveEqualTo(true)
+        .findAll();
+
+    if (previousDiscounts.isEmpty) return;
+
+    print('🔄 نقل الخصومات المستمرة للسنة الجديدة...');
+
+    for (final discount in previousDiscounts) {
+      // تحقق من أن الخصم لا يزال ساري المفعول
+      if (discount.expiryDate != null && 
+          discount.expiryDate!.isBefore(DateTime.now())) {
+        continue;
+      }
+
+      // إنشاء خصم جديد للسنة الجديدة
+      final newDiscount = StudentDiscount()
+        ..studentId = student.id.toString()
+        ..discountType = discount.discountType
+        ..discountValue = discount.discountValue
+        ..isPercentage = discount.isPercentage
+        ..academicYear = newAcademicYear
+        ..notes = '${discount.notes ?? ''} - منقول من ${discount.academicYear}'
+        ..addedBy = discount.addedBy
+        ..expiryDate = discount.expiryDate
+        ..isActive = true
+        ..createdAt = DateTime.now()
+        ..student.value = student;
+
+      await isar.writeTxn(() async {
+        await isar.studentDiscounts.put(newDiscount);
+        await newDiscount.student.save();
+      });
+
+      print('✅ تم نقل خصم: ${discount.discountType}');
+    }
+
+    // تحديث حالة القسط بالخصومات الجديدة
+    await _updateFeeStatusWithNewDiscounts(student.id.toString(), newAcademicYear);
+
+  } catch (e) {
+    print('❌ خطأ في نقل الخصومات: $e');
+  }
+}
+
+/// تحديث حالة القسط بالخصومات الجديدة
+Future<void> _updateFeeStatusWithNewDiscounts(String studentId, String academicYear) async {
+  try {
+    final feeStatus = await isar.studentFeeStatus
+        .filter()
+        .studentIdEqualTo(studentId)
+        .academicYearEqualTo(academicYear)
+        .findFirst();
+
+    if (feeStatus == null) return;
+
+    // حساب إجمالي الخصومات الجديدة
+    final discounts = await isar.studentDiscounts
+        .filter()
+        .studentIdEqualTo(studentId)
+        .academicYearEqualTo(academicYear)
+        .isActiveEqualTo(true)
+        .findAll();
+
+    double totalDiscount = 0;
+    for (final discount in discounts) {
+      if (discount.expiryDate != null && 
+          discount.expiryDate!.isBefore(DateTime.now())) {
+        continue;
+      }
+
+      if (discount.isPercentage) {
+        totalDiscount += (feeStatus.annualFee * discount.discountValue / 100);
+      } else {
+        totalDiscount += discount.discountValue;
+      }
+    }
+
+    // تحديث حالة القسط
+    await isar.writeTxn(() async {
+      feeStatus.discountAmount = totalDiscount;
+      feeStatus.dueAmount = (feeStatus.annualFee + feeStatus.transferredDebtAmount) - 
+                           totalDiscount - feeStatus.paidAmount;
+      await isar.studentFeeStatus.put(feeStatus);
+    });
+
+    print('✅ تم تحديث حالة القسط بالخصومات:');
+    print('- إجمالي الخصم: $totalDiscount');
+    print('- المتبقي الجديد: ${feeStatus.dueAmount}');
+
+  } catch (e) {
+    print('❌ خطأ في تحديث حالة القسط بالخصومات: $e');
+  }
+}
 }
