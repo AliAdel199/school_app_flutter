@@ -123,12 +123,22 @@ static Future<bool> trialFileExists() async {
   // ----------------------------- الفترة التجريبية -----------------------------
 
   static Future<void> createTrialLicenseFile() async {
-    final now = DateTime.now();
-    final trialExpiry = now.add(const Duration(days: 14));
-    final encrypted = _encrypt(trialExpiry.toIso8601String());
+    // التحقق من وجود ملف الفترة التجريبية مسبقاً
     final path = await _getFilePath(_trialFileName);
-    await File(path).writeAsString(encrypted);
-    print(path);
+    final file = File(path);
+    
+    // إذا كان الملف موجود، لا نقوم بإنشاء ملف جديد
+    if (await file.exists()) {
+      print('🔒 ملف الفترة التجريبية موجود مسبقاً');
+      return;
+    }
+    
+    final now = DateTime.now();
+    final trialExpiry = now.add(const Duration(days: 7));
+    final encrypted = _encrypt(trialExpiry.toIso8601String());
+    await file.writeAsString(encrypted);
+    print('🔒 تم إنشاء ملف الفترة التجريبية: $path');
+    print('🔒 ستنتهي الفترة التجريبية في: $trialExpiry');
   }
 
   static Future<bool> isTrialValid() async {
@@ -140,10 +150,58 @@ static Future<bool> trialFileExists() async {
       final content = await File(path).readAsString();
       final expiryStr = _decrypt(content);
       final expiryDate = DateTime.parse(expiryStr);
+      final now = DateTime.now();
+      final isValid = now.isBefore(expiryDate);
+      final remainingDays = await getRemainingTrialDays();
+      
       print('🔒 تاريخ انتهاء الفترة التجريبية: $expiryDate');
-      return DateTime.now().isBefore(expiryDate);
+      print('🔒 الأيام المتبقية: $remainingDays');
+      print('🔒 حالة الفترة التجريبية: ${isValid ? "صالحة" : "منتهية"}');
+      
+      return isValid;
     } catch (e) {
       print('🔒 خطأ في التحقق من الفترة التجريبية: $e');
+      return false;
+    }
+  }
+
+  // دالة لحساب الأيام المتبقية في الفترة التجريبية
+  static Future<int> getRemainingTrialDays() async {
+    final path = await _getFilePath(_trialFileName);
+    final exists = await File(path).exists();
+    if (!exists) return 0;
+
+    try {
+      final content = await File(path).readAsString();
+      final expiryStr = _decrypt(content);
+      final expiryDate = DateTime.parse(expiryStr);
+      final now = DateTime.now();
+      
+      if (now.isAfter(expiryDate)) {
+        return 0; // انتهت الفترة التجريبية
+      }
+      
+      final difference = expiryDate.difference(now);
+      return difference.inDays + 1; // +1 لإدراج اليوم الحالي
+    } catch (e) {
+      print('🔒 خطأ في حساب الأيام المتبقية: $e');
+      return 0;
+    }
+  }
+
+  // دالة لحذف ملف الفترة التجريبية (للاختبار أو إعادة التعيين)
+  static Future<bool> deleteTrialFile() async {
+    try {
+      final path = await _getFilePath(_trialFileName);
+      final file = File(path);
+      if (await file.exists()) {
+        await file.delete();
+        print('🔒 تم حذف ملف الفترة التجريبية');
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('🔒 خطأ في حذف ملف الفترة التجريبية: $e');
       return false;
     }
   }

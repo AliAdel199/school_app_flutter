@@ -17,6 +17,23 @@ class _LicenseCheckScreenState extends State<LicenseCheckScreen> {
   String message = '';
   String fingerprint = '';
   bool isLoading = false;
+  int remainingDays = 0;
+  bool isTrialActive = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkTrialStatus();
+  }
+
+  Future<void> _checkTrialStatus() async {
+    final trialValid = await LicenseManager.isTrialValid();
+    final days = await LicenseManager.getRemainingTrialDays();
+    setState(() {
+      isTrialActive = trialValid;
+      remainingDays = days;
+    });
+  }
 
   Future<void> _activate() async {
     setState(() {
@@ -60,6 +77,60 @@ class _LicenseCheckScreenState extends State<LicenseCheckScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // معلومات الفترة التجريبية
+                if (isTrialActive)
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    margin: const EdgeInsets.only(bottom: 24),
+                    decoration: BoxDecoration(
+                      color: remainingDays > 3 ? Colors.green.shade50 : Colors.orange.shade50,
+                      border: Border.all(
+                        color: remainingDays > 3 ? Colors.green : Colors.orange,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.access_time,
+                          color: remainingDays > 3 ? Colors.green : Colors.orange,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'الفترة التجريبية: باقي $remainingDays يوم',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: remainingDays > 3 ? Colors.green.shade700 : Colors.orange.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                if (!isTrialActive)
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    margin: const EdgeInsets.only(bottom: 24),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      border: Border.all(color: Colors.red),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text(
+                          'انتهت الفترة التجريبية',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 GestureDetector(
                   onLongPress: _copyFingerprint,
                   child: const Text(
@@ -106,6 +177,15 @@ class _LicenseCheckScreenState extends State<LicenseCheckScreen> {
                         ),
                         SelectableText(fingerprint),
                       ],
+                    ),
+                  ),
+                const SizedBox(height: 24),
+                if (isTrialActive)
+                  Text(
+                    'الفترة التجريبية: ${remainingDays} يوم${remainingDays > 1 ? 'ا' : ''} متبقية',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.orange,
                     ),
                   ),
               ],

@@ -394,30 +394,102 @@ debugPrint('الرصيد الصافي: ${netBalance.toStringAsFixed(2)} د.ع');
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        // فلتر السنة الدراسية
+                        // فلتر السنة الدراسية المحسن
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey),
-                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.blue.shade300, width: 2),
+                            borderRadius: BorderRadius.circular(12),
+                            color: selectedAcademicYear != null ? Colors.blue.shade50 : Colors.white,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.1),
+                                spreadRadius: 1,
+                                blurRadius: 3,
+                                offset: const Offset(0, 1),
+                              ),
+                            ],
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              DropdownButton<String>(
-                                value: selectedAcademicYear,
-                                hint: const Text('جميع السنوات'),
-                                underline: Container(),
-                                items: [
-                                  const DropdownMenuItem<String>(
-                                    value: null,
-                                    child: Text('جميع السنوات'),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.school,
+                                    color: Colors.blue.shade700,
+                                    size: 18,
                                   ),
-                                  ...academicYears.map((year) => DropdownMenuItem<String>(
-                                    value: year,
-                                    child: Text(year),
-                                  )),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'السنة الدراسية:',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
                                 ],
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  DropdownButton<String>(
+                                    value: selectedAcademicYear,
+                                    hint: Text(
+                                      'اختر السنة الدراسية',
+                                      style: TextStyle(color: Colors.grey.shade600),
+                                    ),
+                                    underline: Container(),
+                                    style: TextStyle(
+                                      color: selectedAcademicYear != null ? Colors.blue.shade700 : Colors.black,
+                                      fontWeight: selectedAcademicYear != null ? FontWeight.bold : FontWeight.normal,
+                                      fontSize: 14,
+                                    ),
+                                    items: [
+                                      const DropdownMenuItem<String>(
+                                        value: null,
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.all_inclusive, size: 16, color: Colors.grey),
+                                            SizedBox(width: 8),
+                                            Text('جميع السنوات'),
+                                          ],
+                                        ),
+                                      ),
+                                      ...academicYears.map((year) => DropdownMenuItem<String>(
+                                        value: year,
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              year == academicYear ? Icons.schedule : Icons.history,
+                                              size: 16,
+                                              color: year == academicYear ? Colors.green : Colors.blue,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(year),
+                                            if (year == academicYear)
+                                              Container(
+                                                margin: const EdgeInsets.only(left: 8),
+                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.green.shade100,
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                                child: const Text(
+                                                  'حالية',
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    color: Colors.green,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      )),
+                                    ],
                                 onChanged: (value) {
                                   setState(() {
                                     selectedAcademicYear = value;
@@ -429,8 +501,8 @@ debugPrint('الرصيد الصافي: ${netBalance.toStringAsFixed(2)} د.ع');
                                         if (yearParts.length >= 2) {
                                           final startYear = int.parse(yearParts[0]);
                                           final endYear = int.parse(yearParts[1]);
-                                          startDate = DateTime(endYear, 1, 1); // بداية السنة الدراسية (يناير)
-                                          endDate = DateTime(startYear, 12, 31); // نهاية السنة الدراسية (ديسمبر)
+                                          startDate = DateTime(startYear, 9, 1); // بداية السنة الدراسية (سبتمبر)
+                                          endDate = DateTime(endYear, 8, 31); // نهاية السنة الدراسية (أغسطس)
                                         } else {
                                           // إذا كان تنسيق مختلف، استخدم السنة الحالية
                                           final year = int.parse(value);
@@ -439,7 +511,7 @@ debugPrint('الرصيد الصافي: ${netBalance.toStringAsFixed(2)} د.ع');
                                         }
                                       } catch (e) {
                                         // في حالة فشل التحليل، استخدم التواريخ الافتراضية
-                                        startDate = DateTime.now().subtract(Duration(days: 365));
+                                        startDate = DateTime.now().subtract(const Duration(days: 365));
                                         endDate = DateTime.now();
                                       }
                                     }
@@ -447,12 +519,27 @@ debugPrint('الرصيد الصافي: ${netBalance.toStringAsFixed(2)} د.ع');
                                   fetchReportData();
                                 },
                               ),
-                              IconButton(
-                                icon: const Icon(Icons.refresh, size: 18),
-                                tooltip: 'تحديث السنوات',
-                                onPressed: () {
-                                  loadAcademicYears();
-                                },
+                                  IconButton(
+                                    icon: const Icon(Icons.refresh, size: 18),
+                                    tooltip: 'تحديث السنوات',
+                                    onPressed: () {
+                                      loadAcademicYears();
+                                    },
+                                  ),
+                                  if (selectedAcademicYear != null)
+                                    IconButton(
+                                      icon: const Icon(Icons.clear, size: 18),
+                                      tooltip: 'مسح الفلتر',
+                                      onPressed: () {
+                                        setState(() {
+                                          selectedAcademicYear = null;
+                                          startDate = DateTime.now().subtract(const Duration(days: 365));
+                                          endDate = DateTime.now();
+                                        });
+                                        fetchReportData();
+                                      },
+                                    ),
+                                ],
                               ),
                             ],
                           ),

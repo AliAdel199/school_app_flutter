@@ -1,22 +1,22 @@
 import 'dart:typed_data';
 
-import 'package:excel/excel.dart';
+import 'package:excel/excel.dart' as excel_lib;
 import 'package:flutter/material.dart';
 import 'package:isar/isar.dart';
 import 'package:printing/printing.dart';
 import 'package:school_app_flutter/localdatabase/expense.dart';
 import 'package:school_app_flutter/localdatabase/student_fee_status.dart';
 import '../localdatabase/expense_category.dart';
-import '/dashboard_screen.dart';
+
 import '/localdatabase/class.dart';
 // import '/localdatabase/students/StudentService.dart';
 import '/student/add_student_screen_supabase.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../localdatabase/student.dart';
 import '../main.dart';
 import '../reports/student_transfer_helper.dart';
-import 'edit_student_screen.dart';
-import 'delete_student_dialog.dart';
+
+
 import 'studentpaymentscreen.dart';
 
 class StudentsListScreen extends StatefulWidget {
@@ -32,6 +32,10 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
   List<Student> filteredStudents = [];
   bool isLoading = true;
   String searchQuery = '';
+  
+  // إضافة متغيرات للسنة الدراسية
+  List<String> availableAcademicYears = [];
+  String? selectedAcademicYearForStats;
 
   @override
    void initState() {
@@ -39,8 +43,26 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
     loadAcademicYear();
     // fetchStudentsFromIsar();
     fetchStudentsFromIsar();
+    loadAvailableAcademicYears();
    
   }
+
+  // تحميل السنوات الدراسية المتاحة
+  Future<void> loadAvailableAcademicYears() async {
+    try {
+      final feeStatuses = await isar.studentFeeStatus.where().findAll();
+      final years = feeStatuses.map((status) => status.academicYear).toSet().toList();
+      years.sort((a, b) => b.compareTo(a)); // ترتيب تنازلي (الأحدث أولاً)
+      
+      setState(() {
+        availableAcademicYears = years;
+        selectedAcademicYearForStats = academicYear; // افتراضياً السنة الحالية
+      });
+    } catch (e) {
+      debugPrint('خطأ في تحميل السنوات الدراسية: $e');
+    }
+  }
+
 List<Map<String, dynamic>> classOptions = [];
 
 
@@ -81,11 +103,11 @@ Future<void> fetchClassesFromIsar() async {
       // تطبيق الفلاتر
       final query = searchQuery.toLowerCase();
       filteredStudents = students.where((student) {
-        final fullName = student.fullName?.toLowerCase() ?? '';
-        final studentId = student.id?.toString().toLowerCase() ?? '';
+        final fullName = student.fullName.toLowerCase();
+        final studentId = student.id.toString().toLowerCase();
         final nationalId = student.nationalId?.toLowerCase() ?? '';
         final className = student.schoolclass.value?.name.trim();
-        final status = student.status?.toString();
+        final status = student.status.toString();
 
         final matchesQuery = fullName.contains(query) ||
             studentId.contains(query) ||
@@ -121,43 +143,42 @@ Future<void> fetchClassesFromIsar() async {
 
 
 Future<void> exportToExcel() async {
-  final excel = Excel.createExcel();
+  final excel = excel_lib.Excel.createExcel();
   final sheet = excel['الطلاب'];
 sheet.appendRow([
-  TextCellValue('الاسم الكامل'),
-  TextCellValue('الرقم الوطني'),
-  TextCellValue('رقم الطالب'),
-  TextCellValue('الجنس'),
-  TextCellValue('تاريخ الميلاد'),
-  TextCellValue('اسم ولي الأمر'),
-  TextCellValue('هاتف ولي الأمر'),
-  TextCellValue('الهاتف'),
-  TextCellValue('البريد الإلكتروني'),
-  TextCellValue('العنوان'),
-  TextCellValue('الصف'),
-  TextCellValue('الحالة'),
-  TextCellValue('سنة التسجيل'),
-  TextCellValue('الرسوم السنوية'),
-  TextCellValue('تاريخ الإنشاء'),
+  excel_lib.TextCellValue('الاسم الكامل'),
+  excel_lib.TextCellValue('الرقم الوطني'),
+  excel_lib.TextCellValue('رقم الطالب'),
+  excel_lib.TextCellValue('الجنس'),
+  excel_lib.TextCellValue('تاريخ الميلاد'),
+  excel_lib.TextCellValue('اسم ولي الأمر'),
+  excel_lib.TextCellValue('هاتف ولي الأمر'),
+  excel_lib.TextCellValue('الهاتف'),
+  excel_lib.TextCellValue('البريد الإلكتروني'),
+  excel_lib.TextCellValue('العنوان'),
+  excel_lib.TextCellValue('الصف'),
+  excel_lib.TextCellValue('الحالة'),
+  excel_lib.TextCellValue('سنة التسجيل'),
+  excel_lib.TextCellValue('الرسوم السنوية'),
+  excel_lib.TextCellValue('تاريخ الإنشاء'),
 ]);
 
 for (final student in filteredStudents) {
   sheet.appendRow([
-    TextCellValue(student.fullName ?? ''),
-    TextCellValue(student.nationalId ?? ''),
-    TextCellValue(student.id?.toString() ?? ''),
-    TextCellValue(student.gender ?? ''),
-    TextCellValue(student.birthDate?.toString().split(' ').first ?? ''),
-    TextCellValue(student.parentName ?? ''),
-    TextCellValue(student.parentPhone ?? ''),
-    TextCellValue(student.phone ?? ''),
-    TextCellValue(student.email ?? ''),
-    TextCellValue(student.address ?? ''),
-    // TextCellValue(student.classId ?? ''), // Ensure you have a className property or adjust accordingly
-    TextCellValue(student.status ?? ''),
-    TextCellValue(student.registrationYear?.toString() ?? ''),
-    TextCellValue(student.annualFee?.toString() ?? ''),
-    TextCellValue(student.createdAt?.toString().split(' ').first ?? ''),
+    excel_lib.TextCellValue(student.fullName),
+    excel_lib.TextCellValue(student.nationalId ?? ''),
+    excel_lib.TextCellValue(student.id.toString()),
+    excel_lib.TextCellValue(student.gender ?? ''),
+    excel_lib.TextCellValue(student.birthDate?.toString().split(' ').first ?? ''),
+    excel_lib.TextCellValue(student.parentName ?? ''),
+    excel_lib.TextCellValue(student.parentPhone ?? ''),
+    excel_lib.TextCellValue(student.phone ?? ''),
+    excel_lib.TextCellValue(student.email ?? ''),
+    excel_lib.TextCellValue(student.address ?? ''),
+    excel_lib.TextCellValue(student.status),
+    excel_lib.TextCellValue(student.registrationYear?.toString() ?? ''),
+    excel_lib.TextCellValue(student.annualFee?.toString() ?? ''),
+    excel_lib.TextCellValue(student.createdAt.toString().split(' ').first),
   ]);
 }
 
@@ -319,6 +340,8 @@ for (final student in filteredStudents) {
          
           ),
         ),
+        // إضافة بطاقة الإحصائيات السريعة
+        _buildQuickStatsCard(),
     Expanded(flex: 9,
       child:  isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -733,7 +756,7 @@ TextButton.icon(
                                           context: context,
                                           builder: (context) => AlertDialog(
                                             title: const Text('تأكيد الحذف'),
-                                            content: Text('هل أنت متأكد أنك تريد حذف الطالب "${student.fullName ?? ''}"؟ لا يمكن التراجع عن هذه العملية.'),
+                                            content: Text('هل أنت متأكد أنك تريد حذف الطالب "${student.fullName}"؟ لا يمكن التراجع عن هذه العملية.'),
                                             actions: [
                                             TextButton(
                                               onPressed: () => Navigator.of(context).pop(false),
@@ -749,7 +772,7 @@ TextButton.icon(
                                           );
                                           if (confirm == true) {
                                           await isar.writeTxn(() async {
-                                            await isar.students.delete(student.id!);
+                                            await isar.students.delete(student.id);
                                           });
                                           await fetchStudentsFromIsar();
                                           }
@@ -781,7 +804,7 @@ TextButton.icon(
       Flexible(
         flex: 3,
         child: Text(
-          student.fullName ?? '',
+          student.fullName,
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           overflow: TextOverflow.ellipsis,
         ),
@@ -804,12 +827,199 @@ TextButton.icon(
         child: Align(
           alignment: Alignment.centerRight,
           child: Chip(
-            label: Text(student.status ?? ''),
-            backgroundColor: getStatusColor(student.status ?? '').withOpacity(0.2),
-            labelStyle: TextStyle(color: getStatusColor(student.status ?? '')),
+            label: Text(student.status),
+            backgroundColor: getStatusColor(student.status).withOpacity(0.2),
+            labelStyle: TextStyle(color: getStatusColor(student.status)),
           ),
         ),
       ),
     ];
+  }
+
+  // حساب الإحصائيات المالية السريعة
+  Future<Map<String, dynamic>> _calculateQuickStats() async {
+    try {
+      // استخدام السنة المختارة أو السنة الحالية
+      final yearToUse = selectedAcademicYearForStats ?? academicYear;
+      
+      final feeStatuses = await isar.studentFeeStatus
+          .filter()
+          .academicYearEqualTo(yearToUse)
+          .findAll();
+      
+      double totalExpected = 0;
+      double totalPaid = 0;
+      double totalRemaining = 0;
+      double totalDiscounts = 0;
+      int studentsWithDebts = 0;
+      int paidStudents = 0;
+      
+      for (var status in feeStatuses) {
+        totalExpected += status.annualFee + status.transferredDebtAmount;
+        totalPaid += status.paidAmount;
+        totalRemaining += status.dueAmount ?? 0;
+        totalDiscounts += status.discountAmount;
+        
+        if ((status.dueAmount ?? 0) > 0) {
+          studentsWithDebts++;
+        } else {
+          paidStudents++;
+        }
+      }
+      
+      return {
+        'totalExpected': totalExpected,
+        'totalPaid': totalPaid,
+        'totalRemaining': totalRemaining,
+        'totalDiscounts': totalDiscounts,
+        'studentsWithDebts': studentsWithDebts,
+        'paidStudents': paidStudents,
+        'totalStudents': feeStatuses.length,
+        'collectionRate': totalExpected > 0 ? (totalPaid / totalExpected) * 100 : 0,
+        'selectedYear': yearToUse,
+      };
+    } catch (e) {
+      return {};
+    }
+  }
+
+  // بناء بطاقة إحصائيات سريعة
+  Widget _buildQuickStatsCard() {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _calculateQuickStats(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return Container();
+        }
+        
+        final stats = snapshot.data!;
+        
+        return Card(
+          margin: const EdgeInsets.all(8),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // العنوان مع فلتر السنة الدراسية
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'الإحصائيات المالية',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    if (availableAcademicYears.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: DropdownButton<String>(
+                          value: selectedAcademicYearForStats,
+                          hint: const Text('اختر السنة'),
+                          underline: Container(),
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              selectedAcademicYearForStats = newValue;
+                            });
+                          },
+                          items: availableAcademicYears.map<DropdownMenuItem<String>>((String year) {
+                            return DropdownMenuItem<String>(
+                              value: year,
+                              child: Text(
+                                year,
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'السنة الدراسية: ${stats['selectedYear']}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _buildQuickStatChip(
+                      'إجمالي مطلوب', 
+                      '${stats['totalExpected'].toStringAsFixed(0)} د.ع',
+                      Colors.blue,
+                    ),
+                    _buildQuickStatChip(
+                      'محصل', 
+                      '${stats['totalPaid'].toStringAsFixed(0)} د.ع',
+                      Colors.green,
+                    ),
+                    _buildQuickStatChip(
+                      'متبقي', 
+                      '${stats['totalRemaining'].toStringAsFixed(0)} د.ع',
+                      Colors.red,
+                    ),
+                    _buildQuickStatChip(
+                      'نسبة التحصيل', 
+                      '${stats['collectionRate'].toStringAsFixed(1)}%',
+                      Colors.purple,
+                    ),
+                    _buildQuickStatChip(
+                      'طلاب مدينون', 
+                      '${stats['studentsWithDebts']}',
+                      Colors.orange,
+                    ),
+                    _buildQuickStatChip(
+                      'طلاب مكتملون', 
+                      '${stats['paidStudents']}',
+                      Colors.teal,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildQuickStatChip(String label, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: color,
+              fontSize: 14,
+            ),
+          ),
+          Text(
+            label,
+            style: TextStyle(
+              color: color.withOpacity(0.8),
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
