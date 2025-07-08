@@ -42,23 +42,28 @@ const StudentPaymentSchema = CollectionSchema(
       name: r'invoiceSerial',
       type: IsarType.long,
     ),
-    r'notes': PropertySchema(
+    r'isDebtSettlement': PropertySchema(
       id: 5,
+      name: r'isDebtSettlement',
+      type: IsarType.bool,
+    ),
+    r'notes': PropertySchema(
+      id: 6,
       name: r'notes',
       type: IsarType.string,
     ),
     r'paidAt': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'paidAt',
       type: IsarType.dateTime,
     ),
     r'receiptNumber': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'receiptNumber',
       type: IsarType.string,
     ),
     r'studentId': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'studentId',
       type: IsarType.string,
     )
@@ -123,10 +128,11 @@ void _studentPaymentSerialize(
   writer.writeBool(offsets[2], object.archived);
   writer.writeDateTime(offsets[3], object.createdAt);
   writer.writeLong(offsets[4], object.invoiceSerial);
-  writer.writeString(offsets[5], object.notes);
-  writer.writeDateTime(offsets[6], object.paidAt);
-  writer.writeString(offsets[7], object.receiptNumber);
-  writer.writeString(offsets[8], object.studentId);
+  writer.writeBool(offsets[5], object.isDebtSettlement);
+  writer.writeString(offsets[6], object.notes);
+  writer.writeDateTime(offsets[7], object.paidAt);
+  writer.writeString(offsets[8], object.receiptNumber);
+  writer.writeString(offsets[9], object.studentId);
 }
 
 StudentPayment _studentPaymentDeserialize(
@@ -142,10 +148,11 @@ StudentPayment _studentPaymentDeserialize(
   object.createdAt = reader.readDateTime(offsets[3]);
   object.id = id;
   object.invoiceSerial = reader.readLong(offsets[4]);
-  object.notes = reader.readStringOrNull(offsets[5]);
-  object.paidAt = reader.readDateTime(offsets[6]);
-  object.receiptNumber = reader.readStringOrNull(offsets[7]);
-  object.studentId = reader.readString(offsets[8]);
+  object.isDebtSettlement = reader.readBool(offsets[5]);
+  object.notes = reader.readStringOrNull(offsets[6]);
+  object.paidAt = reader.readDateTime(offsets[7]);
+  object.receiptNumber = reader.readStringOrNull(offsets[8]);
+  object.studentId = reader.readString(offsets[9]);
   return object;
 }
 
@@ -167,12 +174,14 @@ P _studentPaymentDeserializeProp<P>(
     case 4:
       return (reader.readLong(offset)) as P;
     case 5:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 6:
-      return (reader.readDateTime(offset)) as P;
-    case 7:
       return (reader.readStringOrNull(offset)) as P;
+    case 7:
+      return (reader.readDateTime(offset)) as P;
     case 8:
+      return (reader.readStringOrNull(offset)) as P;
+    case 9:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -669,6 +678,16 @@ extension StudentPaymentQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<StudentPayment, StudentPayment, QAfterFilterCondition>
+      isDebtSettlementEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isDebtSettlement',
+        value: value,
       ));
     });
   }
@@ -1263,6 +1282,20 @@ extension StudentPaymentQuerySortBy
     });
   }
 
+  QueryBuilder<StudentPayment, StudentPayment, QAfterSortBy>
+      sortByIsDebtSettlement() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isDebtSettlement', Sort.asc);
+    });
+  }
+
+  QueryBuilder<StudentPayment, StudentPayment, QAfterSortBy>
+      sortByIsDebtSettlementDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isDebtSettlement', Sort.desc);
+    });
+  }
+
   QueryBuilder<StudentPayment, StudentPayment, QAfterSortBy> sortByNotes() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'notes', Sort.asc);
@@ -1397,6 +1430,20 @@ extension StudentPaymentQuerySortThenBy
     });
   }
 
+  QueryBuilder<StudentPayment, StudentPayment, QAfterSortBy>
+      thenByIsDebtSettlement() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isDebtSettlement', Sort.asc);
+    });
+  }
+
+  QueryBuilder<StudentPayment, StudentPayment, QAfterSortBy>
+      thenByIsDebtSettlementDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isDebtSettlement', Sort.desc);
+    });
+  }
+
   QueryBuilder<StudentPayment, StudentPayment, QAfterSortBy> thenByNotes() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'notes', Sort.asc);
@@ -1485,6 +1532,13 @@ extension StudentPaymentQueryWhereDistinct
     });
   }
 
+  QueryBuilder<StudentPayment, StudentPayment, QDistinct>
+      distinctByIsDebtSettlement() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isDebtSettlement');
+    });
+  }
+
   QueryBuilder<StudentPayment, StudentPayment, QDistinct> distinctByNotes(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -1550,6 +1604,13 @@ extension StudentPaymentQueryProperty
   QueryBuilder<StudentPayment, int, QQueryOperations> invoiceSerialProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'invoiceSerial');
+    });
+  }
+
+  QueryBuilder<StudentPayment, bool, QQueryOperations>
+      isDebtSettlementProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isDebtSettlement');
     });
   }
 

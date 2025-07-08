@@ -24,4 +24,10 @@ class StudentFeeStatus {
   // الربط مع الطالب
   final student = IsarLink<Student>();
   late String studentId;
+
+  /// مبلغ الخصم المطبق
+  late double discountAmount=0;
+
+  /// تفاصيل الخصومات (JSON string للتفاصيل)
+  String? discountDetails;
 }

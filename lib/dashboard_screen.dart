@@ -153,6 +153,7 @@ onPressed: () => Navigator.push(
       {'label': 'الطلاب', 'icon': Icons.people, 'route': '/students'},
       {'label': 'إضافة طالب', 'icon': Icons.person_add, 'route': '/add-student'},
       {'label': 'المراحل', 'icon': Icons.score, 'route': '/classes'},
+      {'label': 'إدارة الخصومات', 'icon': Icons.percent, 'route': '/discount-management'}, // إضافة جديدة
       {'label': 'التقارير العامة', 'icon': Icons.bar_chart, 'route': '/reportsscreen'},
       {'label': 'قائمة المصروفات', 'icon': Icons.money_off, 'route': '/expense-list'},
       {'label': 'قائمة الدخل', 'icon': Icons.account_balance_wallet, 'route': '/income'},

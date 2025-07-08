@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:isar/isar.dart';
+import 'package:school_app_flutter/localdatabase/student_payment.dart';
 import '../localdatabase/student.dart';
 import '../localdatabase/student_fee_status.dart';
 import '../localdatabase/class.dart';
@@ -148,7 +149,6 @@ class StudentTransferHelper {
     debugPrint('✅ تم دفع جميع الديون وإنشاء فاتورة الإيراد بمبلغ: $previousDue');
   }
 
-  /// إنشاء إيراد لتسوية الديون
   Future<void> _createDebtSettlementIncome(StudentFeeStatus feeStatus, double amount) async {
     // جلب تصنيف الإيراد "تسوية ديون" أو إنشاؤه إذا لم يكن موجوداً
     IncomeCategory? debtSettlementCategory = await isar.incomeCategorys
@@ -167,12 +167,13 @@ class StudentTransferHelper {
     await feeStatus.student.load();
     final student = feeStatus.student.value;
     final studentName = student?.fullName ?? 'طالب غير معروف';
+    final currentDateTime = DateTime.now();
 
     // إنشاء سجل الإيراد
     final income = Income()
       ..title = 'تسوية ديون الطالب $studentName'
       ..amount = amount
-      ..incomeDate = DateTime.now()
+      ..incomeDate = currentDateTime
       ..academicYear = feeStatus.academicYear
       ..note = 'تسوية ديون عند ترحيل الطالب $studentName من ${feeStatus.className} - السنة ${feeStatus.academicYear}'
       ..archived = false
@@ -181,12 +182,74 @@ class StudentTransferHelper {
     await isar.incomes.put(income);
     await income.category.save();
 
+    // إنشاء دفعة للطالب لتسجيل عملية دفع الدين
+    if (student != null) {
+      final studentPayment = StudentPayment()
+        ..studentId = student.id.toString()
+        ..amount = amount
+        ..paidAt = currentDateTime
+        ..notes = 'تسوية ديون عند الترحيل - دفع كامل المتبقي'
+        ..academicYear = feeStatus.academicYear
+        
+        // ..paymentMethod = 'تسوية ديون' // أو يمكن استخدام 'نقدي' حسب نظامك
+        ..receiptNumber = 'DEBT-${currentDateTime.millisecondsSinceEpoch}'
+        ..isDebtSettlement = true // إضافة حقل للتمييز أن هذه دفعة تسوية ديون
+        ..student.value = student;
+
+      await isar.studentPayments.put(studentPayment);
+      await studentPayment.student.save();
+
+      debugPrint('✅ إنشاء دفعة تسوية ديون للطالب:');
+      debugPrint('- رقم الإيصال: ${studentPayment.receiptNumber}');
+      debugPrint('- المبلغ: $amount د.ع');
+      // debugPrint('- طريقة الدفع: ${studentPayment.paymentMethod}');
+    }
+
     debugPrint('إنشاء إيراد تسوية ديون:');
     debugPrint('- الطالب: $studentName');
     debugPrint('- المبلغ: $amount د.ع');
     debugPrint('- السنة الدراسية: ${feeStatus.academicYear}');
     debugPrint('- الصف: ${feeStatus.className}');
   }
+  // /// إنشاء إيراد لتسوية الديون
+  // Future<void> _createDebtSettlementIncome(StudentFeeStatus feeStatus, double amount) async {
+  //   // جلب تصنيف الإيراد "تسوية ديون" أو إنشاؤه إذا لم يكن موجوداً
+  //   IncomeCategory? debtSettlementCategory = await isar.incomeCategorys
+  //       .filter()
+  //       .identifierEqualTo('debt_settlement')
+  //       .findFirst();
+
+  //   if (debtSettlementCategory == null) {
+  //     debtSettlementCategory = IncomeCategory()
+  //       ..name = 'تسوية ديون الطلاب'
+  //       ..identifier = 'debt_settlement';
+  //     debtSettlementCategory.id = await isar.incomeCategorys.put(debtSettlementCategory);
+  //   }
+
+  //   // تحميل بيانات الطالب
+  //   await feeStatus.student.load();
+  //   final student = feeStatus.student.value;
+  //   final studentName = student?.fullName ?? 'طالب غير معروف';
+
+  //   // إنشاء سجل الإيراد
+  //   final income = Income()
+  //     ..title = 'تسوية ديون الطالب $studentName'
+  //     ..amount = amount
+  //     ..incomeDate = DateTime.now()
+  //     ..academicYear = feeStatus.academicYear
+  //     ..note = 'تسوية ديون عند ترحيل الطالب $studentName من ${feeStatus.className} - السنة ${feeStatus.academicYear}'
+  //     ..archived = false
+  //     ..category.value = debtSettlementCategory;
+
+  //   await isar.incomes.put(income);
+  //   await income.category.save();
+
+  //   debugPrint('إنشاء إيراد تسوية ديون:');
+  //   debugPrint('- الطالب: $studentName');
+  //   debugPrint('- المبلغ: $amount د.ع');
+  //   debugPrint('- السنة الدراسية: ${feeStatus.academicYear}');
+  //   debugPrint('- الصف: ${feeStatus.className}');
+  // }
 
   /// نقل الديون إلى السنة الجديدة مع تراكم الديون من عدة سنوات
   Future<void> _moveDebtsToNewYear({

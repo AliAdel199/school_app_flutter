@@ -25,9 +25,11 @@ import 'income_expeness/ExpenseListScreen.dart';
 import 'income_expeness/addexpenesscreen.dart';
 import 'license_manager.dart';
 import 'localdatabase/class.dart';
+import 'localdatabase/discount_type.dart';
 import 'localdatabase/grade.dart';
 import 'localdatabase/school.dart';
 import 'localdatabase/student.dart';
+import 'localdatabase/student_discount.dart';
 import 'localdatabase/student_fee_status.dart';
 import 'localdatabase/student_payment.dart';
 import 'localdatabase/subject.dart';
@@ -41,6 +43,8 @@ import 'dashboard_screen.dart';
 import 'reports/edit_class_screen.dart';
 import 'reports/financialreportsscreen.dart';
 import 'reports/login_screen.dart';
+import 'student/discount_management_screen.dart';
+import 'student/student_discounts_screen.dart';
 import 'student/studentpaymentscreen.dart';
 import 'student/students_list_screen_supabase.dart';
 import 'reports/subjectslistscreen.dart';
@@ -107,7 +111,9 @@ print(dir2.path);
     LogSchema,
     InvoiceCounterSchema,
     ExpenseSchema,
-    ExpenseCategorySchema
+    ExpenseCategorySchema,
+    StudentDiscountSchema,      // إضافة جديدة
+    DiscountTypeSchema,         // إضافة جديدة
   ], directory: dir.path, inspector: true, name: 'school_app_flutter');
 
   // تحميل السنة الدراسية من الإعدادات
@@ -177,6 +183,8 @@ class SchoolApp extends StatelessWidget {
         '/add-student': (context) => AddEditStudentScreen(),
         '/classes': (context) => const ClassesListScreen(),
         '/add-class': (context) => const AddClassScreen(),
+'/discount-management': (context) => const DiscountManagementScreen(),
+
         '/edit-class': (context) => EditClassScreen(
               classData: ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>,
             ),

@@ -8,6 +8,7 @@ class StudentPayment {
   Id id = Isar.autoIncrement;
 
   late double amount;
+  bool isDebtSettlement = false; // حقل جديد للتمييز بين الدفعات العادية ودفعات تسوية الديون
 
   DateTime paidAt = DateTime.now();
 
