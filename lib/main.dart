@@ -43,6 +43,7 @@ import 'dashboard_screen.dart';
 import 'reports/edit_class_screen.dart';
 import 'reports/financialreportsscreen.dart';
 import 'reports/login_screen.dart';
+import 'student/auto_discount_screen.dart';
 import 'student/discount_management_screen.dart';
 import 'student/student_discounts_screen.dart';
 import 'student/studentpaymentscreen.dart';
@@ -184,6 +185,7 @@ class SchoolApp extends StatelessWidget {
         '/classes': (context) => const ClassesListScreen(),
         '/add-class': (context) => const AddClassScreen(),
 '/discount-management': (context) => const DiscountManagementScreen(),
+        '/auto-discount': (context) => const AutoDiscountScreen(),
 
         '/edit-class': (context) => EditClassScreen(
               classData: ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>,

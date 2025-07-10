@@ -10,6 +10,7 @@ import '../localdatabase/student_fee_status.dart';
 import '../localdatabase/student_payment.dart';
 import '../main.dart';
 import '../dialogs/payment_dialog_ui.dart';
+import '../helpers/auto_discount_helper.dart';
 class StudentPaymentsScreen extends StatefulWidget {
   final int studentId;
   final String fullName;
@@ -221,6 +222,31 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
 
           if (result == true) {
             await reloadAllData();
+            
+            // معالجة الخصومات التلقائية بعد إضافة الدفعة
+            if (widget.student != null) {
+              try {
+                final processor = AutoDiscountProcessor(isar);
+                final appliedDiscounts = await processor.processAllAutoDiscounts(
+                  widget.student!, 
+                  selectedAcademicYear ?? academicYear
+                );
+                
+                if (appliedDiscounts.isNotEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('تم تطبيق ${appliedDiscounts.length} خصم تلقائي'),
+                      backgroundColor: Colors.green,
+                      duration: const Duration(seconds: 3),
+                    ),
+                  );
+                  // إعادة تحميل البيانات لإظهار الخصومات الجديدة
+                  await reloadAllData();
+                }
+              } catch (e) {
+                debugPrint('خطأ في معالجة الخصومات التلقائية: $e');
+              }
+            }
 
             var user = await isar.users.where().findFirst();
             if (user != null) {
@@ -485,6 +511,31 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
                                 );
                                 if (result == true) {
                                   await reloadAllData();
+                                  
+                                  // معالجة الخصومات التلقائية بعد إضافة الدفعة
+                                  if (widget.student != null) {
+                                    try {
+                                      final processor = AutoDiscountProcessor(isar);
+                                      final appliedDiscounts = await processor.processAllAutoDiscounts(
+                                        widget.student!, 
+                                        selectedAcademicYear ?? academicYear
+                                      );
+                                      
+                                      if (appliedDiscounts.isNotEmpty) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text('تم تطبيق ${appliedDiscounts.length} خصم تلقائي'),
+                                            backgroundColor: Colors.green,
+                                            duration: const Duration(seconds: 3),
+                                          ),
+                                        );
+                                        // إعادة تحميل البيانات لإظهار الخصومات الجديدة
+                                        await reloadAllData();
+                                      }
+                                    } catch (e) {
+                                      debugPrint('خطأ في معالجة الخصومات التلقائية: $e');
+                                    }
+                                  }
                                 }
                               },
                               icon: const Icon(Icons.add, size: 16),
