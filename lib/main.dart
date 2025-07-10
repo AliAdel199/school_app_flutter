@@ -197,6 +197,13 @@ class SchoolApp extends StatelessWidget {
             fullName: args['fullName'],
           );
         },
+        '/student-discounts': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+          return StudentDiscountsScreen(
+            student: args['student'],
+            academicYear: args['academicYear'],
+          );
+        },
         '/financial-reports': (context) => const FinancialReportsScreen(),
         '/reportsscreen': (context) => const ReportsScreen(),
         '/add-edit-employee': (context) => AddEditEmployeeScreen(

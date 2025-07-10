@@ -244,35 +244,75 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
-                children: [
+                children: [                // إضافة معاينة سريعة للطالب
+                _buildStudentQuickInfo(),
+                  
                   if (academicYears.isNotEmpty)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        const Text('السنة الدراسية: ', style: TextStyle(fontWeight: FontWeight.bold)),
-                        DropdownButton<String>(
-                          value: selectedAcademicYear,
-                          items: academicYears
-                              .map((year) => DropdownMenuItem(
-                                    value: year,
-                                    child: Text(year),
-                                  ))
-                              .toList(),
-                          onChanged: (value) async {
-                            setState(() {
-                              selectedAcademicYear = value;
-                            });
-                            await reloadAllData();
-                          },
+                    Card(
+                      elevation: 2,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.calendar_today, color: Colors.blue.shade700, size: 20),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'السنة الدراسية:',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                ),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.blue.shade200),
+                              ),
+                              child: DropdownButton<String>(
+                                value: selectedAcademicYear,
+                                underline: Container(),
+                                items: academicYears
+                                    .map((year) => DropdownMenuItem(
+                                          value: year,
+                                          child: Text(
+                                            year,
+                                            style: TextStyle(
+                                              color: Colors.blue.shade700,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ))
+                                    .toList(),
+                                onChanged: (value) async {
+                                  setState(() {
+                                    selectedAcademicYear = value;
+                                  });
+                                  await reloadAllData();
+                                },
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   const SizedBox(height: 10),
                   if (feeStatus != null)
                     Column(
                       children: [
+                        // مؤشر الحالة السريع
+                        _buildQuickStatusBadge(),
+                        
                         // مؤشر الحالة المالية
                         _buildFinancialStatusIndicator(),
+                        const SizedBox(height: 8),
+                        
+                        // إحصائيات سريعة
+                        _buildQuickStats(),
                         const SizedBox(height: 8),
                         
                         // تفاصيل الخصومات
@@ -292,15 +332,29 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
                           ],
                         ),
                         if (feeStatus!.transferredDebtAmount > 0 && feeStatus!.originalDebtAcademicYear != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8.0),
-                            child: Text(
-                              'دين منقول من: ${feeStatus!.originalDebtAcademicYear} - ${feeStatus!.originalDebtClassName ?? ""}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.orange,
-                                fontStyle: FontStyle.italic,
-                              ),
+                          Container(
+                            margin: const EdgeInsets.only(top: 8),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.orange.shade200),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.info_outline, color: Colors.orange.shade700, size: 16),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'دين منقول من: ${feeStatus!.originalDebtAcademicYear} - ${feeStatus!.originalDebtClassName ?? ""}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.orange.shade700,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                       ],
@@ -373,21 +427,90 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
                         ],
                       ),
                     ),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Row(
-                      children: [
-                        const Text('سجل الدفعات', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                        // const Spacer(),
-                        // SizedBox(width: 200,child: ElevatedButton(style: ElevatedButton.styleFrom(
-                        //   shape: RoundedRectangleBorder(
-                        //     borderRadius: BorderRadius.circular(8),
-                        //   ),
-                        //   ),
-                    
-                        //   onPressed: ()=>printStudentPayments(widget.student!,selectedAcademicYear!), child: const Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [Icon(Icons.print),Text('طباعة الدفعات'),],)),)
-                      
-                      ],
+                  Card(
+                    elevation: 2,
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        children: [
+                          Icon(Icons.receipt_long, color: Colors.blue.shade700, size: 20),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'سجل الدفعات',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade100,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '${payments.length} دفعة',
+                              style: TextStyle(
+                                color: Colors.blue.shade700,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          SizedBox(
+                            width: 140,
+                            height: 32,
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green.shade600,
+                                foregroundColor: Colors.white,
+                                elevation: 2,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              onPressed: () async {
+                                if (feeStatus == null || feeStatus!.dueAmount! <= 0) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('لا يمكن إضافة دفعة، القسط مدفوع بالكامل')),
+                                  );
+                                  return;
+                                }
+                                final result = await showAddPaymentDialogIsar(
+                                  context: context,
+                                  studentId: widget.studentId.toString(),
+                                  academicYear: selectedAcademicYear ?? academicYear,
+                                  student: widget.student!,
+                                  isar: isar,
+                                );
+                                if (result == true) {
+                                  await reloadAllData();
+                                }
+                              },
+                              icon: const Icon(Icons.add, size: 16),
+                              label: const Text('دفعة جديدة', style: TextStyle(fontSize: 12)),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          SizedBox(
+                            width: 100,
+                            height: 32,
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue.shade600,
+                                foregroundColor: Colors.white,
+                                elevation: 2,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              onPressed: () => printStudentPayments(widget.student!, selectedAcademicYear!),
+                              icon: const Icon(Icons.print, size: 16),
+                              label: const Text('طباعة', style: TextStyle(fontSize: 12)),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -779,6 +902,62 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
     );
   }
 
+  // إضافة مؤشر سريع للحالة المالية
+  Widget _buildQuickStatusBadge() {
+    if (feeStatus == null) return Container();
+    
+    final totalRequired = feeStatus!.annualFee + feeStatus!.transferredDebtAmount - feeStatus!.discountAmount;
+    final totalPaid = feeStatus!.paidAmount;
+    final remaining = totalRequired - totalPaid;
+    
+    String statusText;
+    Color statusColor;
+    IconData statusIcon;
+    
+    if (remaining <= 0) {
+      statusText = 'مدفوع بالكامل';
+      statusColor = Colors.green;
+      statusIcon = Icons.check_circle;
+    } else if (remaining <= totalRequired * 0.2) {
+      statusText = 'قارب على الانتهاء';
+      statusColor = Colors.blue;
+      statusIcon = Icons.timer;
+    } else if (remaining <= totalRequired * 0.5) {
+      statusText = 'جاري السداد';
+      statusColor = Colors.orange;
+      statusIcon = Icons.hourglass_empty;
+    } else {
+      statusText = 'متأخر في السداد';
+      statusColor = Colors.red;
+      statusIcon = Icons.warning;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: statusColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: statusColor.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(statusIcon, color: statusColor, size: 16),
+          const SizedBox(width: 6),
+          Text(
+            statusText,
+            style: TextStyle(
+              color: statusColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // إضافة عرض تفصيلي للخصومات
   Widget _buildDiscountDetails() {
     if (feeStatus == null || feeStatus!.discountAmount <= 0) return Container();
@@ -970,6 +1149,142 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
             side: BorderSide(color: color.withOpacity(0.3)),
           ),
         ),
+      ),
+    );
+  }
+
+  // إضافة إحصائيات سريعة
+  Widget _buildQuickStats() {
+    if (feeStatus == null) return Container();
+    
+    final totalRequired = feeStatus!.annualFee + feeStatus!.transferredDebtAmount - feeStatus!.discountAmount;
+    final totalPaid = feeStatus!.paidAmount;
+    final remaining = totalRequired - totalPaid;
+    final paymentProgress = totalRequired > 0 ? (totalPaid / totalRequired) : 0.0;
+    
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.blue.shade50, Colors.purple.shade50],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue.shade200),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(Icons.analytics_outlined, color: Colors.blue.shade700),
+              const SizedBox(width: 8),
+              const Text(
+                'ملخص سريع',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildQuickStatItem('نسبة السداد', '${(paymentProgress * 100).toStringAsFixed(1)}%', Icons.pie_chart, Colors.blue),
+              _buildQuickStatItem('عدد الدفعات', '${payments.length}', Icons.receipt_long, Colors.green),
+              _buildQuickStatItem('المتبقي', '${formatter.format(remaining)} د.ع', Icons.pending_actions, Colors.orange),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildQuickStatItem(String label, String value, IconData icon, Color color) {
+    return Column(
+      children: [
+        Icon(icon, color: color, size: 20),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+            color: color,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            color: Colors.grey.shade600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // إضافة معاينة سريعة للطالب
+  Widget _buildStudentQuickInfo() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.indigo.shade50, Colors.blue.shade50],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.indigo.shade200),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: Colors.indigo.shade100,
+            child: Icon(Icons.person, color: Colors.indigo.shade700),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.fullName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                if (widget.student?.schoolclass.value?.name != null)
+                  Text(
+                    'الصف: ${widget.student!.schoolclass.value!.name}',
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 14,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          if (selectedAcademicYear != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.indigo.shade100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                selectedAcademicYear!,
+                style: TextStyle(
+                  color: Colors.indigo.shade700,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
