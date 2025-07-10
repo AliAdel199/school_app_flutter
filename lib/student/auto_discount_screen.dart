@@ -73,6 +73,10 @@ class _AutoDiscountScreenState extends State<AutoDiscountScreen> {
                   _buildActionsCard(),
                   const SizedBox(height: 20),
                   
+                  // بطاقة اختبار دقة تحديد الأشقاء
+                  _buildSiblingTestCard(),
+                  const SizedBox(height: 20),
+                  
                   // قائمة أنواع الخصومات
                   _buildDiscountTypesList(),
                 ],
@@ -618,6 +622,243 @@ class _AutoDiscountScreenState extends State<AutoDiscountScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('خطأ في تطبيق الخصم: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+  
+  Widget _buildSiblingTestCard() {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.bug_report, color: Colors.blue.shade600, size: 24),
+                const SizedBox(width: 12),
+                const Text(
+                  'اختبار دقة تحديد الأشقاء',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'استخدم هذه الأدوات للتحقق من دقة تحديد الأشقاء في النظام ومعالجة أي أخطاء',
+              style: TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _runSiblingAccuracyTest,
+                    icon: const Icon(Icons.play_arrow),
+                    label: const Text('تشغيل اختبار الدقة'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _showSiblingStatistics,
+                    icon: const Icon(Icons.analytics),
+                    label: const Text('إحصائيات الأشقاء'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _fixSiblingIssues,
+                icon: const Icon(Icons.build),
+                label: const Text('إصلاح مشاكل تحديد الأشقاء'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Future<void> _runSiblingAccuracyTest() async {
+    setState(() => isLoading = true);
+    
+    try {
+      // تشغيل اختبار دقة تحديد الأشقاء
+      await processor.testSiblingDetection();
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تم تشغيل اختبار الدقة. راجع سجل التطبيق للتفاصيل.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('خطأ في تشغيل الاختبار: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+  
+  Future<void> _showSiblingStatistics() async {
+    setState(() => isLoading = true);
+    
+    try {
+      final siblingStats = await processor.getSiblingStatistics();
+      
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('إحصائيات الأشقاء'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildStatRow('إجمالي الطلاب', '${siblingStats['totalStudents']}'),
+                _buildStatRow('الطلاب الذين لديهم أشقاء', '${siblingStats['studentsWithSiblings']}'),
+                _buildStatRow('مجموعات الآباء', '${siblingStats['parentGroups']}'),
+                _buildStatRow('مجموعات الأشقاء', '${siblingStats['siblingGroups']}'),
+                _buildStatRow('أكبر مجموعة أشقاء', '${siblingStats['largestSiblingGroup']} طلاب'),
+                _buildStatRow('نسبة الطلاب الذين لديهم أشقاء', '${siblingStats['percentageWithSiblings']}%'),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('إغلاق'),
+            ),
+          ],
+        ),
+      );
+      
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('خطأ في جلب الإحصائيات: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+  
+  Widget _buildStatRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+          Text(value, style: const TextStyle(color: Colors.blue)),
+        ],
+      ),
+    );
+  }
+  
+  Future<void> _fixSiblingIssues() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('إصلاح مشاكل تحديد الأشقاء'),
+        content: const Text(
+          'سيتم فحص جميع الطلاب وإصلاح المشاكل التي يمكن إصلاحها تلقائياً. '
+          'هل تريد المتابعة؟'
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('إصلاح'),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirm != true) return;
+    
+    setState(() => isLoading = true);
+    
+    try {
+      final result = await processor.identifyAndFixSiblingIssues();
+      
+      // عرض النتائج
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('نتائج إصلاح المشاكل'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildStatRow('إجمالي المشاكل المكتشفة', '${result['totalIssues']}'),
+              _buildStatRow('المشاكل المحلولة', '${result['fixedIssues']}'),
+              _buildStatRow('المشاكل المتبقية', '${result['remainingIssues']}'),
+              const SizedBox(height: 16),
+              if (result['remainingIssues'] > 0)
+                const Text(
+                  'المشاكل المتبقية تتطلب تدخل يدوي لحلها. '
+                  'راجع سجل التطبيق لمزيد من التفاصيل.',
+                  style: TextStyle(color: Colors.orange, fontSize: 12),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('إغلاق'),
+            ),
+          ],
+        ),
+      );
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('تم إصلاح ${result['fixedIssues']} مشكلة من أصل ${result['totalIssues']}'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('خطأ في إصلاح المشاكل: $e'),
           backgroundColor: Colors.red,
         ),
       );
