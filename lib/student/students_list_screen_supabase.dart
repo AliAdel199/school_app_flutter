@@ -7,6 +7,7 @@ import 'package:printing/printing.dart';
 import 'package:school_app_flutter/localdatabase/expense.dart';
 import 'package:school_app_flutter/localdatabase/student_fee_status.dart';
 import '../localdatabase/expense_category.dart';
+import '../helpers/program_info.dart';
 
 import '/localdatabase/class.dart';
 // import '/localdatabase/students/StudentService.dart';
@@ -219,6 +220,7 @@ for (final student in filteredStudents) {
       appBar: AppBar(
         title: const Text('الطلاب'),
         actions: [
+          ProgramInfo.buildInfoButton(context),
           IconButton(
             onPressed: () {
               Navigator.pushNamed(context, '/auto-discount');

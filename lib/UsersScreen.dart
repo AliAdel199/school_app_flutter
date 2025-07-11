@@ -3,6 +3,7 @@ import 'package:isar/isar.dart';
 import '/localdatabase/user.dart';
 import '../../main.dart';
 import 'auth_service.dart';
+import 'helpers/program_info.dart';
 
 class UsersScreen extends StatefulWidget {
   const UsersScreen({super.key});
@@ -139,6 +140,9 @@ class _UsersScreenState extends State<UsersScreen> {
         centerTitle: true,
         elevation: 2,
         backgroundColor: Colors.white,
+        actions: [
+          ProgramInfo.buildInfoButton(context),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(12.0),
@@ -192,6 +196,7 @@ class _UsersScreenState extends State<UsersScreen> {
         tooltip: 'إضافة مستخدم',
         child: const Icon(Icons.add),
       ),
+      bottomNavigationBar: ProgramInfo.buildCopyrightFooter(),
     );
   }
 }

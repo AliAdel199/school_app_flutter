@@ -8,6 +8,7 @@ import 'package:printing/printing.dart';
 import '../main.dart';
 import '../localdatabase/student.dart';
 import '../localdatabase/student_fee_status.dart';
+import '../helpers/program_info.dart';
 
 class StudentPaymentStatusReport extends StatefulWidget {
   const StudentPaymentStatusReport({super.key});
@@ -169,6 +170,7 @@ class _StudentPaymentStatusReportState extends State<StudentPaymentStatusReport>
         backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
         actions: [
+          ProgramInfo.buildInfoButton(context),
           IconButton(
             icon: const Icon(Icons.save),
             onPressed: _saveReportAsPdf,
@@ -195,6 +197,7 @@ class _StudentPaymentStatusReportState extends State<StudentPaymentStatusReport>
                 Expanded(child: _buildReportTabs()),
               ],
             ),
+      bottomNavigationBar: ProgramInfo.buildCopyrightFooter(),
     );
   }
 
@@ -582,12 +585,55 @@ class _StudentPaymentStatusReportState extends State<StudentPaymentStatusReport>
         ),
         build: (pw.Context context) {
           return [
-            // عنوان التقرير
+            // علامة مائية في الخلفية
+            pw.Positioned.fill(
+              child: pw.Center(
+                child: pw.Transform.rotate(
+                  angle: -0.5,
+                  child: pw.Opacity(
+                    opacity: 0.1,
+                    child: pw.Text(
+                      'نظام إدارة المدارس الذكي\nSmart School Management System',
+                      style: pw.TextStyle(
+                        fontSize: 48,
+                        fontWeight: pw.FontWeight.bold,
+                        font: ttfArabicBold,
+                        color: PdfColors.grey600,
+                      ),
+                      textDirection: pw.TextDirection.rtl,
+                      textAlign: pw.TextAlign.center,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            
+            // عنوان التقرير مع شعار البرنامج
             pw.Container(
               alignment: pw.Alignment.center,
               margin: const pw.EdgeInsets.only(bottom: 30),
               child: pw.Column(
                 children: [
+                  // شعار أو علامة البرنامج
+                  pw.Container(
+                    padding: const pw.EdgeInsets.all(10),
+                    decoration: pw.BoxDecoration(
+                      color: PdfColors.indigo50,
+                      borderRadius: pw.BorderRadius.circular(10),
+                      border: pw.Border.all(color: PdfColors.indigo200),
+                    ),
+                    child: pw.Text(
+                      '🏫 نظام إدارة المدارس الذكي',
+                      style: pw.TextStyle(
+                        fontSize: 14,
+                        fontWeight: pw.FontWeight.bold,
+                        font: ttfArabicBold,
+                        color: PdfColors.indigo800,
+                      ),
+                      textDirection: pw.TextDirection.rtl,
+                    ),
+                  ),
+                  pw.SizedBox(height: 15),
                   pw.Text(
                     'تقرير حالة دفع الطلاب',
                     style: pw.TextStyle(
@@ -775,12 +821,39 @@ class _StudentPaymentStatusReportState extends State<StudentPaymentStatusReport>
         },
         footer: (pw.Context context) {
           return pw.Container(
-            alignment: pw.Alignment.centerRight,
             margin: const pw.EdgeInsets.only(top: 10),
-            child: pw.Text(
-              'صفحة ${context.pageNumber} من ${context.pagesCount}',
-              style: pw.TextStyle(fontSize: 10, font: ttfArabic),
-              textDirection: pw.TextDirection.rtl,
+            padding: const pw.EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+            decoration: pw.BoxDecoration(
+              border: pw.Border(top: pw.BorderSide(color: PdfColors.grey300)),
+            ),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                // حقوق البرنامج
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  mainAxisSize: pw.MainAxisSize.min,
+                  children: [
+                    pw.Text(
+                      'تم إنشاء هذا التقرير بواسطة نظام إدارة المدارس',
+                      style: pw.TextStyle(fontSize: 8, font: ttfArabic, color: PdfColors.grey600),
+                      textDirection: pw.TextDirection.rtl,
+                    ),
+                    pw.SizedBox(height: 2),
+                    pw.Text(
+                      '© ${DateTime.now().year} جميع الحقوق محفوظة - نظام إدارة المدارس الذكي',
+                      style: pw.TextStyle(fontSize: 7, font: ttfArabic, color: PdfColors.grey500),
+                      textDirection: pw.TextDirection.rtl,
+                    ),
+                  ],
+                ),
+                // رقم الصفحة
+                pw.Text(
+                  'صفحة ${context.pageNumber} من ${context.pagesCount}',
+                  style: pw.TextStyle(fontSize: 10, font: ttfArabic),
+                  textDirection: pw.TextDirection.rtl,
+                ),
+              ],
             ),
           );
         },

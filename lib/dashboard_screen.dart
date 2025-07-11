@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../license_manager.dart';
 import 'LicenseCheckScreen.dart';
 import 'main.dart';
+import 'helpers/program_info.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -107,6 +108,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
         actions: [
+          ProgramInfo.buildInfoButton(context),
               if (isTrial)
       TextButton.icon(
         style: TextButton.styleFrom(foregroundColor: Colors.white,backgroundColor: isTrial ? Colors.orange.shade800 : Colors.green.shade800,),
@@ -145,6 +147,7 @@ onPressed: () => Navigator.push(
                     ),
                   ),
       ),
+      bottomNavigationBar: ProgramInfo.buildCopyrightFooter(),
     );
   }
 
