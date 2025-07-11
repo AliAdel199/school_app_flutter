@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:isar/isar.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
@@ -168,6 +169,11 @@ class _StudentPaymentStatusReportState extends State<StudentPaymentStatusReport>
         backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.save),
+            onPressed: _saveReportAsPdf,
+            tooltip: 'حفظ التقرير كملف PDF',
+          ),
           IconButton(
             icon: const Icon(Icons.print),
             onPressed: _printReport,
@@ -500,128 +506,421 @@ class _StudentPaymentStatusReportState extends State<StudentPaymentStatusReport>
     );
   }
 
+  // حفظ التقرير كملف PDF
+  Future<void> _saveReportAsPdf() async {
+    try {
+      final pdf = await _generatePdfDocument();
+      final fileName = 'تقرير_حالة_دفع_الطلاب_${DateFormat('yyyy_MM_dd_HH_mm').format(DateTime.now())}.pdf';
+      
+      await Printing.sharePdf(
+        bytes: await pdf.save(),
+        filename: fileName,
+      );
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم حفظ التقرير بنجاح'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('خطأ في حفظ التقرير: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  // طباعة التقرير
   Future<void> _printReport() async {
+    try {
+      final pdf = await _generatePdfDocument();
+      final fileName = 'تقرير_حالة_دفع_الطلاب_${DateFormat('yyyy_MM_dd').format(DateTime.now())}.pdf';
+      
+      await Printing.layoutPdf(
+        onLayout: (PdfPageFormat format) async => pdf.save(),
+        name: fileName,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('خطأ في طباعة التقرير: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  // إنشاء مستند PDF (مشترك بين الطباعة والحفظ)
+  Future<pw.Document> _generatePdfDocument() async {
+    // تحميل الخط العربي
+    final arabicFont = await rootBundle.load('assets/fonts/Amiri-Regular.ttf');
+    final arabicBoldFont = await rootBundle.load('assets/fonts/Amiri-Bold.ttf');
+    final ttfArabic = pw.Font.ttf(arabicFont);
+    final ttfArabicBold = pw.Font.ttf(arabicBoldFont);
+    
     final pdf = pw.Document();
     
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         textDirection: pw.TextDirection.rtl,
+        theme: pw.ThemeData.withFont(
+          base: ttfArabic,
+          bold: ttfArabicBold,
+        ),
         build: (pw.Context context) {
           return [
-            pw.Header(
-              level: 0,
-              child: pw.Text(
-                'تقرير حالة دفع الطلاب',
-                style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
-                textDirection: pw.TextDirection.rtl,
-              ),
-            ),
-            pw.Padding(
-              padding: const pw.EdgeInsets.only(bottom: 20),
-              child: pw.Text(
-                'السنة الدراسية: ${selectedAcademicYear ?? "غير محدد"}\n'
-                'الصف: ${selectedClass ?? "جميع الصفوف"}\n'
-                'تاريخ التقرير: ${DateFormat('yyyy/MM/dd').format(DateTime.now())}',
-                textDirection: pw.TextDirection.rtl,
-              ),
-            ),
-            
-            // إحصائيات
+            // عنوان التقرير
             pw.Container(
-              padding: const pw.EdgeInsets.all(10),
-              decoration: pw.BoxDecoration(border: pw.Border.all()),
-              child: pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceEvenly,
+              alignment: pw.Alignment.center,
+              margin: const pw.EdgeInsets.only(bottom: 30),
+              child: pw.Column(
                 children: [
-                  pw.Text('المتأخرين: $totalLateStudents', textDirection: pw.TextDirection.rtl),
-                  pw.Text('مكتملي الدفع: $totalFullyPaidStudents', textDirection: pw.TextDirection.rtl),
-                  pw.Text('قرب الاستحقاق: $totalUpcomingDueStudents', textDirection: pw.TextDirection.rtl),
+                  pw.Text(
+                    'تقرير حالة دفع الطلاب',
+                    style: pw.TextStyle(
+                      fontSize: 24,
+                      fontWeight: pw.FontWeight.bold,
+                      font: ttfArabicBold,
+                    ),
+                    textDirection: pw.TextDirection.rtl,
+                  ),
+                  pw.SizedBox(height: 10),
+                  pw.Container(
+                    height: 3,
+                    width: 200,
+                    color: PdfColors.indigo,
+                  ),
                 ],
               ),
             ),
             
-            pw.SizedBox(height: 20),
+            // معلومات التقرير
+            pw.Container(
+              padding: const pw.EdgeInsets.all(15),
+              margin: const pw.EdgeInsets.only(bottom: 20),
+              decoration: pw.BoxDecoration(
+                border: pw.Border.all(color: PdfColors.grey400),
+                borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                color: PdfColors.grey100,
+              ),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    'معلومات التقرير',
+                    style: pw.TextStyle(
+                      fontSize: 14,
+                      fontWeight: pw.FontWeight.bold,
+                      font: ttfArabicBold,
+                    ),
+                    textDirection: pw.TextDirection.rtl,
+                  ),
+                  pw.SizedBox(height: 8),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text(
+                        'السنة الدراسية: ${selectedAcademicYear ?? "غير محدد"}',
+                        style: pw.TextStyle(fontSize: 12, font: ttfArabic),
+                        textDirection: pw.TextDirection.rtl,
+                      ),
+                      pw.Text(
+                        'الصف: ${selectedClass ?? "جميع الصفوف"}',
+                        style: pw.TextStyle(fontSize: 12, font: ttfArabic),
+                        textDirection: pw.TextDirection.rtl,
+                      ),
+                      pw.Text(
+                        'تاريخ التقرير: ${DateFormat('yyyy/MM/dd', 'ar').format(DateTime.now())}',
+                        style: pw.TextStyle(fontSize: 12, font: ttfArabic),
+                        textDirection: pw.TextDirection.rtl,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            
+            // الإحصائيات المحسنة
+            pw.Container(
+              margin: const pw.EdgeInsets.only(bottom: 25),
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildPdfStatCard(
+                    'الطلاب المتأخرين',
+                    totalLateStudents.toString(),
+                    '${formatter.format(totalLateAmount)} د.ع',
+                    PdfColors.red,
+                    ttfArabic,
+                    ttfArabicBold,
+                  ),
+                  _buildPdfStatCard(
+                    'مكتملي الدفع',
+                    totalFullyPaidStudents.toString(),
+                    '${formatter.format(totalPaidAmount)} د.ع',
+                    PdfColors.green,
+                    ttfArabic,
+                    ttfArabicBold,
+                  ),
+                  _buildPdfStatCard(
+                    'قرب الاستحقاق',
+                    totalUpcomingDueStudents.toString(),
+                    '${formatter.format(totalUpcomingAmount)} د.ع',
+                    PdfColors.orange,
+                    ttfArabic,
+                    ttfArabicBold,
+                  ),
+                ],
+              ),
+            ),
             
             // جدول الطلاب المتأخرين
             if (latePaymentStudents.isNotEmpty) ...[
-              pw.Text(
-                'الطلاب المتأخرين في الدفع',
-                style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
-                textDirection: pw.TextDirection.rtl,
+              _buildPdfSectionHeader(
+                'الطلاب المتأخرين في الدفع (${latePaymentStudents.length})',
+                PdfColors.red,
+                ttfArabicBold,
               ),
               pw.SizedBox(height: 10),
-              _buildPdfTable(latePaymentStudents, StudentListType.late),
-              pw.SizedBox(height: 20),
+              _buildPdfTable(latePaymentStudents, StudentListType.late, ttfArabic, ttfArabicBold),
+              pw.SizedBox(height: 25),
             ],
             
             // جدول الطلاب مكتملي الدفع
             if (fullyPaidStudents.isNotEmpty) ...[
-              pw.Text(
-                'الطلاب مكتملي الدفع',
-                style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
-                textDirection: pw.TextDirection.rtl,
+              _buildPdfSectionHeader(
+                'الطلاب مكتملي الدفع (${fullyPaidStudents.length})',
+                PdfColors.green,
+                ttfArabicBold,
               ),
               pw.SizedBox(height: 10),
-              _buildPdfTable(fullyPaidStudents, StudentListType.fullyPaid),
-              pw.SizedBox(height: 20),
+              _buildPdfTable(fullyPaidStudents, StudentListType.fullyPaid, ttfArabic, ttfArabicBold),
+              pw.SizedBox(height: 25),
             ],
             
             // جدول الطلاب قرب الاستحقاق
             if (upcomingDueStudents.isNotEmpty) ...[
-              pw.Text(
-                'الطلاب قرب موعد الاستحقاق',
-                style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
-                textDirection: pw.TextDirection.rtl,
+              _buildPdfSectionHeader(
+                'الطلاب قرب موعد الاستحقاق (${upcomingDueStudents.length})',
+                PdfColors.orange,
+                ttfArabicBold,
               ),
               pw.SizedBox(height: 10),
-              _buildPdfTable(upcomingDueStudents, StudentListType.upcoming),
+              _buildPdfTable(upcomingDueStudents, StudentListType.upcoming, ttfArabic, ttfArabicBold),
             ],
+            
+            // التوقيع والختم
+            pw.SizedBox(height: 40),
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      'إعداد التقرير:',
+                      style: pw.TextStyle(fontSize: 12, font: ttfArabic),
+                      textDirection: pw.TextDirection.rtl,
+                    ),
+                    pw.SizedBox(height: 20),
+                    pw.Container(
+                      width: 100,
+                      height: 1,
+                      color: PdfColors.black,
+                    ),
+                    pw.Text(
+                      'المسؤول المالي',
+                      style: pw.TextStyle(fontSize: 10, font: ttfArabic),
+                      textDirection: pw.TextDirection.rtl,
+                    ),
+                  ],
+                ),
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      'اعتماد التقرير:',
+                      style: pw.TextStyle(fontSize: 12, font: ttfArabic),
+                      textDirection: pw.TextDirection.rtl,
+                    ),
+                    pw.SizedBox(height: 20),
+                    pw.Container(
+                      width: 100,
+                      height: 1,
+                      color: PdfColors.black,
+                    ),
+                    pw.Text(
+                      'مدير المدرسة',
+                      style: pw.TextStyle(fontSize: 10, font: ttfArabic),
+                      textDirection: pw.TextDirection.rtl,
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ];
+        },
+        footer: (pw.Context context) {
+          return pw.Container(
+            alignment: pw.Alignment.centerRight,
+            margin: const pw.EdgeInsets.only(top: 10),
+            child: pw.Text(
+              'صفحة ${context.pageNumber} من ${context.pagesCount}',
+              style: pw.TextStyle(fontSize: 10, font: ttfArabic),
+              textDirection: pw.TextDirection.rtl,
+            ),
+          );
         },
       ),
     );
+    
+    return pdf;
+  }
 
-    await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => pdf.save(),
+  // إنشاء بطاقة إحصائية للـ PDF
+  pw.Widget _buildPdfStatCard(
+    String title,
+    String count,
+    String amount,
+    PdfColor color,
+    pw.Font font,
+    pw.Font boldFont,
+  ) {
+    return pw.Container(
+      width: 160,
+      padding: const pw.EdgeInsets.all(12),
+      decoration: pw.BoxDecoration(
+        color: color.shade(0.1),
+        border: pw.Border.all(color: color, width: 2),
+        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+      ),
+      child: pw.Column(
+        children: [
+          pw.Text(
+            title,
+            style: pw.TextStyle(
+              fontSize: 12,
+              fontWeight: pw.FontWeight.bold,
+              font: boldFont,
+              color: color,
+            ),
+            textDirection: pw.TextDirection.rtl,
+            textAlign: pw.TextAlign.center,
+          ),
+          pw.SizedBox(height: 8),
+          pw.Text(
+            count,
+            style: pw.TextStyle(
+              fontSize: 20,
+              fontWeight: pw.FontWeight.bold,
+              font: boldFont,
+              color: color,
+            ),
+            textAlign: pw.TextAlign.center,
+          ),
+          pw.SizedBox(height: 4),
+          pw.Text(
+            amount,
+            style: pw.TextStyle(
+              fontSize: 10,
+              font: font,
+              color: color,
+            ),
+            textDirection: pw.TextDirection.rtl,
+            textAlign: pw.TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 
-  pw.Widget _buildPdfTable(List<StudentWithStatus> students, StudentListType type) {
+  // إنشاء عنوان القسم
+  pw.Widget _buildPdfSectionHeader(String title, PdfColor color, pw.Font boldFont) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: color.shade(0.1),
+        border: pw.Border(
+          right: pw.BorderSide(color: color, width: 4),
+        ),
+      ),
+      child: pw.Text(
+        title,
+        style: pw.TextStyle(
+          fontSize: 16,
+          fontWeight: pw.FontWeight.bold,
+          font: boldFont,
+          color: color,
+        ),
+        textDirection: pw.TextDirection.rtl,
+      ),
+    );
+  }
+
+  pw.Widget _buildPdfTable(List<StudentWithStatus> students, StudentListType type, pw.Font font, pw.Font boldFont) {
     return pw.Table(
-      border: pw.TableBorder.all(),
+      border: pw.TableBorder.all(color: PdfColors.grey400),
+      columnWidths: {
+        0: const pw.FlexColumnWidth(3), // اسم الطالب
+        1: const pw.FlexColumnWidth(2), // الصف
+        2: const pw.FlexColumnWidth(2), // المبلغ
+        3: const pw.FlexColumnWidth(2), // التاريخ
+      },
       children: [
         // Header
         pw.TableRow(
-          decoration: const pw.BoxDecoration(color: PdfColors.grey300),
+          decoration: pw.BoxDecoration(
+            color: type == StudentListType.late ? PdfColors.red.shade(0.2) :
+                   type == StudentListType.fullyPaid ? PdfColors.green.shade(0.2) :
+                   PdfColors.orange.shade(0.2),
+          ),
           children: [
-            _buildPdfCell('اسم الطالب', isHeader: true),
-            _buildPdfCell('الصف', isHeader: true),
+            _buildPdfCell('اسم الطالب', isHeader: true, font: boldFont),
+            _buildPdfCell('الصف', isHeader: true, font: boldFont),
             if (type != StudentListType.fullyPaid)
-              _buildPdfCell('المبلغ المتبقي', isHeader: true),
+              _buildPdfCell('المبلغ المتبقي', isHeader: true, font: boldFont),
             if (type == StudentListType.fullyPaid)
-              _buildPdfCell('المبلغ المدفوع', isHeader: true),
-            _buildPdfCell('تاريخ الاستحقاق', isHeader: true),
+              _buildPdfCell('المبلغ المدفوع', isHeader: true, font: boldFont),
+            _buildPdfCell('تاريخ الاستحقاق', isHeader: true, font: boldFont),
           ],
         ),
         // Data rows
-        ...students.map((studentWithStatus) {
+        ...students.asMap().entries.map((entry) {
+          final index = entry.key;
+          final studentWithStatus = entry.value;
           final student = studentWithStatus.student;
           final feeStatus = studentWithStatus.feeStatus;
           final remainingAmount = (feeStatus.annualFee - feeStatus.discountAmount) - feeStatus.paidAmount;
           
           return pw.TableRow(
+            decoration: pw.BoxDecoration(
+              color: index % 2 == 0 ? PdfColors.white : PdfColors.grey100,
+            ),
             children: [
-              _buildPdfCell(student.fullName),
-              _buildPdfCell(feeStatus.className),
+              _buildPdfCell(student.fullName, font: font),
+              _buildPdfCell(feeStatus.className, font: font),
               if (type != StudentListType.fullyPaid)
-                _buildPdfCell('${formatter.format(remainingAmount)} د.ع'),
+                _buildPdfCell('${formatter.format(remainingAmount)} د.ع', font: font),
               if (type == StudentListType.fullyPaid)
-                _buildPdfCell('${formatter.format(feeStatus.paidAmount)} د.ع'),
+                _buildPdfCell('${formatter.format(feeStatus.paidAmount)} د.ع', font: font),
               _buildPdfCell(
                 feeStatus.nextDueDate != null 
-                    ? DateFormat('yyyy/MM/dd').format(feeStatus.nextDueDate!)
-                    : 'غير محدد'
+                    ? DateFormat('yyyy/MM/dd', 'ar').format(feeStatus.nextDueDate!)
+                    : 'غير محدد',
+                font: font,
               ),
             ],
           );
@@ -630,7 +929,7 @@ class _StudentPaymentStatusReportState extends State<StudentPaymentStatusReport>
     );
   }
 
-  pw.Widget _buildPdfCell(String text, {bool isHeader = false}) {
+  pw.Widget _buildPdfCell(String text, {bool isHeader = false, required pw.Font font}) {
     return pw.Container(
       padding: const pw.EdgeInsets.all(8),
       child: pw.Text(
@@ -638,6 +937,7 @@ class _StudentPaymentStatusReportState extends State<StudentPaymentStatusReport>
         style: pw.TextStyle(
           fontSize: isHeader ? 12 : 10,
           fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
+          font: font,
         ),
         textDirection: pw.TextDirection.rtl,
         textAlign: pw.TextAlign.center,
