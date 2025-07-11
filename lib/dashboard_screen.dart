@@ -155,6 +155,7 @@ onPressed: () => Navigator.push(
       {'label': 'المراحل', 'icon': Icons.score, 'route': '/classes'},
       {'label': 'إدارة الخصومات', 'icon': Icons.percent, 'route': '/discount-management'}, // إضافة جديدة
       {'label': 'التقارير العامة', 'icon': Icons.bar_chart, 'route': '/reportsscreen'},
+      {'label': 'تقرير حالة الطلاب', 'icon': Icons.assignment, 'route': '/student-payment-status'},
       {'label': 'قائمة المصروفات', 'icon': Icons.money_off, 'route': '/expense-list'},
       {'label': 'قائمة الدخل', 'icon': Icons.account_balance_wallet, 'route': '/income'},
       {'label': 'سجل الفواتير', 'icon': Icons.receipt_long, 'route': '/payment-list'},

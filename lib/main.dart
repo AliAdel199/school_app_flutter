@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:school_app_flutter/ActivationScreen.dart';
 import '/localdatabase/expense.dart';
 import '/localdatabase/expense_category.dart';
 import '/localdatabase/income.dart';
@@ -17,6 +16,7 @@ import '../employee/employee_list_screen.dart';
 import '../income_expeness/incomes.dart';
 import '../reports/classes_list_screen.dart';
 import '../reports/reportsscreen.dart';
+import '../reports/student_payment_status_report.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'LicenseCheckScreen.dart';
 import 'LogsScreen.dart';
@@ -210,6 +210,7 @@ class SchoolApp extends StatelessWidget {
         },
         '/financial-reports': (context) => const FinancialReportsScreen(),
         '/reportsscreen': (context) => const ReportsScreen(),
+        '/student-payment-status': (context) => const StudentPaymentStatusReport(),
         '/add-edit-employee': (context) => AddEditEmployeeScreen(
               employee: ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?,
             ),

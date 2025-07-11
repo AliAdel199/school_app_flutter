@@ -11,6 +11,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'student_payment_status_report.dart';
 
 import '../main.dart';
 
@@ -376,6 +377,18 @@ debugPrint('الرصيد الصافي: ${netBalance.toStringAsFixed(2)} د.ع');
       appBar: AppBar(
         title: const Text('التقارير العامة'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.people),
+            tooltip: 'تقرير حالة دفع الطلاب',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const StudentPaymentStatusReport(),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.print),
             tooltip: 'طباعة التقرير',
