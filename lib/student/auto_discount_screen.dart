@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:isar/isar.dart';
 import '../helpers/simple_auto_discount_processor.dart';
+import '../helpers/auto_discount_settings_manager.dart';
 import '../localdatabase/student.dart';
 import '../localdatabase/student_discount.dart';
 import '../main.dart';
 
 class AutoDiscountScreen extends StatefulWidget {
-  const AutoDiscountScreen({Key? key}) : super(key: key);
+  const AutoDiscountScreen({super.key});
 
   @override
   State<AutoDiscountScreen> createState() => _AutoDiscountScreenState();
@@ -16,19 +17,51 @@ class AutoDiscountScreen extends StatefulWidget {
 class _AutoDiscountScreenState extends State<AutoDiscountScreen> {
   final formatter = NumberFormat('#,###');
   late AutoDiscountProcessor processor;
+  late AutoDiscountSettingsManager settingsManager;
   bool isLoading = false;
   Map<String, dynamic> stats = {};
   
-  // إعدادات الخصومات
+  // إعدادات الخصومات - سيتم تحميلها من قاعدة البيانات
+  bool globalEnabled = true;
   bool siblingDiscountEnabled = true;
   bool earlyPaymentDiscountEnabled = true;
   bool fullPaymentDiscountEnabled = true;
+  
+  // نسب الخصومات
+  double siblingRate2nd = 10.0;
+  double siblingRate3rd = 15.0;
+  double siblingRate4th = 20.0;
+  double earlyPaymentRate = 5.0;
+  double fullPaymentRate = 3.0;
+  int earlyPaymentDays = 30;
   
   @override
   void initState() {
     super.initState();
     processor = AutoDiscountProcessor(isar);
+    settingsManager = AutoDiscountSettingsManager(isar);
+    loadSettings();
     loadStats();
+  }
+  
+  Future<void> loadSettings() async {
+    try {
+      final settings = await settingsManager.getSettings();
+      setState(() {
+        globalEnabled = settings.globalEnabled;
+        siblingDiscountEnabled = settings.siblingDiscountEnabled;
+        earlyPaymentDiscountEnabled = settings.earlyPaymentDiscountEnabled;
+        fullPaymentDiscountEnabled = settings.fullPaymentDiscountEnabled;
+        siblingRate2nd = settings.siblingDiscountRate2nd;
+        siblingRate3rd = settings.siblingDiscountRate3rd;
+        siblingRate4th = settings.siblingDiscountRate4th;
+        earlyPaymentRate = settings.earlyPaymentDiscountRate;
+        fullPaymentRate = settings.fullPaymentDiscountRate;
+        earlyPaymentDays = settings.earlyPaymentDays;
+      });
+    } catch (e) {
+      debugPrint('خطأ في تحميل الإعدادات: $e');
+    }
   }
   
   Future<void> loadStats() async {
@@ -103,11 +136,11 @@ class _AutoDiscountScreenState extends State<AutoDiscountScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
+              const Row(
                 children: [
-                  const Icon(Icons.analytics, color: Colors.white, size: 28),
-                  const SizedBox(width: 12),
-                  const Text(
+                  Icon(Icons.analytics, color: Colors.white, size: 28),
+                  SizedBox(width: 12),
+                  Text(
                     'إحصائيات الخصومات التلقائية',
                     style: TextStyle(
                       color: Colors.white,
@@ -216,29 +249,101 @@ class _AutoDiscountScreenState extends State<AutoDiscountScreen> {
                 Icon(Icons.settings, color: Colors.indigo.shade600, size: 24),
                 const SizedBox(width: 12),
                 const Text(
-                  'إعدادات الخصومات',
+                  'إعدادات الخصومات التلقائية',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            _buildSettingSwitch(
-              'خصم الأشقاء',
-              'تطبيق خصم تلقائي للأشقاء في المدرسة',
-              siblingDiscountEnabled,
-              (value) => setState(() => siblingDiscountEnabled = value),
+            
+            // التحكم العام في النظام
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: globalEnabled ? Colors.green.shade50 : Colors.red.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: globalEnabled ? Colors.green.shade200 : Colors.red.shade200,
+                ),
+              ),
+              child: _buildSettingSwitch(
+                'تفعيل نظام الخصومات التلقائية',
+                globalEnabled 
+                  ? 'النظام مفعل - يتم تطبيق الخصومات تلقائياً'
+                  : 'النظام معطل - لن يتم تطبيق أي خصومات تلقائية',
+                globalEnabled,
+                (value) async {
+                  setState(() => globalEnabled = value);
+                  await settingsManager.setGlobalEnabled(value);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(value 
+                        ? '✅ تم تفعيل نظام الخصومات التلقائية'
+                        : '❌ تم إيقاف نظام الخصومات التلقائية'),
+                      backgroundColor: value ? Colors.green : Colors.red,
+                    ),
+                  );
+                },
+                important: true,
+              ),
             ),
-            _buildSettingSwitch(
-              'خصم الدفع المبكر',
-              'خصم 5% للدفع قبل 30 يوم من بداية العام',
-              earlyPaymentDiscountEnabled,
-              (value) => setState(() => earlyPaymentDiscountEnabled = value),
+            
+            const SizedBox(height: 16),
+            
+            // إعدادات أنواع الخصومات
+            AnimatedOpacity(
+              opacity: globalEnabled ? 1.0 : 0.5,
+              duration: const Duration(milliseconds: 300),
+              child: Column(
+                children: [
+                  _buildSettingSwitch(
+                    'خصم الأشقاء',
+                    'خصم ${siblingRate2nd.toInt()}% للثاني، ${siblingRate3rd.toInt()}% للثالث، ${siblingRate4th.toInt()}% للرابع فما فوق',
+                    siblingDiscountEnabled,
+                    globalEnabled ? (value) async {
+                      setState(() => siblingDiscountEnabled = value);
+                      await settingsManager.setSiblingDiscountEnabled(value);
+                      _showSuccessMessage('خصم الأشقاء', value);
+                    } : null,
+                  ),
+                  _buildSettingSwitch(
+                    'خصم الدفع المبكر',
+                    'خصم ${earlyPaymentRate.toInt()}% للدفع قبل $earlyPaymentDays يوم من بداية العام',
+                    earlyPaymentDiscountEnabled,
+                    globalEnabled ? (value) async {
+                      setState(() => earlyPaymentDiscountEnabled = value);
+                      await settingsManager.setEarlyPaymentDiscountEnabled(value);
+                      _showSuccessMessage('خصم الدفع المبكر', value);
+                    } : null,
+                  ),
+                  _buildSettingSwitch(
+                    'خصم الدفع الكامل',
+                    'خصم ${fullPaymentRate.toInt()}% للدفع الكامل في دفعة واحدة',
+                    fullPaymentDiscountEnabled,
+                    globalEnabled ? (value) async {
+                      setState(() => fullPaymentDiscountEnabled = value);
+                      await settingsManager.setFullPaymentDiscountEnabled(value);
+                      _showSuccessMessage('خصم الدفع الكامل', value);
+                    } : null,
+                  ),
+                ],
+              ),
             ),
-            _buildSettingSwitch(
-              'خصم الدفع الكامل',
-              'خصم 3% للدفع الكامل في دفعة واحدة',
-              fullPaymentDiscountEnabled,
-              (value) => setState(() => fullPaymentDiscountEnabled = value),
+            
+            const SizedBox(height: 16),
+            
+            // زر تحديث الإعدادات
+            Center(
+              child: ElevatedButton.icon(
+                onPressed: () => _showSettingsDialog(),
+                icon: const Icon(Icons.tune),
+                label: const Text('تخصيص النسب والإعدادات'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.indigo,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                ),
+              ),
             ),
           ],
         ),
@@ -246,14 +351,20 @@ class _AutoDiscountScreenState extends State<AutoDiscountScreen> {
     );
   }
   
-  Widget _buildSettingSwitch(String title, String subtitle, bool value, Function(bool) onChanged) {
+  Widget _buildSettingSwitch(String title, String subtitle, bool value, Function(bool)? onChanged, {bool important = false}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: important 
+          ? (value ? Colors.green.shade50 : Colors.red.shade50)
+          : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+          color: important 
+            ? (value ? Colors.green.shade200 : Colors.red.shade200)
+            : Colors.grey.shade200,
+        ),
       ),
       child: Row(
         children: [
@@ -263,9 +374,12 @@ class _AutoDiscountScreenState extends State<AutoDiscountScreen> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                  style: TextStyle(
+                    fontSize: important ? 17 : 16,
+                    fontWeight: important ? FontWeight.bold : FontWeight.w600,
+                    color: important 
+                      ? (value ? Colors.green.shade800 : Colors.red.shade800)
+                      : null,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -282,7 +396,7 @@ class _AutoDiscountScreenState extends State<AutoDiscountScreen> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: Colors.indigo,
+            activeColor: important ? Colors.green : Colors.indigo,
           ),
         ],
       ),
@@ -865,5 +979,54 @@ class _AutoDiscountScreenState extends State<AutoDiscountScreen> {
     } finally {
       setState(() => isLoading = false);
     }
+  }
+  
+  void _showSuccessMessage(String message, [bool? value]) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: value == true ? Colors.green : Colors.red,
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+    );
+  }
+
+  void _showSettingsDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('إعدادات الخصومات التفصيلية'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'هنا يمكنك تخصيص معايير الخصومات بالتفصيل',
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 16),
+              // يمكن إضافة المزيد من الإعدادات هنا لاحقاً
+              Text(
+                'ميزة قادمة...',
+                style: TextStyle(
+                  color: Colors.orange.shade700,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('إغلاق'),
+          ),
+        ],
+      ),
+    );
   }
 }

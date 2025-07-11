@@ -34,7 +34,7 @@ Future<void> saveEmployeeData() async {
         .eq('id', userId)
         .single();
 
-    if (profileResponse == null || profileResponse['school_id'] == null) {
+    if (profileResponse['school_id'] == null) {
       throw Exception('لم يتم العثور على معرف المدرسة.');
     }
 
@@ -63,7 +63,7 @@ Future<void> saveEmployeeData() async {
           .select()
           .single();
 
-      if (insertResponse == null || insertResponse['id'] == null) {
+      if (insertResponse['id'] == null) {
         throw Exception('فشل في إنشاء الموظف.');
       }
 
@@ -77,7 +77,7 @@ Future<void> saveEmployeeData() async {
           .select()
           .single();
 
-      if (updateResponse == null || updateResponse['id'] == null) {
+      if (updateResponse['id'] == null) {
         throw Exception('فشل في تحديث بيانات الموظف.');
       }
     }
@@ -264,7 +264,7 @@ Future<void> fetchDeductions() async {
                   ],
                 ),
               );
-            }).toList(),
+            }),
           ],
         ),
       ),
@@ -331,7 +331,7 @@ Future<void> fetchDeductions() async {
                   ],
                 ),
               );
-            }).toList(),
+            }),
           ],
         ),
       ),

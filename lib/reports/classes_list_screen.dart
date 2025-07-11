@@ -223,7 +223,7 @@ class _ClassesListScreenState extends State<ClassesListScreen> {
                   
             
             
-            }, child: Text('إضافة صف')
+            }, child: const Text('إضافة صف')
                      
                       ),
         

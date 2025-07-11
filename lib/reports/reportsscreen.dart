@@ -183,7 +183,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
 // جلب الإيرادات والمصروفات
 // إذا تم اختيار سنة دراسية، استخدم التواريخ المحددة لها
 // وإلا استخدم التواريخ المحددة يدوياً أو الافتراضية
-DateTime searchStartDate = startDate ?? DateTime.now().subtract(Duration(days: 365));
+DateTime searchStartDate = startDate ?? DateTime.now().subtract(const Duration(days: 365));
 DateTime searchEndDate = endDate ?? DateTime.now();
 
 debugPrint('البحث عن الإيرادات والمصروفات من ${DateFormat('yyyy-MM-dd').format(searchStartDate)} إلى ${DateFormat('yyyy-MM-dd').format(searchEndDate)}');
@@ -751,7 +751,7 @@ debugPrint('الرصيد الصافي: ${netBalance.toStringAsFixed(2)} د.ع');
                             ),
                           ),
                           trailing: isSelected
-                              ? Icon(Icons.check_circle, color: Colors.green)
+                              ? const Icon(Icons.check_circle, color: Colors.green)
                               : null,
                           onTap: () {
                             setState(() {

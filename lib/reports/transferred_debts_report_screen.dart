@@ -5,7 +5,7 @@ import 'student_transfer_helper.dart';
 class TransferredDebtsReportScreen extends StatefulWidget {
   final Isar isar;
   
-  const TransferredDebtsReportScreen({Key? key, required this.isar}) : super(key: key);
+  const TransferredDebtsReportScreen({super.key, required this.isar});
 
   @override
   State<TransferredDebtsReportScreen> createState() => _TransferredDebtsReportScreenState();
@@ -59,8 +59,8 @@ class _TransferredDebtsReportScreenState extends State<TransferredDebtsReportScr
               : const Center(child: Text('لا توجد بيانات للعرض')),
       floatingActionButton: FloatingActionButton(
         onPressed: generateReport,
-        child: const Icon(Icons.refresh),
         tooltip: 'إعادة توليد التقرير',
+        child: const Icon(Icons.refresh),
       ),
     );
   }

@@ -1,5 +1,4 @@
 import 'package:isar/isar.dart';
-import 'expense.dart';
 
 part 'expense_category.g.dart';
 

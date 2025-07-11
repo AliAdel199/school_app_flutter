@@ -42,7 +42,7 @@ Future<void> addStudent(Isar isar, Student student) async {
       ..createdAt = DateTime.now()
       ..paidAmount = 0.0 // Initial paid amount
       ..lastPaymentDate = null // No payments made yet  
-      ..nextDueDate = DateTime.now().add(Duration(days: 30)) // Set next due date to 30 days from now
+      ..nextDueDate = DateTime.now().add(const Duration(days: 30)) // Set next due date to 30 days from now
 ;       // or any default status you want
 
     await isar.studentFeeStatus.put(feeStatus);
@@ -88,39 +88,37 @@ Future<void> addStudentPayment(Isar isar, StudentPayment payment,Student student
                             .findFirst();
                             print(feeStatus!.annualFee);
 
-                        if (feeStatus != null) {
-                          final payments = await isar.studentPayments
-                              .filter()
-                              .studentIdEqualTo(studentId)
-                              .academicYearEqualTo(academicYear)
-                              .findAll();
+                        final payments = await isar.studentPayments
+                            .filter()
+                            .studentIdEqualTo(studentId)
+                            .academicYearEqualTo(academicYear)
+                            .findAll();
 
-                          double totalPaid = 0;
-                          DateTime? lastDate;
+                        double totalPaid = 0;
+                        DateTime? lastDate;
 
-                          for (final p in payments) {
-                            totalPaid += p.amount;
-                            if (lastDate == null || p.paidAt.isAfter(lastDate)) {
-                              lastDate = p.paidAt;
-                            }
+                        for (final p in payments) {
+                          totalPaid += p.amount;
+                          if (lastDate == null || p.paidAt.isAfter(lastDate)) {
+                            lastDate = p.paidAt;
                           }
+                        }
 
-                          final due = (feeStatus.annualFee) - totalPaid;
+                        final due = (feeStatus.annualFee) - totalPaid;
 
-                          
-                            feeStatus.paidAmount = totalPaid;
-                            feeStatus.dueAmount = due;
-                            feeStatus.lastPaymentDate = lastDate;
-                            feeStatus.nextDueDate = nextDueDate;
-
-
-    await isar.studentFeeStatus.put(feeStatus);
+                        
+                          feeStatus.paidAmount = totalPaid;
+                          feeStatus.dueAmount = due;
+                          feeStatus.lastPaymentDate = lastDate;
+                          feeStatus.nextDueDate = nextDueDate;
 
 
+  await isar.studentFeeStatus.put(feeStatus);
 
-  
 
-}
+
+
+
 }
 );
 
@@ -158,38 +156,36 @@ Future<void> deleteStudentPayment(Isar isar, int id,String studentId,String acad
                             .findFirst();
                             print(feeStatus!.annualFee);
 
-                        if (feeStatus != null) {
-                          final payments = await isar.studentPayments
-                              .filter()
-                              .studentIdEqualTo(studentId)
-                              .academicYearEqualTo(academicYear)
-                              .findAll();
+                        final payments = await isar.studentPayments
+                            .filter()
+                            .studentIdEqualTo(studentId)
+                            .academicYearEqualTo(academicYear)
+                            .findAll();
 
-                          double totalPaid = 0;
-                          DateTime? lastDate;
+                        double totalPaid = 0;
+                        DateTime? lastDate;
 
-                          for (final p in payments) {
-                            totalPaid += p.amount;
-                            if (lastDate == null || p.paidAt.isAfter(lastDate)) {
-                              lastDate = p.paidAt;
-                            }
+                        for (final p in payments) {
+                          totalPaid += p.amount;
+                          if (lastDate == null || p.paidAt.isAfter(lastDate)) {
+                            lastDate = p.paidAt;
                           }
+                        }
 
-                          final due = (feeStatus.annualFee) - totalPaid;
+                        final due = (feeStatus.annualFee) - totalPaid;
 
-                          
-                            feeStatus.paidAmount = totalPaid;
-                            feeStatus.dueAmount = due;
-                            feeStatus.lastPaymentDate = lastDate;
-
-
-    await isar.studentFeeStatus.put(feeStatus);
+                        
+                          feeStatus.paidAmount = totalPaid;
+                          feeStatus.dueAmount = due;
+                          feeStatus.lastPaymentDate = lastDate;
 
 
+  await isar.studentFeeStatus.put(feeStatus);
 
-  
 
-}
+
+
+
 }
 );
 
@@ -455,7 +451,7 @@ theme: pw.ThemeData.withFont(
                             ),
                             child: pw.Center(
                               child: pw.Text('🔖',
-                                  style: pw.TextStyle(fontSize: 22)),
+                                  style: const pw.TextStyle(fontSize: 22)),
                             ),
                           ),
                   ],
@@ -570,10 +566,10 @@ theme: pw.ThemeData.withFont(
                       crossAxisAlignment: pw.CrossAxisAlignment.end,
                       children: [
                         pw.Text('📞 ${school.phone}',
-                            style: pw.TextStyle(
+                            style: const pw.TextStyle(
                                 fontSize: 11, color: PdfColors.blueGrey600)),
                         pw.Text('📍 ${school.address}',
-                            style: pw.TextStyle(
+                            style: const pw.TextStyle(
                                 fontSize: 11, color: PdfColors.blueGrey600)),
                       ],
                     ),
@@ -654,7 +650,7 @@ Future<void> printStudentPayments(Student student, String academicYear) async {
               },
               children: [
               pw.TableRow(
-                decoration: pw.BoxDecoration(color: PdfColors.blue100),
+                decoration: const pw.BoxDecoration(color: PdfColors.blue100),
                 children: [
                 pw.Padding(
                   padding: const pw.EdgeInsets.symmetric(vertical: 6),

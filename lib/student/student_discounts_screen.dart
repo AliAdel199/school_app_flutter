@@ -10,10 +10,10 @@ class StudentDiscountsScreen extends StatefulWidget {
   final String academicYear;
 
   const StudentDiscountsScreen({
-    Key? key,
+    super.key,
     required this.student,
     required this.academicYear,
-  }) : super(key: key);
+  });
 
   @override
   State<StudentDiscountsScreen> createState() => _StudentDiscountsScreenState();

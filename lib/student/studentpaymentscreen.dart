@@ -565,7 +565,7 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Container(
+                  SizedBox(
                     height: MediaQuery.of(context).size.height * 0.4, // ارتفاع ديناميكي بناءً على حجم الشاشة
                     child: payments.isEmpty
                         ? const Center(child: Text('لا توجد دفعات مسجلة'))

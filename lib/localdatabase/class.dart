@@ -1,8 +1,6 @@
 import 'package:isar/isar.dart';
 
 import 'grade.dart';
-import 'school.dart';
-import 'student.dart';
 import 'subject.dart';
 
 

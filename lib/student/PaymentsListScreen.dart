@@ -3,13 +3,7 @@ import 'package:isar/isar.dart';
 import 'package:intl/intl.dart';
 import '../localdatabase/student_crud.dart';
 import '../localdatabase/student_payment.dart';
-import '../localdatabase/student.dart';
 import '../main.dart';
-import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
 
 class PaymentsListScreen extends StatefulWidget {
   const PaymentsListScreen({super.key, });

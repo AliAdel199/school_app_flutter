@@ -182,7 +182,7 @@ class _LicenseCheckScreenState extends State<LicenseCheckScreen> {
                 const SizedBox(height: 24),
                 if (isTrialActive)
                   Text(
-                    'الفترة التجريبية: ${remainingDays} يوم${remainingDays > 1 ? 'ا' : ''} متبقية',
+                    'الفترة التجريبية: $remainingDays يوم${remainingDays > 1 ? 'ا' : ''} متبقية',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Colors.orange,

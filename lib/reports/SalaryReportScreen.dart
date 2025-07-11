@@ -90,7 +90,7 @@ class _SalaryReportScreenState extends State<SalaryReportScreen> {
             }
             },
           ),
-          Spacer(),
+          const Spacer(),
         
           SizedBox(width: 150,
             child: ElevatedButton.icon(
@@ -111,7 +111,7 @@ class _SalaryReportScreenState extends State<SalaryReportScreen> {
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: DataTable(
-            headingRowColor: MaterialStateProperty.all(Colors.teal.shade100),
+            headingRowColor: WidgetStateProperty.all(Colors.teal.shade100),
             columns: const [
               DataColumn(label: Text('الموظف', style: TextStyle(fontWeight: FontWeight.bold))),
               DataColumn(label: Text('الراتب الاسمي', style: TextStyle(fontWeight: FontWeight.bold))),

@@ -189,8 +189,8 @@ class _UsersScreenState extends State<UsersScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: () => showUserDialog(),
         backgroundColor:Colors.blue.shade100,
-        child: const Icon(Icons.add),
         tooltip: 'إضافة مستخدم',
+        child: const Icon(Icons.add),
       ),
     );
   }

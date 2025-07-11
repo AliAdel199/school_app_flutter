@@ -109,23 +109,23 @@ Future<void> showAddIncomeDialogIsar(BuildContext context, void Function() onSuc
     context: context,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setState) => AlertDialog(
-        title: Text('إضافة إيراد جديد'),
+        title: const Text('إضافة إيراد جديد'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: titleController,
-                decoration: InputDecoration(labelText: 'عنوان الإيراد'),
+                decoration: const InputDecoration(labelText: 'عنوان الإيراد'),
               ),
               TextField(
                 controller: amountController,
-                decoration: InputDecoration(labelText: 'المبلغ'),
+                decoration: const InputDecoration(labelText: 'المبلغ'),
                 keyboardType: TextInputType.number,
               ),
               DropdownButtonFormField<IncomeCategory>(
                 value: selectedCategory,
-                hint: Text('اختر الفئة'),
+                hint: const Text('اختر الفئة'),
                 items: categories.map((cat) {
                   return DropdownMenuItem(
                     value: cat,
@@ -138,21 +138,21 @@ Future<void> showAddIncomeDialogIsar(BuildContext context, void Function() onSuc
                   });
                 },
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               TextField(
                 controller: noteController,
-                decoration: InputDecoration(labelText: 'ملاحظات (اختياري)'),
+                decoration: const InputDecoration(labelText: 'ملاحظات (اختياري)'),
               ),
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
               TextButton.icon(
-                icon: Icon(Icons.calendar_today),
-                label: Text('اختر التاريخ'),
+                icon: const Icon(Icons.calendar_today),
+                label: const Text('اختر التاريخ'),
                 onPressed: () async {
                   final picked = await showDatePicker(
                     context: context,
                     initialDate: selectedDate,
                     firstDate: DateTime(2020),
-                    lastDate: DateTime.now().add(Duration(days: 365)),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
                   );
                   if (picked != null) {
                     setState(() {
@@ -171,7 +171,7 @@ Future<void> showAddIncomeDialogIsar(BuildContext context, void Function() onSuc
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('إلغاء'),
+            child: const Text('إلغاء'),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -195,9 +195,9 @@ Future<void> showAddIncomeDialogIsar(BuildContext context, void Function() onSuc
 
               Navigator.pop(ctx);
               onSuccess();
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تمت إضافة الإيراد')));
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تمت إضافة الإيراد')));
             },
-            child: Text('حفظ'),
+            child: const Text('حفظ'),
           ),
         ],
       ),
@@ -211,16 +211,16 @@ Future<void> showAddIncomeDialogIsar(BuildContext context, void Function() onSuc
   await showDialog(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: Text('إضافة فئة إيراد'),
+      title: const Text('إضافة فئة إيراد'),
       content: TextField(
         controller: controller,
-        decoration: InputDecoration(labelText: 'اسم الفئة'),
+        decoration: const InputDecoration(labelText: 'اسم الفئة'),
         autofocus: true,
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx),
-          child: Text('إلغاء'),
+          child: const Text('إلغاء'),
         ),
         ElevatedButton(
           onPressed: () async {
@@ -248,13 +248,13 @@ Future<void> showAddIncomeDialogIsar(BuildContext context, void Function() onSuc
               );
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('الفئة موجودة مسبقًا')),
+                const SnackBar(content: Text('الفئة موجودة مسبقًا')),
               );
             }
 
             Navigator.pop(ctx);
           },
-          child: Text('إضافة'),
+          child: const Text('إضافة'),
         ),
       ],
     ),
@@ -292,7 +292,7 @@ Future<void> showAddIncomeDialogIsar(BuildContext context, void Function() onSuc
                   headerStyle: pw.TextStyle(font: arabicBoldFont, fontSize: 12),
                   cellStyle: pw.TextStyle(font: arabicFont, fontSize: 11),
                   cellAlignment: pw.Alignment.centerRight,
-                  headerDecoration: pw.BoxDecoration(color: PdfColors.grey300),
+                  headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
                   border: pw.TableBorder.all(color: PdfColors.grey600, width: 0.5),
                   cellHeight: 28,
                 ),
@@ -323,17 +323,17 @@ Future<void> showEditIncomeDialog(BuildContext context, Income income, void Func
     context: context,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setState) => AlertDialog(
-        title: Text('تعديل الإيراد'),
+        title: const Text('تعديل الإيراد'),
         content: SingleChildScrollView(
           child: Column(
             children: [
               TextField(
                 controller: titleController,
-                decoration: InputDecoration(labelText: 'العنوان'),
+                decoration: const InputDecoration(labelText: 'العنوان'),
               ),
               TextField(
                 controller: amountController,
-                decoration: InputDecoration(labelText: 'المبلغ'),
+                decoration: const InputDecoration(labelText: 'المبلغ'),
                 keyboardType: TextInputType.number,
               ),
               DropdownButtonFormField<IncomeCategory>(
@@ -348,7 +348,7 @@ Future<void> showEditIncomeDialog(BuildContext context, Income income, void Func
               ),
               TextField(
                 controller: noteController,
-                decoration: InputDecoration(labelText: 'ملاحظات'),
+                decoration: const InputDecoration(labelText: 'ملاحظات'),
               ),
               TextButton(
                 onPressed: () async {
@@ -356,18 +356,18 @@ Future<void> showEditIncomeDialog(BuildContext context, Income income, void Func
                     context: context,
                     initialDate: selectedDate,
                     firstDate: DateTime(2000),
-                    lastDate: DateTime.now().add(Duration(days: 365)),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
                   );
                   if (date != null) setState(() => selectedDate = date);
                 },
-                child: Text('اختر التاريخ'),
+                child: const Text('اختر التاريخ'),
               ),
               Text('التاريخ: ${selectedDate.toLocal().toString().split(' ')[0]}'),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
           ElevatedButton(
             onPressed: () async {
               income.title = titleController.text.trim();
@@ -384,9 +384,9 @@ Future<void> showEditIncomeDialog(BuildContext context, Income income, void Func
 
               Navigator.pop(ctx);
               onSuccess();
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم تعديل الإيراد')));
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم تعديل الإيراد')));
             },
-            child: Text('حفظ التعديلات'),
+            child: const Text('حفظ التعديلات'),
           )
         ],
       ),
@@ -430,7 +430,7 @@ Widget build(BuildContext context) {
                           label: const Text('طباعة PDF'),
                         ),
                       ),
-                          SizedBox(width: 10,),
+                          const SizedBox(width: 10,),
                       SizedBox(width: 150,
                         child:  ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
@@ -438,11 +438,11 @@ Widget build(BuildContext context) {
       borderRadius: BorderRadius.circular(12), // يمكنك تغيير القيمة حسب الرغبة
     ),
   ),
-                          icon: Icon(Icons.add),
-                          label: Text('إضافة ايراد'),
+                          icon: const Icon(Icons.add),
+                          label: const Text('إضافة ايراد'),
                           onPressed: () => showAddIncomeDialogIsar(context, fetchData),
                         ),),
-                      SizedBox(width: 10,),
+                      const SizedBox(width: 10,),
                       SizedBox(width: 150,
                         child:  ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
@@ -451,12 +451,12 @@ Widget build(BuildContext context) {
     ),
   ),
                         
-                          icon: Icon(Icons.add),
-                          label: Text('إضافة فئة'),
+                          icon: const Icon(Icons.add),
+                          label: const Text('إضافة فئة'),
                           onPressed: () => showAddIncomeCategoryDialog(context),
                         ),
                       ),
-                      SizedBox(width: 10,),
+                      const SizedBox(width: 10,),
 
 ],),
     body: isLoading
@@ -475,7 +475,7 @@ Widget build(BuildContext context) {
                         isExpanded: true,
                         value: selectedFilterCategory ?? 'all',
                         items: [
-                          DropdownMenuItem(value: 'all', child: Text('كل الفئات')),
+                          const DropdownMenuItem(value: 'all', child: Text('كل الفئات')),
                           ...categories.map((cat) => DropdownMenuItem(
                                 value: cat.id.toString(),
                                 child: Text(cat.name),
@@ -502,7 +502,7 @@ Widget build(BuildContext context) {
                             context: context,
                             initialDate: filterStartDate ?? DateTime.now(),
                             firstDate: DateTime(2000),
-                            lastDate: DateTime.now().add(Duration(days: 365)),
+                            lastDate: DateTime.now().add(const Duration(days: 365)),
                           );
                           if (picked != null) {
                             setState(() {
@@ -529,7 +529,7 @@ Widget build(BuildContext context) {
                             context: context,
                             initialDate: filterEndDate ?? DateTime.now(),
                             firstDate: DateTime(2000),
-                            lastDate: DateTime.now().add(Duration(days: 365)),
+                            lastDate: DateTime.now().add(const Duration(days: 365)),
                           );
                           if (picked != null) {
                             setState(() {
@@ -546,7 +546,7 @@ Widget build(BuildContext context) {
 
                     // زر مسح الفلاتر
                     IconButton(
-                      icon: Icon(Icons.clear),
+                      icon: const Icon(Icons.clear),
                       tooltip: 'مسح الفلاتر',
                       onPressed: () {
                         setState(() {
@@ -566,7 +566,7 @@ Widget build(BuildContext context) {
                   alignment: Alignment.centerRight,
                   child: Text(
                     'إجمالي الإيرادات: ${formatter.format(getTotalAmount(filtered))} د.ع',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ),
 
@@ -591,20 +591,20 @@ Widget build(BuildContext context) {
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
                                   IconButton(
-                                    icon: Icon(Icons.edit, color: Colors.blue),
+                                    icon: const Icon(Icons.edit, color: Colors.blue),
                                     onPressed: () => showEditIncomeDialog(context, income, fetchData),
                                   ),
                                   IconButton(
-                                    icon: Icon(Icons.delete, color: Colors.red),
+                                    icon: const Icon(Icons.delete, color: Colors.red),
                                     onPressed: () async {
                                       final confirm = await showDialog<bool>(
                                         context: context,
                                         builder: (ctx) => AlertDialog(
-                                          title: Text('تأكيد الحذف'),
-                                          content: Text('هل أنت متأكد أنك تريد حذف هذا الإيراد؟'),
+                                          title: const Text('تأكيد الحذف'),
+                                          content: const Text('هل أنت متأكد أنك تريد حذف هذا الإيراد؟'),
                                           actions: [
-                                            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('إلغاء')),
-                                            ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: Text('حذف')),
+                                            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
+                                            ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('حذف')),
                                           ],
                                         ),
                                       );

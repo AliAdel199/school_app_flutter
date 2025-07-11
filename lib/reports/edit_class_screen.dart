@@ -43,11 +43,11 @@ setState(() {
       setState(() {
         grades = List<Map<String, dynamic>>.from(res);
         final validIds = grades.map((e) => e['id']).toList();
-        grades.forEach((element) {
+        for (var element in grades) {
           print(element['name']);
           print(element['id']);
 
-        });
+        }
         if (!validIds.contains(selectedGradeId)) {
           selectedGradeId = null;
         }

@@ -106,8 +106,8 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
         onPressed: () {
           // يمكنك إضافة صفحة إضافة موظف جديد هنا
         },
-        child: const Icon(Icons.add),
         tooltip: 'إضافة موظف جديد',
+        child: const Icon(Icons.add),
       ),
     );
   }

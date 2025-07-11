@@ -1,5 +1,7 @@
 import 'package:isar/isar.dart';
 
+part 'auto_discount_rule.g.dart';
+
 @collection
 class AutoDiscountRule {
   Id id = Isar.autoIncrement;

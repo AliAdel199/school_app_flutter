@@ -31,7 +31,7 @@ Future<void> copyFromPreviousMonth() async {
         .select()
         .eq('salary_month', prevSalaryMonth);
 
-    if (previousSalaries == null || (previousSalaries is List && previousSalaries.isEmpty)) {
+    if ((previousSalaries.isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('لا يوجد رواتب في الشهر السابق')),
       );

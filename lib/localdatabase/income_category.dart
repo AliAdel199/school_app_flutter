@@ -1,6 +1,5 @@
 import 'package:isar/isar.dart';
 
-import 'income.dart';
 
 part 'income_category.g.dart';
 

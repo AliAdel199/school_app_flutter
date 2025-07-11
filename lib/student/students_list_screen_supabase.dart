@@ -291,7 +291,7 @@ for (final student in filteredStudents) {
         value: c['name'].toString(),
         child: Text(c['name'] ?? '_'),
       );
-    }).toList(),
+    }),
   ],
           ),
         ),
@@ -616,7 +616,7 @@ TextButton.icon(
         
         debugPrint('القسط السنوي: ${currentFeeStatus.annualFee}');
         debugPrint('الدين المنقول: ${currentFeeStatus.transferredDebtAmount}');
-        debugPrint('المبلغ المدفوع: ${totalPaid}');
+        debugPrint('المبلغ المدفوع: $totalPaid');
         debugPrint('المبلغ المتبقي المحسوب: $previousDue');
       } else {
         debugPrint('⚠️ لا يوجد سجل قسط للطالب في هذه السنة الدراسية');

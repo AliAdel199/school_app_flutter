@@ -63,7 +63,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           children: [
             // Text('لوحة التحكم'),
             // const SizedBox(width: 8),
-            Text(' ${academicYear==''? 'غير محدد':academicYear} :العام الدراسي', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+            Text(' ${academicYear==''? 'غير محدد':academicYear} :العام الدراسي', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
             const SizedBox(width: 8),
             IconButton(onPressed: (){
               showDialog(
@@ -102,7 +102,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 },
               );
 
-            }, icon: Icon(Icons.edit_outlined)),
+            }, icon: const Icon(Icons.edit_outlined)),
 
           ],
         ),
@@ -115,11 +115,11 @@ onPressed: () => Navigator.push(
   MaterialPageRoute(builder: (_) => const LicenseCheckScreen()),
 ),
         icon: const Icon(Icons.lock_open),
-        label:  Text(' ${subscriptionAlert} تفعيل' ),
+        label:  Text(' $subscriptionAlert تفعيل' ),
       ),
           IconButton(
             onPressed: () => Navigator.popAndPushNamed(context, '/'),
-            icon: Icon(Icons.logout_outlined),
+            icon: const Icon(Icons.logout_outlined),
           )
         ],
       ),
@@ -221,8 +221,8 @@ onPressed: () => Navigator.push(
               Center(
                 child: ElevatedButton.icon(
                   onPressed: () => Navigator.pushNamed(context, '/'),
-                  icon: Icon(Icons.lock_open),
-                  label: Text('تفعيل النسخة الآن'),
+                  icon: const Icon(Icons.lock_open),
+                  label: const Text('تفعيل النسخة الآن'),
                 ),
               ),
           ],

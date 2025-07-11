@@ -7,7 +7,7 @@ import '../main.dart'; // تأكد من استيراد main.dart للوصول ل
 import 'student_discounts_screen.dart';
 
 class DiscountManagementScreen extends StatefulWidget {
-  const DiscountManagementScreen({Key? key}) : super(key: key);
+  const DiscountManagementScreen({super.key});
 
   @override
   State<DiscountManagementScreen> createState() => _DiscountManagementScreenState();
@@ -66,7 +66,7 @@ class _DiscountManagementScreenState extends State<DiscountManagementScreen> {
   List<Student> get filteredStudents {
     if (searchQuery.isEmpty) return students;
     return students.where((student) =>
-      student.fullName?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false
+      student.fullName.toLowerCase().contains(searchQuery.toLowerCase()) ?? false
     ).toList();
   }
 
@@ -352,7 +352,7 @@ class _DiscountManagementScreenState extends State<DiscountManagementScreen> {
         leading: CircleAvatar(
           backgroundColor: Colors.orange.shade100,
           child: Text(
-            student.fullName?.substring(0, 1).toUpperCase() ?? 'ط',
+            student.fullName.substring(0, 1).toUpperCase() ?? 'ط',
             style: TextStyle(
               color: Colors.orange.shade700,
               fontWeight: FontWeight.bold,

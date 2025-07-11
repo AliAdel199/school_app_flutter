@@ -5,7 +5,7 @@ import 'debt_tracking_helper.dart';
 class YearlyFinancialReportScreen extends StatefulWidget {
   final Isar isar;
   
-  const YearlyFinancialReportScreen({Key? key, required this.isar}) : super(key: key);
+  const YearlyFinancialReportScreen({super.key, required this.isar});
 
   @override
   State<YearlyFinancialReportScreen> createState() => _YearlyFinancialReportScreenState();

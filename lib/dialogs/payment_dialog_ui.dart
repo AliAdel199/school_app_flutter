@@ -295,7 +295,7 @@ Future<bool?> showAddPaymentDialogIsar({
 
                             feeStatus.paidAmount = totalPaid;
                             // احسب المبلغ المتبقي مع الأخذ في الاعتبار الدين المنقول
-                            final totalDue = feeStatus.annualFee + feeStatus.transferredDebtAmount;
+                            final totalDue = feeStatus.annualFee + feeStatus.transferredDebtAmount-feeStatus.discountAmount;
                             feeStatus.dueAmount = totalDue - totalPaid;
                             feeStatus.lastPaymentDate = lastDate;
                             feeStatus.academicYear = academicYear;

@@ -5,26 +5,12 @@ import '../localdatabase/student_discount.dart';
 import '../localdatabase/student_fee_status.dart';
 import '../localdatabase/student_payment.dart';
 import '../localdatabase/discount_type.dart';
-import 'auto_discount_settings_manager.dart';
 
 /// معالج الخصومات التلقائية المحسن
 class AutoDiscountProcessor {
   final Isar isar;
-  late final AutoDiscountSettingsManager settingsManager;
   
-  AutoDiscountProcessor(this.isar) {
-    settingsManager = AutoDiscountSettingsManager(isar);
-  }
-
-  /// فحص ما إذا كان النظام مفعل قبل معالجة أي خصم
-  Future<bool> _isSystemEnabled() async {
-    return await settingsManager.isGloballyEnabled();
-  }
-
-  /// فحص ما إذا كان نوع خصم معين مفعل
-  Future<bool> _isDiscountTypeEnabled(String discountType) async {
-    return await settingsManager.isDiscountTypeEnabled(discountType);
-  }
+  AutoDiscountProcessor(this.isar);
 
   /// إنشاء سجل القسط للطالب إذا لم يكن موجوداً
   Future<StudentFeeStatus?> createFeeStatusIfNotExists(Student student, String academicYear) async {
@@ -76,17 +62,6 @@ class AutoDiscountProcessor {
     debugPrint('معالجة خصم الأشقاء للطالب: ${student.fullName}');
     
     try {
-      // فحص ما إذا كان النظام وخصم الأشقاء مفعلين
-      if (!await _isSystemEnabled()) {
-        debugPrint('❌ نظام الخصومات التلقائية معطل');
-        return null;
-      }
-      
-      if (!await _isDiscountTypeEnabled('sibling')) {
-        debugPrint('❌ خصم الأشقاء معطل');
-        return null;
-      }
-      
       // فحص إذا كان الخصم مطبق مسبقاً
       final existingDiscount = await isar.studentDiscounts
           .filter()
@@ -110,9 +85,8 @@ class AutoDiscountProcessor {
         return null;
       }
       
-      // حساب نسبة الخصم بناءً على ترتيب الطالب من الإعدادات
-      final discountRates = await settingsManager.getSiblingDiscountRates();
-      final discountPercentage = calculateSiblingDiscountPercentageFromSettings(student, siblings, discountRates);
+      // حساب نسبة الخصم بناءً على ترتيب الطالب
+      final discountPercentage = calculateSiblingDiscountPercentage(student, siblings);
       
       if (discountPercentage == 0) {
         debugPrint('لا يحق للطالب خصم أشقاء');
@@ -258,35 +232,7 @@ class AutoDiscountProcessor {
     return normalized;
   }
 
-  /// حساب نسبة خصم الأشقاء بناءً على الإعدادات
-  double calculateSiblingDiscountPercentageFromSettings(Student student, List<Student> siblings, Map<int, double> discountRates) {
-    // ترتيب الطلاب بناءً على تاريخ الميلاد (الأكبر أولاً)
-    final allSiblings = [student, ...siblings];
-    allSiblings.sort((a, b) {
-      if (a.birthDate == null || b.birthDate == null) {
-        return 0;
-      }
-      return a.birthDate!.compareTo(b.birthDate!);
-    });
-    
-    // تحديد ترتيب الطالب
-    final studentIndex = allSiblings.indexWhere((s) => s.id == student.id);
-    
-    // تحديد نسبة الخصم من الإعدادات
-    final position = studentIndex + 1; // +1 لأن المؤشر يبدأ من 0
-    
-    if (position <= 1) {
-      return discountRates[1] ?? 0.0; // الطالب الأول
-    } else if (position == 2) {
-      return discountRates[2] ?? 10.0; // الطالب الثاني
-    } else if (position == 3) {
-      return discountRates[3] ?? 15.0; // الطالب الثالث
-    } else {
-      return discountRates[4] ?? 20.0; // الطالب الرابع فما فوق
-    }
-  }
-
-  /// حساب نسبة خصم الأشقاء بناءً على ترتيب الطالب (الطريقة القديمة)
+  /// حساب نسبة خصم الأشقاء بناءً على ترتيب الطالب
   double calculateSiblingDiscountPercentage(Student student, List<Student> siblings) {
     // ترتيب الطلاب بناءً على تاريخ الميلاد (الأكبر أولاً)
     final allSiblings = [student, ...siblings];
@@ -370,17 +316,6 @@ class AutoDiscountProcessor {
     debugPrint('معالجة خصم الدفع المبكر للطالب: ${student.fullName}');
     
     try {
-      // فحص ما إذا كان النظام وخصم الدفع المبكر مفعلين
-      if (!await _isSystemEnabled()) {
-        debugPrint('❌ نظام الخصومات التلقائية معطل');
-        return null;
-      }
-      
-      if (!await _isDiscountTypeEnabled('earlyPayment')) {
-        debugPrint('❌ خصم الدفع المبكر معطل');
-        return null;
-      }
-      
       // فحص إذا كان الخصم مطبق مسبقاً
       final existingDiscount = await isar.studentDiscounts
           .filter()
@@ -413,11 +348,8 @@ class AutoDiscountProcessor {
       final startYear = int.parse(yearParts[0]);
       final schoolStart = DateTime(startYear, 9, 1);
       
-      // الحصول على عدد الأيام من الإعدادات
-      final earlyPaymentDays = await settingsManager.getEarlyPaymentDays();
-      
-      // فحص إذا كان الدفع قبل بداية العام بالأيام المحددة
-      final earlyPaymentDeadline = schoolStart.subtract(Duration(days: earlyPaymentDays));
+      // فحص إذا كان الدفع قبل بداية العام بـ 30 يوم
+      final earlyPaymentDeadline = schoolStart.subtract(const Duration(days: 30));
       
       if (!firstPayment.paidAt.isBefore(earlyPaymentDeadline)) {
         debugPrint('الدفع ليس مبكراً بما فيه الكفاية');
@@ -432,9 +364,8 @@ class AutoDiscountProcessor {
         return null;
       }
       
-      // حساب مبلغ الخصم من الإعدادات
-      final discountRate = await settingsManager.getEarlyPaymentDiscountRate();
-      final discountAmount = feeStatus.annualFee * (discountRate / 100);
+      // حساب مبلغ الخصم (5% من القسط)
+      final discountAmount = feeStatus.annualFee * 0.05;
       
       return await applyEarlyPaymentDiscount(student, academicYear, discountAmount);
       
@@ -500,18 +431,6 @@ class AutoDiscountProcessor {
     debugPrint('معالجة خصم الدفع الكامل للطالب: ${student.fullName}');
     
     try {
-      // فحص إذا كان النظام مفعل
-      if (!await _isSystemEnabled()) {
-        debugPrint('نظام الخصومات التلقائية معطل');
-        return null;
-      }
-
-      // فحص إذا كان خصم الدفع الكامل مفعل
-      if (!await _isDiscountTypeEnabled('full_payment')) {
-        debugPrint('خصم الدفع الكامل معطل');
-        return null;
-      }
-      
       // فحص إذا كان الخصم مطبق مسبقاً
       final existingDiscount = await isar.studentDiscounts
           .filter()
@@ -554,9 +473,8 @@ class AutoDiscountProcessor {
         return null;
       }
       
-      // حساب مبلغ الخصم من الإعدادات
-      final discountRate = await settingsManager.getFullPaymentDiscountRate();
-      final discountAmount = feeStatus.annualFee * (discountRate / 100);
+      // حساب مبلغ الخصم (3% من القسط)
+      final discountAmount = feeStatus.annualFee * 0.03;
       
       return await applyFullPaymentDiscount(student, academicYear, discountAmount);
       
@@ -621,12 +539,6 @@ class AutoDiscountProcessor {
   Future<List<StudentDiscount>> processAllAutoDiscounts(Student student, String academicYear) async {
     final appliedDiscounts = <StudentDiscount>[];
     
-    // فحص إذا كان نظام الخصومات التلقائية مفعل
-    if (!await _isSystemEnabled()) {
-      debugPrint('نظام الخصومات التلقائية معطل');
-      return appliedDiscounts;
-    }
-    
     // خصم الأشقاء
     final siblingDiscount = await processSiblingDiscount(student, academicYear);
     if (siblingDiscount != null) {
@@ -653,12 +565,6 @@ class AutoDiscountProcessor {
     final results = <String, List<StudentDiscount>>{};
     
     try {
-      // فحص إذا كان نظام الخصومات التلقائية مفعل
-      if (!await _isSystemEnabled()) {
-        debugPrint('نظام الخصومات التلقائية معطل');
-        return results;
-      }
-      
       final allStudents = await isar.students.where().findAll();
       
       for (var student in allStudents) {
@@ -796,353 +702,6 @@ class AutoDiscountProcessor {
     } catch (e) {
       debugPrint('خطأ في الحصول على إحصائيات الخصومات: $e');
       return {};
-    }
-  }
-
-  /// اختبار دقة تحديد الأشقاء - للاستخدام في التطوير والاختبار
-  Future<void> testSiblingDetection() async {
-    debugPrint('=== اختبار دقة تحديد الأشقاء ===');
-    
-    final allStudents = await isar.students.where().findAll();
-    
-    // تجميع الطلاب حسب اسم الوالد
-    final Map<String, List<Student>> studentsGroupedByParent = {};
-    
-    for (var student in allStudents) {
-      if (student.parentName != null && student.parentName!.isNotEmpty) {
-        final parentName = student.parentName!;
-        if (!studentsGroupedByParent.containsKey(parentName)) {
-          studentsGroupedByParent[parentName] = [];
-        }
-        studentsGroupedByParent[parentName]!.add(student);
-      }
-    }
-    
-    // فحص المجموعات التي تحتوي على أكثر من طالب
-    int totalGroups = 0;
-    int confirmedSiblingGroups = 0;
-    int questionableGroups = 0;
-    
-    for (var entry in studentsGroupedByParent.entries) {
-      final parentName = entry.key;
-      final studentsWithSameParent = entry.value;
-      
-      if (studentsWithSameParent.length > 1) {
-        totalGroups++;
-        debugPrint('\n--- مجموعة: $parentName (${studentsWithSameParent.length} طلاب) ---');
-        
-        bool allAreSiblings = true;
-        
-        for (int i = 0; i < studentsWithSameParent.length; i++) {
-          for (int j = i + 1; j < studentsWithSameParent.length; j++) {
-            final student1 = studentsWithSameParent[i];
-            final student2 = studentsWithSameParent[j];
-            
-            if (!_areActualSiblings(student1, student2)) {
-              allAreSiblings = false;
-              debugPrint('تحذير: ${student1.fullName} و ${student2.fullName} لديهما نفس اسم الوالد ولكن قد لا يكونان أشقاء');
-            }
-          }
-        }
-        
-        if (allAreSiblings) {
-          confirmedSiblingGroups++;
-          debugPrint('✓ مجموعة مؤكدة: جميع الطلاب أشقاء');
-        } else {
-          questionableGroups++;
-          debugPrint('⚠ مجموعة مشكوك فيها: قد تحتوي على طلاب غير أشقاء');
-        }
-      }
-    }
-    
-    debugPrint('\n=== ملخص نتائج الاختبار ===');
-    debugPrint('إجمالي المجموعات: $totalGroups');
-    debugPrint('المجموعات المؤكدة: $confirmedSiblingGroups');
-    debugPrint('المجموعات المشكوك فيها: $questionableGroups');
-    if (totalGroups > 0) {
-      debugPrint('نسبة الدقة: ${((confirmedSiblingGroups / totalGroups) * 100).toStringAsFixed(1)}%');
-    }
-  }
-
-  /// الحصول على إحصائيات مفصلة عن الأشقاء في النظام
-  Future<Map<String, dynamic>> getSiblingStatistics() async {
-    final allStudents = await isar.students.where().findAll();
-    
-    final Map<String, List<Student>> studentsGroupedByParent = {};
-    int totalStudents = 0;
-    int studentsWithSiblings = 0;
-    int largestSiblingGroup = 0;
-    
-    for (var student in allStudents) {
-      if (student.parentName != null && student.parentName!.isNotEmpty) {
-        totalStudents++;
-        final parentName = student.parentName!;
-        if (!studentsGroupedByParent.containsKey(parentName)) {
-          studentsGroupedByParent[parentName] = [];
-        }
-        studentsGroupedByParent[parentName]!.add(student);
-      }
-    }
-    
-    for (var entry in studentsGroupedByParent.entries) {
-      final studentsWithSameParent = entry.value;
-      
-      if (studentsWithSameParent.length > 1) {
-        // فحص كل طالب مع الآخرين في نفس المجموعة
-        final confirmedSiblings = <Student>[];
-        for (var student in studentsWithSameParent) {
-          final siblings = await findSiblings(student);
-          if (siblings.isNotEmpty) {
-            confirmedSiblings.add(student);
-          }
-        }
-        
-        studentsWithSiblings += confirmedSiblings.length;
-        if (studentsWithSameParent.length > largestSiblingGroup) {
-          largestSiblingGroup = studentsWithSameParent.length;
-        }
-      }
-    }
-    
-    return {
-      'totalStudents': totalStudents,
-      'studentsWithSiblings': studentsWithSiblings,
-      'parentGroups': studentsGroupedByParent.length,
-      'siblingGroups': studentsGroupedByParent.values.where((group) => group.length > 1).length,
-      'largestSiblingGroup': largestSiblingGroup,
-      'percentageWithSiblings': totalStudents > 0 ? (studentsWithSiblings / totalStudents * 100).toStringAsFixed(1) : '0',
-    };
-  }
-
-  /// تحديد وحل مشاكل دقة تحديد الأشقاء
-  Future<Map<String, dynamic>> identifyAndFixSiblingIssues() async {
-    debugPrint('=== تحديد وحل مشاكل تحديد الأشقاء ===');
-    
-    final allStudents = await isar.students.where().findAll();
-    
-    final Map<String, List<Student>> studentsGroupedByParent = {};
-    final List<Map<String, dynamic>> issues = [];
-    int totalIssues = 0;
-    int fixedIssues = 0;
-    
-    // تجميع الطلاب حسب اسم الوالد
-    for (var student in allStudents) {
-      if (student.parentName != null && student.parentName!.isNotEmpty) {
-        final parentName = student.parentName!;
-        if (!studentsGroupedByParent.containsKey(parentName)) {
-          studentsGroupedByParent[parentName] = [];
-        }
-        studentsGroupedByParent[parentName]!.add(student);
-      }
-    }
-    
-    // فحص المجموعات المشكوك فيها
-    for (var entry in studentsGroupedByParent.entries) {
-      final parentName = entry.key;
-      final studentsWithSameParent = entry.value;
-      
-      if (studentsWithSameParent.length > 1) {
-        // فحص كل زوج من الطلاب
-        for (int i = 0; i < studentsWithSameParent.length; i++) {
-          for (int j = i + 1; j < studentsWithSameParent.length; j++) {
-            final student1 = studentsWithSameParent[i];
-            final student2 = studentsWithSameParent[j];
-            
-            if (!_areActualSiblings(student1, student2)) {
-              totalIssues++;
-              
-              final issue = {
-                'parentName': parentName,
-                'student1': student1.fullName,
-                'student2': student2.fullName,
-                'student1Id': student1.id,
-                'student2Id': student2.id,
-                'missingData': _identifyMissingData(student1, student2),
-                'conflictingData': _identifyConflictingData(student1, student2),
-                'canFix': _canAutoFix(student1, student2),
-              };
-              
-              issues.add(issue);
-              
-              // محاولة الإصلاح التلقائي إذا كان ممكناً
-              if (issue['canFix'] == true) {
-                final fixed = await _attemptAutoFix(student1, student2);
-                if (fixed) {
-                  fixedIssues++;
-                  issue['fixed'] = true;
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    
-    debugPrint('تم تحديد $totalIssues مشكلة، تم إصلاح $fixedIssues منها تلقائياً');
-    
-    return {
-      'totalIssues': totalIssues,
-      'fixedIssues': fixedIssues,
-      'remainingIssues': totalIssues - fixedIssues,
-      'issues': issues,
-    };
-  }
-
-  /// تحديد البيانات المفقودة
-  Map<String, dynamic> _identifyMissingData(Student student1, Student student2) {
-    final missing = <String, List<String>>{};
-    
-    // فحص العنوان
-    if (student1.address == null || student1.address!.isEmpty) {
-      missing['address'] = missing['address'] ?? [];
-      missing['address']!.add(student1.fullName);
-    }
-    if (student2.address == null || student2.address!.isEmpty) {
-      missing['address'] = missing['address'] ?? [];
-      missing['address']!.add(student2.fullName);
-    }
-    
-    // فحص رقم الهاتف
-    if (student1.parentPhone == null || student1.parentPhone!.isEmpty) {
-      missing['parentPhone'] = missing['parentPhone'] ?? [];
-      missing['parentPhone']!.add(student1.fullName);
-    }
-    if (student2.parentPhone == null || student2.parentPhone!.isEmpty) {
-      missing['parentPhone'] = missing['parentPhone'] ?? [];
-      missing['parentPhone']!.add(student2.fullName);
-    }
-    
-    // فحص تاريخ الميلاد
-    if (student1.birthDate == null) {
-      missing['birthDate'] = missing['birthDate'] ?? [];
-      missing['birthDate']!.add(student1.fullName);
-    }
-    if (student2.birthDate == null) {
-      missing['birthDate'] = missing['birthDate'] ?? [];
-      missing['birthDate']!.add(student2.fullName);
-    }
-    
-    return missing;
-  }
-  
-  /// تحديد البيانات المتضاربة
-  Map<String, dynamic> _identifyConflictingData(Student student1, Student student2) {
-    final conflicts = <String, Map<String, String>>{};
-    
-    // فحص العنوان
-    if (student1.address != null && student2.address != null &&
-        student1.address!.isNotEmpty && student2.address!.isNotEmpty &&
-        _normalizeAddress(student1.address!) != _normalizeAddress(student2.address!)) {
-      conflicts['address'] = {
-        student1.fullName: student1.address!,
-        student2.fullName: student2.address!,
-      };
-    }
-    
-    // فحص رقم الهاتف
-    if (student1.parentPhone != null && student2.parentPhone != null &&
-        student1.parentPhone!.isNotEmpty && student2.parentPhone!.isNotEmpty &&
-        _normalizePhone(student1.parentPhone!) != _normalizePhone(student2.parentPhone!)) {
-      conflicts['parentPhone'] = {
-        student1.fullName: student1.parentPhone!,
-        student2.fullName: student2.parentPhone!,
-      };
-    }
-    
-    // فحص الأعمار
-    if (student1.birthDate != null && student2.birthDate != null) {
-      final ageDifference = (student1.birthDate!.difference(student2.birthDate!)).inDays.abs();
-      final yearsDifference = ageDifference / 365;
-      
-      if (yearsDifference > 20) {
-        conflicts['age'] = {
-          student1.fullName: '${student1.birthDate.toString().split(' ')[0]} (${yearsDifference.toStringAsFixed(1)} سنة فرق)',
-          student2.fullName: student2.birthDate.toString().split(' ')[0],
-        };
-      }
-    }
-    
-    return conflicts;
-  }
-  
-  /// فحص إمكانية الإصلاح التلقائي
-  bool _canAutoFix(Student student1, Student student2) {
-    bool canFix = false;
-    
-    // إصلاح العنوان المفقود
-    if ((student1.address != null && student1.address!.isNotEmpty) &&
-        (student2.address == null || student2.address!.isEmpty)) {
-      canFix = true;
-    }
-    if ((student2.address != null && student2.address!.isNotEmpty) &&
-        (student1.address == null || student1.address!.isEmpty)) {
-      canFix = true;
-    }
-    
-    // إصلاح رقم الهاتف المفقود
-    if ((student1.parentPhone != null && student1.parentPhone!.isNotEmpty) &&
-        (student2.parentPhone == null || student2.parentPhone!.isEmpty)) {
-      canFix = true;
-    }
-    if ((student2.parentPhone != null && student2.parentPhone!.isNotEmpty) &&
-        (student1.parentPhone == null || student1.parentPhone!.isEmpty)) {
-      canFix = true;
-    }
-    
-    return canFix;
-  }
-  
-  /// محاولة الإصلاح التلقائي
-  Future<bool> _attemptAutoFix(Student student1, Student student2) async {
-    try {
-      bool fixed = false;
-      
-      // إصلاح العنوان المفقود
-      if ((student1.address != null && student1.address!.isNotEmpty) &&
-          (student2.address == null || student2.address!.isEmpty)) {
-        await isar.writeTxn(() async {
-          student2.address = student1.address;
-          await isar.students.put(student2);
-        });
-        fixed = true;
-        debugPrint('تم إصلاح العنوان المفقود للطالب ${student2.fullName}');
-      }
-      
-      if ((student2.address != null && student2.address!.isNotEmpty) &&
-          (student1.address == null || student1.address!.isEmpty)) {
-        await isar.writeTxn(() async {
-          student1.address = student2.address;
-          await isar.students.put(student1);
-        });
-        fixed = true;
-        debugPrint('تم إصلاح العنوان المفقود للطالب ${student1.fullName}');
-      }
-      
-      // إصلاح رقم الهاتف المفقود
-      if ((student1.parentPhone != null && student1.parentPhone!.isNotEmpty) &&
-          (student2.parentPhone == null || student2.parentPhone!.isEmpty)) {
-        await isar.writeTxn(() async {
-          student2.parentPhone = student1.parentPhone;
-          await isar.students.put(student2);
-        });
-        fixed = true;
-        debugPrint('تم إصلاح رقم الهاتف المفقود للطالب ${student2.fullName}');
-      }
-      
-      if ((student2.parentPhone != null && student2.parentPhone!.isNotEmpty) &&
-          (student1.parentPhone == null || student1.parentPhone!.isEmpty)) {
-        await isar.writeTxn(() async {
-          student1.parentPhone = student2.parentPhone;
-          await isar.students.put(student1);
-        });
-        fixed = true;
-        debugPrint('تم إصلاح رقم الهاتف المفقود للطالب ${student1.fullName}');
-      }
-      
-      return fixed;
-    } catch (e) {
-      debugPrint('خطأ في الإصلاح التلقائي: $e');
-      return false;
     }
   }
 }

@@ -123,7 +123,7 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
     // إذا كان هناك طالب موجود، قم بملء الحقول  
     if (widget.student != null) {
       final s = widget.student!;
-      fullNameController.text = s.fullName ?? '';
+      fullNameController.text = s.fullName;
       nationalIdController.text = s.nationalId ?? '';
       parentNameController.text = s.parentName ?? '';
       parentPhoneController.text = s.parentPhone ?? '';
@@ -132,7 +132,7 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
       phoneController.text = s.phone ?? '';
       registrationYearController.text = s.registrationYear ?? '';
       gender = s.gender ?? 'male';
-      status = s.status ?? 'active';
+      status = s.status;
       // ربط الصف المختار
       if (s.schoolclass.value != null) {
         selectedClassId = s.schoolclass.value!.id.toString();
@@ -228,7 +228,164 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
     return null;
   }
 
-  // بناء واجهة المستخدم
+  // التحقق من صحة الاسم الكامل
+  String? _validateFullName(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'الاسم الكامل مطلوب';
+    }
+    final parts = value.trim().split(' ');
+    if (parts.length < 2) {
+      return 'يرجى إدخال الاسم الثلاثي على الأقل';
+    }
+    return null;
+  }
+
+  // التحقق من صحة الرقم الوطني
+  String? _validateNationalId(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'الرقم الوطني مطلوب';
+    }
+    // تحقق من أن الرقم يحتوي على أرقام فقط وطوله مناسب
+    if (!RegExp(r'^[0-9]+$').hasMatch(value.trim())) {
+      return 'الرقم الوطني يجب أن يحتوي على أرقام فقط';
+    }
+    if (value.trim().length < 10) {
+      return 'الرقم الوطني يجب أن يكون 10 أرقام على الأقل';
+    }
+    return null;
+  }
+
+  // التحقق من صحة رقم الهاتف
+  String? _validatePhoneNumber(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'رقم الهاتف مطلوب';
+    }
+    // تحقق من صيغة رقم الهاتف
+    if (!RegExp(r'^[0-9+\-\s()]+$').hasMatch(value.trim())) {
+      return 'صيغة رقم الهاتف غير صحيحة';
+    }
+    return null;
+  }
+
+  // التحقق من صحة البريد الإلكتروني
+  String? _validateEmail(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return null; // البريد الإلكتروني اختياري
+    }
+    // تحقق من صيغة البريد الإلكتروني
+    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value.trim())) {
+      return 'صيغة البريد الإلكتروني غير صحيحة';
+    }
+    return null;
+  }
+
+  // ملء اسم ولي الأمر تلقائياً من اسم الطالب
+  void _autoFillParentName() {
+    List<String> parts = fullNameController.text.trim().split(" ");
+    if (parts.length >= 2) {
+      parentNameController.text = parts.sublist(1).join(" ");
+    } else {
+      parentNameController.text = '';
+    }
+    FocusScope.of(context).requestFocus(parentNameFocus);
+  }
+
+  // بناء عنوان القسم
+  Widget _buildSectionTitle(String title) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.teal.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.teal.shade200),
+      ),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: Colors.teal,
+        ),
+      ),
+    );
+  }
+
+  // دالة موحدة لحفظ الطالب
+  Future<void> _saveStudent() async {
+    if (!formKey.currentState!.validate()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('يرجى تعبئة جميع الحقول المطلوبة بشكل صحيح'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    try {
+      if (widget.student == null) {
+        // إضافة طالب جديد
+        await addStudent(
+          isar,
+          Student()
+            ..fullName = fullNameController.text.trim()
+            ..nationalId = nationalIdController.text.trim()
+            ..gender = gender
+            ..birthDate = birthDate
+            ..parentName = parentNameController.text.trim()
+            ..parentPhone = parentPhoneController.text.trim()
+            ..phone = phoneController.text.trim()
+            ..email = emailController.text.trim()
+            ..address = addressController.text.trim()
+            ..registrationYear = registrationYearController.text.trim()
+            ..annualFee = double.tryParse(annualFeeController.text.trim()) ?? 0
+            ..status = status
+            ..schoolclass.value = selectedClass
+            ..createdAt = DateTime.now(),
+        );
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('تم إضافة الطالب بنجاح'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context, true); // إرجاع true للإشارة إلى نجاح العملية
+        }
+      } else {
+        // تحديث بيانات طالب موجود
+        await updateStudentDataIsar(widget.student!);
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('تم تحديث بيانات الطالب بنجاح'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context, true);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('حدث خطأ: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -246,115 +403,143 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
                 key: formKey,
                 child: LayoutBuilder(
                   builder: (context, constraints) {
-                    final isWide = constraints.maxWidth > 600;
                     return SingleChildScrollView(
-                      child: Wrap(
-                        spacing: 24,
-                        runSpacing: 16,
-                        alignment: WrapAlignment.center,
-                        children: [
-                          // الحقول الرئيسية لإدخال بيانات الطالب
-                          for (final field in <Widget>[
-                            buildInputField(
-                              FocusTraversalGroup(
-                                child: TextFormField(
-                                  controller: parentNameController,
-                                  decoration: const InputDecoration(labelText: 'اسم ولي الأمر'),
-                                  textInputAction: TextInputAction.next,
-                                  focusNode: parentNameFocus,
-                                  onFieldSubmitted: (_) {
-                                    FocusScope.of(context).requestFocus(nationalIdFocus);
-                                    nationalIdFocus.requestFocus();
-                                  },
-                                  validator: requiredValidator,
-                                ),
-                              ),
-                            ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: [
+                            // قسم البيانات الشخصية
+                            _buildSectionTitle('البيانات الشخصية'),
+                            
                             buildInputField(TextFormField(
                               controller: fullNameController,
                               focusNode: fullNameFocus,
                               textInputAction: TextInputAction.next,
-                              onFieldSubmitted: (_) {
-                                                   List<String> parts = fullNameController.text.trim().split(" ");
-                if (parts.length >= 2) {
-                  parentNameController.text = parts[1]; // اسم الأب
-                } else {
-                  parentNameController.text = '';
-                }
-                                FocusScope.of(context).requestFocus(parentNameFocus);
-                              },
-                              decoration: const InputDecoration(labelText: 'الاسم الكامل'),
-                              validator: requiredValidator,
+                              onFieldSubmitted: (_) => _autoFillParentName(),
+                              decoration: const InputDecoration(
+                                labelText: 'الاسم الكامل *',
+                                prefixIcon: Icon(Icons.person),
+                                hintText: 'أدخل الاسم الثلاثي أو الرباعي',
+                              ),
+                              validator: _validateFullName,
                             )),
+
                             buildInputField(TextFormField(
                               controller: nationalIdController,
                               focusNode: nationalIdFocus,
                               textInputAction: TextInputAction.next,
-                              onFieldSubmitted: (_) {
-                
-                                FocusScope.of(context).requestFocus(phoneFocus);
-                              },
-                              decoration: const InputDecoration(labelText: 'الرقم الوطني'),
-                              validator: requiredValidator,
+                              keyboardType: TextInputType.number,
+                              onFieldSubmitted: (_) => FocusScope.of(context).requestFocus(phoneFocus),
+                              decoration: const InputDecoration(
+                                labelText: 'الرقم الوطني *',
+                                prefixIcon: Icon(Icons.badge),
+                                hintText: 'أدخل 10-12 رقم',
+                              ),
+                              validator: _validateNationalId,
                             )),
+
                             buildInputField(DropdownButtonFormField<String>(
                               value: gender,
-                              decoration: const InputDecoration(labelText: 'الجنس'),
+                              decoration: const InputDecoration(
+                                labelText: 'الجنس *',
+                                prefixIcon: Icon(Icons.person_outline),
+                              ),
                               items: const [
                                 DropdownMenuItem(value: 'male', child: Text('ذكر')),
                                 DropdownMenuItem(value: 'female', child: Text('أنثى')),
                               ],
                               onChanged: (val) => setState(() => gender = val!),
                             )),
-                            buildInputField(TextFormField(
-                              controller: phoneController,
-                              focusNode: phoneFocus,
-                              textInputAction: TextInputAction.next,
-                              onFieldSubmitted: (_) {
-                                FocusScope.of(context).requestFocus(emailFocus);
-                              },
-                              decoration: const InputDecoration(labelText: 'هاتف الطالب'),
-                              validator: requiredValidator,
-                            )),
-                            buildInputField(TextFormField(
-                              controller: emailController,
-                              focusNode: emailFocus,
-                              textInputAction: TextInputAction.next,
-                              onFieldSubmitted: (_) {
-                                FocusScope.of(context).requestFocus(addressFocus);
-                              },
-                              decoration: const InputDecoration(labelText: 'البريد الإلكتروني'),
-                            )),
-                            buildInputField(TextFormField(
-                              controller: addressController,
-                              focusNode: addressFocus,
-                              textInputAction: TextInputAction.next,
-                              onFieldSubmitted: (_) {
-                                FocusScope.of(context).requestFocus(parentPhoneFocus);
-                              },
-                              decoration: const InputDecoration(labelText: 'العنوان'),
-                            )),
-                            buildInputField(TextFormField(
-                              controller: parentPhoneController,
-                              focusNode: parentPhoneFocus,
-                              onFieldSubmitted: (_) {
-                                FocusScope.of(context).requestFocus(registrationYearFocus);
-                              },
-                              textInputAction: TextInputAction.next,
-                              decoration: const InputDecoration(labelText: 'هاتف ولي الأمر'),
-                              validator: requiredValidator,
-                            )),
+
+                            Card(
+                              elevation: 2,
+                              margin: const EdgeInsets.all(8),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.date_range, color: Colors.teal),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        birthDate == null
+                                            ? 'اختر تاريخ الميلاد'
+                                            : DateFormat('dd/MM/yyyy').format(birthDate!),
+                                        style: TextStyle(
+                                          color: birthDate == null ? Colors.grey.shade600 : Colors.black87,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ),
+                                    SizedBox(width: 200,
+                                      child: ElevatedButton.icon(
+                                        onPressed: () async {
+                                          final picked = await showDatePicker(
+                                            context: context,
+                                            initialDate: birthDate ?? DateTime(2010),
+                                            firstDate: DateTime(1990),
+                                            lastDate: DateTime.now(),
+                                            helpText: 'اختر تاريخ الميلاد',
+                                            cancelText: 'إلغاء',
+                                            confirmText: 'موافق',
+                                          );
+                                          if (picked != null) {
+                                            setState(() => birthDate = picked);
+                                          }
+                                        },
+                                        icon: const Icon(Icons.calendar_today, size: 16),
+                                        label: const Text('اختيار'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.teal.shade100,
+                                          foregroundColor: Colors.teal.shade700,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 20),
+
+                            // البيانات الأكاديمية
+                            _buildSectionTitle('البيانات الأكاديمية'),
+                            
+                            buildInputField(
+                              DropdownButtonFormField<String>(
+                                value: selectedGradeId,
+                                decoration: const InputDecoration(
+                                  labelText: 'المرحلة الدراسية *',
+                                  prefixIcon: Icon(Icons.school),
+                                  border: OutlineInputBorder(),
+                                ),
+                                items: gradesIsar
+                                    .map((g) => DropdownMenuItem<String>(
+                                          value: g.id.toString(),
+                                          child: Text(g.name),
+                                        ))
+                                    .toList(),
+                                onChanged: (val) => setState(() {
+                                  selectedGradeId = val;
+                                }),
+                                validator: requiredValidator,
+                                hint: const Text('اختر المرحلة'),
+                              ),
+                            ),
+
                             buildInputField(
                               DropdownButtonFormField<String>(
                                 value: selectedClassId,
                                 decoration: const InputDecoration(
-                                  labelText: 'الصف',
+                                  labelText: 'الصف *',
+                                  prefixIcon: Icon(Icons.class_),
                                   border: OutlineInputBorder(),
                                 ),
                                 items: schoolClassesIsar.map((c) {
                                   return DropdownMenuItem<String>(
                                     value: c.id.toString(),
-                                    child: Text(c.name ?? ''),
+                                    child: Text(c.name),
                                   );
                                 }).toList(),
                                 onChanged: (val) {
@@ -369,150 +554,153 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
                                 hint: const Text('اختر الصف'),
                               ),
                             ),
-                            buildInputField(
-                              DropdownButtonFormField<String>(
-                                value: selectedGradeId,
-                                decoration: const InputDecoration(
-                                  labelText: 'المرحلة الدراسية',
-                                  border: OutlineInputBorder(),
-                                ),
-                                items: gradesIsar
-                                    .map((g) => DropdownMenuItem<String>(
-                                          value: g.id.toString(),
-                                          child: Text(g.name ?? ''),
-                                        ))
-                                    .toList(),
-                                onChanged: (val) => setState(() {
-                                  selectedGradeId = val;
-                                  print('Selected class ID: $selectedClassId, Annual Fee: $annualFee');
-                                }),
-                                validator: requiredValidator,
-                                hint: const Text('اختر المرحلة'),
-                              ),
-                            ),
+
                             buildInputField(TextFormField(
                               controller: registrationYearController,
                               focusNode: registrationYearFocus,
                               textInputAction: TextInputAction.next,
-                              onFieldSubmitted: (_) {
-                                FocusScope.of(context).requestFocus(annualFeeFocus);
-                              },
-                              decoration: const InputDecoration(labelText: 'سنة التسجيل'),
+                              decoration: const InputDecoration(
+                                labelText: 'سنة التسجيل *',
+                                prefixIcon: Icon(Icons.date_range),
+                                hintText: 'مثال: 2024-2025',
+                              ),
                               validator: requiredValidator,
                             )),
+
                             buildInputField(TextFormField(
                               controller: annualFeeController,
                               focusNode: annualFeeFocus,
                               textInputAction: TextInputAction.done,
-                              decoration: const InputDecoration(labelText: 'القسط السنوي '),
+                              decoration: InputDecoration(
+                                labelText: 'القسط السنوي',
+                                prefixIcon: const Icon(Icons.money),
+                                suffixText: 'د.ع',
+                                fillColor: Colors.grey.shade100,
+                                filled: true,
+                              ),
                               validator: requiredValidator,
-                              readOnly: true, // تحسين: لا يمكن تعديله يدوياً
+                              readOnly: true,
                             )),
+
                             buildInputField(DropdownButtonFormField<String>(
                               value: status,
-                              decoration: const InputDecoration(labelText: 'الحالة'),
+                              decoration: const InputDecoration(
+                                labelText: 'حالة الطالب',
+                                prefixIcon: Icon(Icons.info),
+                              ),
                               items: const [
                                 DropdownMenuItem(value: 'active', child: Text('نشط')),
                                 DropdownMenuItem(value: 'inactive', child: Text('غير نشط')),
                                 DropdownMenuItem(value: 'graduated', child: Text('متخرج')),
                                 DropdownMenuItem(value: 'transferred', child: Text('منقول')),
-                                DropdownMenuItem(value: 'transferred', child: Text('منسب')),
-                                DropdownMenuItem(value: 'transferred', child: Text('تارك')),
+                                DropdownMenuItem(value: 'withdrawn', child: Text('منسحب')),
+                                DropdownMenuItem(value: 'dropout', child: Text('تارك')),
                               ],
                               onChanged: (val) => setState(() => status = val!),
                             )),
-                            buildInputField(Row(
-                              children: [
-                                const Icon(Icons.date_range),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    birthDate == null
-                                        ? 'اختر تاريخ الميلاد'
-                                        : DateFormat('yyyy-MM-dd').format(birthDate!),
-                                    style: TextStyle(
-                                      color: birthDate == null ? Colors.grey : Colors.black,
-                                    ),
-                                  ),
-                                ),
-                                TextButton(
-                                  onPressed: () async {
-                                    final picked = await showDatePicker(
-                                      context: context,
-                                      initialDate: birthDate ?? DateTime(2010),
-                                      firstDate: DateTime(1990),
-                                      lastDate: DateTime(2030),
-                                    );
-                                    if (picked != null) {
-                                      setState(() => birthDate = picked);
-                                    }
-                                  },
-                                  child: const Text('اختيار تاريخ'),
-                                ),
-                              ],
+
+                            const SizedBox(height: 20),
+
+                            // بيانات التواصل وولي الأمر
+                            _buildSectionTitle('بيانات التواصل وولي الأمر'),
+                            
+                            buildInputField(TextFormField(
+                              controller: parentNameController,
+                              decoration: const InputDecoration(
+                                labelText: 'اسم ولي الأمر *',
+                                prefixIcon: Icon(Icons.family_restroom),
+                                hintText: 'سيتم ملؤه تلقائياً من اسم الطالب',
+                              ),
+                              textInputAction: TextInputAction.next,
+                              focusNode: parentNameFocus,
+                              onFieldSubmitted: (_) => FocusScope.of(context).requestFocus(parentPhoneFocus),
+                              validator: requiredValidator,
                             )),
-                          ])
-                          // عرض الحقل بشكل متجاوب حسب حجم الشاشة
-                          SizedBox(
-                            width: isWide ? constraints.maxWidth * 0.45 : double.infinity,
-                            child: field,
-                          ),
-                          const SizedBox(height: 20),
-                          // زر الحفظ أو مؤشر التحميل
-                          isLoading
-                              ? const Center(child: CircularProgressIndicator())
-                              : SizedBox(
-                                  width: double.infinity,
-                                  child: ElevatedButton.icon(
-                                    onPressed: () async {
-                                      if (!formKey.currentState!.validate()) {
-                                        // تحسين: إظهار رسالة إذا لم يتم تعبئة الحقول المطلوبة
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('يرجى تعبئة جميع الحقول المطلوبة')),
-                                        );
-                                        return;
-                                      }
-                                      if (widget.student == null) {
-                                        // إضافة طالب جديد
-                                        addStudent(
-                                          isar,
-                                          Student()
-                                            ..fullName = fullNameController.text.trim()
-                                            ..address = addressController.text.trim()
-                                            ..annualFee = double.tryParse(annualFeeController.text.trim()) ?? 0
-                                            ..schoolclass.value = selectedClass
-                                            ..birthDate = birthDate
-                                            ..createdAt = DateTime.now()
-                                            ..nationalId = nationalIdController.text.trim()
-                                            ..email = emailController.text.trim()
-                                            ..gender = gender
-                                            ..status = status
-                                            
-                                            ..parentName = parentNameController.text.trim()
-                                            ..parentPhone = parentPhoneController.text.trim()
-                                            ..phone = phoneController.text.trim()
-                                            ..registrationYear = registrationYearController.text.trim(),
-                                        );
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(content: Text('تم حفظ بيانات الطالب بنجاح ')));
-                                        Navigator.pop(context);
-                                      } else {
-                                        // تعديل بيانات طالب موجود
-                                        await updateStudentDataIsar(widget.student!);
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(content: Text('تم حفظ بيانات الطالب بنجاح ')));
-                                        Navigator.pop(context);
-                                      }
-                                    },
-                                    icon: const Icon(Icons.save),
-                                    label: const Text('حفظ الطالب'),
-                                    style: ElevatedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(vertical: 16),
-                                      textStyle: const TextStyle(fontSize: 16),
+
+                            buildInputField(TextFormField(
+                              controller: parentPhoneController,
+                              focusNode: parentPhoneFocus,
+                              textInputAction: TextInputAction.next,
+                              keyboardType: TextInputType.phone,
+                              onFieldSubmitted: (_) => FocusScope.of(context).requestFocus(phoneFocus),
+                              decoration: const InputDecoration(
+                                labelText: 'هاتف ولي الأمر *',
+                                prefixIcon: Icon(Icons.phone),
+                                hintText: 'رقم هاتف ولي الأمر',
+                              ),
+                              validator: _validatePhoneNumber,
+                            )),
+
+                            buildInputField(TextFormField(
+                              controller: phoneController,
+                              focusNode: phoneFocus,
+                              textInputAction: TextInputAction.next,
+                              keyboardType: TextInputType.phone,
+                              onFieldSubmitted: (_) => FocusScope.of(context).requestFocus(emailFocus),
+                              decoration: const InputDecoration(
+                                labelText: 'هاتف الطالب',
+                                prefixIcon: Icon(Icons.smartphone),
+                                hintText: 'رقم هاتف الطالب (اختياري)',
+                              ),
+                              validator: (value) {
+                                if (value != null && value.trim().isNotEmpty) {
+                                  return _validatePhoneNumber(value);
+                                }
+                                return null;
+                              },
+                            )),
+
+                            buildInputField(TextFormField(
+                              controller: emailController,
+                              focusNode: emailFocus,
+                              textInputAction: TextInputAction.next,
+                              keyboardType: TextInputType.emailAddress,
+                              onFieldSubmitted: (_) => FocusScope.of(context).requestFocus(addressFocus),
+                              decoration: const InputDecoration(
+                                labelText: 'البريد الإلكتروني',
+                                prefixIcon: Icon(Icons.email),
+                                hintText: 'البريد الإلكتروني (اختياري)',
+                              ),
+                              validator: _validateEmail,
+                            )),
+
+                            buildInputField(TextFormField(
+                              controller: addressController,
+                              focusNode: addressFocus,
+                              textInputAction: TextInputAction.done,
+                              maxLines: 2,
+                              decoration: const InputDecoration(
+                                labelText: 'العنوان',
+                                prefixIcon: Icon(Icons.location_on),
+                                hintText: 'عنوان السكن',
+                              ),
+                            )),
+
+                            const SizedBox(height: 30),
+
+                            // زر الحفظ أو مؤشر التحميل
+                            isLoading
+                                ? const Center(child: CircularProgressIndicator())
+                                : Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                    child: ElevatedButton.icon(
+                                      onPressed: _saveStudent,
+                                      icon: const Icon(Icons.save),
+                                      label: Text(widget.student == null ? 'حفظ الطالب' : 'تحديث بيانات الطالب'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.teal,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(vertical: 16),
+                                        textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ),
-                        ],
+                          ],
+                        ),
                       ),
                     );
                   },

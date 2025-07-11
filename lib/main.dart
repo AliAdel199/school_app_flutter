@@ -33,6 +33,7 @@ import 'localdatabase/student_discount.dart';
 import 'localdatabase/student_fee_status.dart';
 import 'localdatabase/student_payment.dart';
 import 'localdatabase/subject.dart';
+import 'localdatabase/auto_discount_settings.dart';
 import 'reports/SalaryReportScreen.dart';
 import 'employee/add_edit_employee.dart';
 import 'employee/monthlysalaryscreen.dart';
@@ -115,6 +116,7 @@ print(dir2.path);
     ExpenseCategorySchema,
     StudentDiscountSchema,      // إضافة جديدة
     DiscountTypeSchema,         // إضافة جديدة
+    AutoDiscountSettingsSchema, // إضافة إعدادات الخصومات التلقائية
   ], directory: dir.path, inspector: true, name: 'school_app_flutter');
 
   // تحميل السنة الدراسية من الإعدادات
@@ -157,7 +159,7 @@ class SchoolApp extends StatelessWidget {
   final bool showInitialSetup;
   final bool showActivation;
 
-  SchoolApp({super.key, required this.showInitialSetup, required this.showActivation});
+  const SchoolApp({super.key, required this.showInitialSetup, required this.showActivation});
 
 
   @override

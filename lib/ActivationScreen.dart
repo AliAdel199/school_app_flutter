@@ -57,7 +57,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
       child: Scaffold(
         appBar: AppBar(title: Row(
           children: [
-            const Text('تفعيل النظام',style: TextStyle(color: Colors.red),),IconButton(onPressed: copyFingerprint, icon: Icon(Icons.copy))
+            const Text('تفعيل النظام',style: TextStyle(color: Colors.red),),IconButton(onPressed: copyFingerprint, icon: const Icon(Icons.copy))
           ],
         )),
         body: Padding(

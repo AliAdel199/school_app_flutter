@@ -1,6 +1,5 @@
 // lib/utils/receipt_helper.dart
 
-import 'dart:typed_data';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';

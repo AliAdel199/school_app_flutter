@@ -41,7 +41,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
       if (!await appDir.exists()) {
         await appDir.create(recursive: true);
       }
-      final fileName = 'school_logo${DateTime.now().millisecondsSinceEpoch}${picked.path.split('.').last.isNotEmpty ? '.' + picked.path.split('.').last : ''}';
+      final fileName = 'school_logo${DateTime.now().millisecondsSinceEpoch}${picked.path.split('.').last.isNotEmpty ? '.${picked.path.split('.').last}' : ''}';
       final newLogoPath = '${appDir.path}/$fileName';
       final newLogoFile = await File(picked.path).copy(newLogoPath);
 
@@ -105,7 +105,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
             }
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => LoginScreen()),
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
       );
     } catch (e) {
       debugPrint('Error: $e');

@@ -96,7 +96,7 @@ class _AddEditExpenseScreenState extends State<AddEditExpenseScreen> {
             const SizedBox(height: 8),
             ListTile(
               title: Text('تاريخ المصروف: ${selectedDate.toString().split(' ')[0]}'),
-              trailing: Icon(Icons.calendar_today),
+              trailing: const Icon(Icons.calendar_today),
               onTap: () async {
                 final date = await showDatePicker(
                   context: context,

@@ -80,7 +80,7 @@ class _LogsScreenState extends State<LogsScreen> {
         ],
       ),
       body: Container(
-        color: theme.colorScheme.background,
+        color: theme.colorScheme.surface,
         child: Column(
           children: [
             Padding(
@@ -147,7 +147,7 @@ class _LogsScreenState extends State<LogsScreen> {
                   ? Center(
                       child: Text(
                         'لا توجد سجلات',
-                        style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onBackground.withOpacity(0.7)),
+                        style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onSurface.withOpacity(0.7)),
                       ),
                     )
                   : ListView.separated(

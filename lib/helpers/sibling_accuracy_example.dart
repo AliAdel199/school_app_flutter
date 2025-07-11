@@ -90,7 +90,7 @@ class SiblingAccuracyExample {
       
       // حساب نسبة الخصم
       final discountPercentage = processor.calculateSiblingDiscountPercentage(student, siblings);
-      print('نسبة خصم الأشقاء: ${discountPercentage}%');
+      print('نسبة خصم الأشقاء: $discountPercentage%');
     }
   }
   

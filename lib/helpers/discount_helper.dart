@@ -66,7 +66,7 @@ class DiscountHelper {
         });
       }
 
-      // تحديث حالة القسط بالخصم الجديد
+      // تحديث حالة القسط بالخصم الجديد مع إعادة حساب إجمالي الخصومات
       await _updateFeeStatusWithDiscount(studentId, academicYear);
       
       return true;
