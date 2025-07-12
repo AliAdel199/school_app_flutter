@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:school_app_flutter/localdatabase/subject_mark.dart';
 import '/localdatabase/expense.dart';
 import '/localdatabase/expense_category.dart';
 import '/localdatabase/income.dart';
@@ -46,12 +47,15 @@ import 'reports/financialreportsscreen.dart';
 import 'reports/login_screen.dart';
 import 'student/auto_discount_screen.dart';
 import 'student/discount_management_screen.dart';
+import 'student/simple_marks_management_screen.dart';
 import 'student/student_discounts_screen.dart';
 import 'student/studentpaymentscreen.dart';
 import 'student/students_list_screen_supabase.dart';
 import 'reports/subjectslistscreen.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'student/subject_marks_management_screen.dart';
 
 late Isar isar; // تعريف متغير Isar عالمي يمكن استخدامه في أي مكان
 
@@ -114,6 +118,7 @@ print(dir2.path);
     InvoiceCounterSchema,
     ExpenseSchema,
     ExpenseCategorySchema,
+    SubjectMarkSchema,
     StudentDiscountSchema,      // إضافة جديدة
     DiscountTypeSchema,         // إضافة جديدة
     AutoDiscountSettingsSchema, // إضافة إعدادات الخصومات التلقائية
@@ -222,6 +227,8 @@ class SchoolApp extends StatelessWidget {
               expense: ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?,
             ),
         '/income': (context) => const IncomesListScreen(),
+        '/marks-management': (context) => const MarksManagementScreen(),
+        '/subject-marks-advanced': (context) => const SubjectMarksManagementScreen(),
         '/user-screen': (context) => const UsersScreen(),
         '/logs-screen': (context) => const LogsScreen(),
       },
