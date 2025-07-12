@@ -82,6 +82,13 @@ class ProgramInfo {
                         ),
                         textAlign: TextAlign.center,
                       ),
+                      SizedBox(height: 10), 
+                      Text(
+                        'تطوير: فريق تطوير smartTic \nارقام التواصل :07838449147   | 07814491474 ',
+                        style: TextStyle(fontSize: 12, color: Colors.indigo.withAlpha(180)),
+                        textAlign: TextAlign.center,
+                      ),
+
                       SizedBox(height: 8),
                       Container(
                         padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),

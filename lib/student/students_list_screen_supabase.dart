@@ -8,6 +8,7 @@ import 'package:school_app_flutter/localdatabase/expense.dart';
 import 'package:school_app_flutter/localdatabase/student_fee_status.dart';
 import '../localdatabase/expense_category.dart';
 import '../helpers/program_info.dart';
+import 'package:file_picker/file_picker.dart';
 
 import '/localdatabase/class.dart';
 // import '/localdatabase/students/StudentService.dart';
@@ -272,6 +273,36 @@ for (final student in filteredStudents) {
                    ),
                  ),
                ),
+               Padding(
+                 padding: const EdgeInsets.only(top: 8.0),
+                 child: SizedBox(
+                   width: 200,
+                   child: ElevatedButton.icon(
+                     onPressed: importFromExcel,
+                     icon: const Icon(Icons.file_upload),
+                     label: const Text('استيراد Excel'),
+                     style: ElevatedButton.styleFrom(
+                       backgroundColor: Colors.green,
+                       foregroundColor: Colors.white,
+                     ),
+                   ),
+                 ),
+               ),
+               Padding(
+                 padding: const EdgeInsets.only(top: 8.0),
+                 child: SizedBox(
+                   width: 200,
+                   child: ElevatedButton.icon(
+                     onPressed: downloadExcelTemplate,
+                     icon: const Icon(Icons.download),
+                     label: const Text('تحميل القالب'),
+                     style: ElevatedButton.styleFrom(
+                       backgroundColor: Colors.blue,
+                       foregroundColor: Colors.white,
+                     ),
+                   ),
+                 ),
+               ),
       SizedBox(width: 250,
         child: Card(elevation: 2,
           child: DropdownButton<String>(elevation: 5,isExpanded: true,borderRadius: BorderRadius.circular(12),underline: const SizedBox(),
@@ -384,7 +415,8 @@ for (final student in filteredStudents) {
                                     : Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
-                                        children: _buildStudentInfo(student),
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: _buildStudentInfoMobile(student),
                                       ),
                                 const SizedBox(height: 8),
                                 Row(
@@ -807,6 +839,28 @@ TextButton.icon(
     );
   }
 
+  List<Widget> _buildStudentInfoMobile(Student student) {
+    return [
+      Text(
+        student.fullName,
+        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      ),
+      const SizedBox(height: 4),
+      Text('الصف: ${student.schoolclass.value!.name}'),
+      const SizedBox(height: 4),
+      Text('الهوية: ${student.nationalId ?? '-'}'),
+      const SizedBox(height: 8),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: Chip(
+          label: Text(student.status),
+          backgroundColor: getStatusColor(student.status).withOpacity(0.2),
+          labelStyle: TextStyle(color: getStatusColor(student.status)),
+        ),
+      ),
+    ];
+  }
+
   List<Widget> _buildStudentInfo(Student student) {
     return [
       // استخدم Flexible بدل Expanded أو فقط Text إذا لم تكن داخل Row
@@ -1031,4 +1085,445 @@ TextButton.icon(
       ),
     );
   }
+
+  Future<void> importFromExcel() async {
+  try {
+    // اختيار ملف Excel
+    FilePickerResult? result = await FilePicker .platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['xlsx', 'xls'],
+    );
+
+    if (result != null && result.files.single.bytes != null) {
+      final bytes = result.files.single.bytes!;
+      final excel = excel_lib.Excel.decodeBytes(bytes);
+      
+      // التحقق من وجود ورقة العمل
+      final sheetName = excel.tables.keys.first;
+      final sheet = excel.tables[sheetName];
+      
+      if (sheet == null) {
+        throw Exception('لا توجد بيانات في الملف');
+      }
+
+      // عرض نافذة تأكيد مع معاينة البيانات
+      final shouldImport = await _showImportPreviewDialog(sheet);
+      if (!shouldImport) return;
+
+      setState(() => isLoading = true);
+
+      // قراءة البيانات وإنشاء الطلاب
+      List<Student> newStudents = [];
+      List<String> errors = [];
+      int skippedRows = 0;
+      
+      // البدء من السطر الثاني (تجاهل العناوين)
+      for (int i = 1; i < sheet.maxRows; i++) {
+        try {
+          final row = sheet.rows[i];
+          
+          // التحقق من وجود بيانات في السطر
+          if (row.isEmpty || _isRowEmpty(row)) {
+            skippedRows++;
+            continue;
+          }
+
+          // قراءة البيانات من الأعمدة
+          final fullName = _getCellValue(row, 0)?.trim();
+          final nationalId = _getCellValue(row, 1)?.trim();
+          final gender = _getCellValue(row, 2)?.trim();
+          final birthDateStr = _getCellValue(row, 3)?.trim();
+          final parentName = _getCellValue(row, 4)?.trim();
+          final parentPhone = _getCellValue(row, 5)?.trim();
+          final phone = _getCellValue(row, 6)?.trim();
+          final email = _getCellValue(row, 7)?.trim();
+          final address = _getCellValue(row, 8)?.trim();
+          final className = _getCellValue(row, 9)?.trim();
+          final status = _getCellValue(row, 10)?.trim() ?? 'active';
+          final registrationYearStr = _getCellValue(row, 11)?.trim();
+          final annualFeeStr = _getCellValue(row, 12)?.trim();
+
+          // التحقق من البيانات الأساسية
+          if (fullName == null || fullName.isEmpty) {
+            errors.add('السطر ${i + 1}: اسم الطالب مطلوب');
+            continue;
+          }
+
+          // البحث عن الصف
+          SchoolClass? schoolClass;
+          if (className != null && className.isNotEmpty) {
+            schoolClass = await isar.schoolClass
+                .filter()
+                .nameEqualTo(className)
+                .findFirst();
+            
+            if (schoolClass == null) {
+              errors.add('السطر ${i + 1}: الصف "$className" غير موجود');
+              continue;
+            }
+          }
+
+          // تحويل التاريخ
+          DateTime? birthDate;
+          if (birthDateStr != null && birthDateStr.isNotEmpty) {
+            try {
+              // محاولة تحويل التاريخ بصيغة مختلفة
+              birthDate = DateTime.parse(birthDateStr);
+            } catch (e) {
+              errors.add('السطر ${i + 1}: تاريخ الميلاد غير صحيح "$birthDateStr"');
+            }
+          }
+
+          // تحويل سنة التسجيل
+          String? registrationYear;
+          if (registrationYearStr != null && registrationYearStr.isNotEmpty) {
+            registrationYear = registrationYearStr;
+          }
+
+          // تحويل القسط السنوي
+          double? annualFee;
+          if (annualFeeStr != null && annualFeeStr.isNotEmpty) {
+            annualFee = double.tryParse(annualFeeStr.replaceAll(',', ''));
+          }
+
+          // إنشاء كائن الطالب
+          final student = Student()
+            ..fullName = fullName
+            ..nationalId = nationalId
+            ..gender = gender
+            ..birthDate = birthDate
+            ..parentName = parentName
+            ..parentPhone = parentPhone
+            ..phone = phone
+            ..email = email
+            ..address = address
+            ..status = status
+            
+            ..registrationYear = registrationYear
+            ..annualFee = annualFee ?? schoolClass?.annualFee ?? 0
+            ..createdAt = DateTime.now();
+
+          // ربط الصف
+          if (schoolClass != null) {
+            student.schoolclass.value = schoolClass;
+            
+          }
+
+          newStudents.add(student);
+
+        } catch (e) {
+          errors.add('السطر ${i + 1}: خطأ في معالجة البيانات - $e');
+        }
+      }
+
+      // حفظ الطلاب في قاعدة البيانات
+      if (newStudents.isNotEmpty) {
+        await isar.writeTxn(() async {
+          for (final student in newStudents) {
+            final studentId = await isar.students.put(student);
+            await student.schoolclass.save();
+            
+            // تعيين الـ ID للطالب إذا كان جديد
+            if (student.id != studentId) {
+              student.id = studentId;
+            }
+            
+            // إنشاء سجل قسط للطالب
+            await _createFeeStatusForStudent(student);
+          }
+        });
+      }
+
+      setState(() => isLoading = false);
+
+      // عرض نتائج الاستيراد
+      _showImportResultsDialog(
+        imported: newStudents.length,
+        errors: errors,
+        skipped: skippedRows,
+      );
+
+      // تحديث قائمة الطلاب
+      if (newStudents.isNotEmpty) {
+        fetchStudentsFromIsar();
+      }
+
+    }
+  } catch (e) {
+    setState(() => isLoading = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('خطأ في استيراد الملف: $e'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+}
+
+// دالة مساعدة لاستخراج قيمة الخلية
+String? _getCellValue(List<excel_lib.Data?> row, int index) {
+  if (index >= row.length || row[index] == null) return null;
+  return row[index]!.value?.toString();
+}
+
+// دالة مساعدة للتحقق من أن السطر فارغ
+bool _isRowEmpty(List<excel_lib.Data?> row) {
+  return row.every((cell) => cell == null || cell.value == null || cell.value.toString().trim().isEmpty);
+}
+
+// عرض نافذة معاينة البيانات قبل الاستيراد
+Future<bool> _showImportPreviewDialog(excel_lib.Sheet sheet) async {
+  final headerRow = sheet.rows.isNotEmpty ? sheet.rows[0] : null;
+  final dataRows = sheet.rows.length > 1 ? sheet.rows.sublist(1, sheet.rows.length > 6 ? 6 : sheet.rows.length) : <List<excel_lib.Data?>>[];
+
+  return await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('معاينة بيانات الاستيراد'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('عدد الصفوف: ${sheet.maxRows - 1}'),
+            const SizedBox(height: 10),
+            const Text('التنسيق المتوقع للأعمدة:'),
+            const Text('1. الاسم الكامل | 2. الرقم الوطني | 3. الجنس | 4. تاريخ الميلاد'),
+            const Text('5. اسم ولي الأمر | 6. هاتف ولي الأمر | 7. الهاتف | 8. البريد الإلكتروني'),
+            const Text('9. العنوان | 10. الصف | 11. الحالة | 12. سنة التسجيل | 13. الرسوم السنوية'),
+            const SizedBox(height: 15),
+            const Text('عينة من البيانات:', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SingleChildScrollView(
+                  child: DataTable(
+                    columns: headerRow?.map((cell) => DataColumn(
+                      label: Text(
+                        cell?.value?.toString() ?? '',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    )).toList() ?? [],
+                    rows: dataRows.map((row) => DataRow(
+                      cells: row.map((cell) => DataCell(
+                        Text(
+                          cell?.value?.toString() ?? '',
+                          style: const TextStyle(fontSize: 11),
+                        ),
+                      )).toList(),
+                    )).toList(),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('إلغاء'),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: const Text('متابعة الاستيراد'),
+        ),
+      ],
+    ),
+  ) ?? false;
+}
+
+// عرض نتائج الاستيراد
+void _showImportResultsDialog({
+  required int imported,
+  required List<String> errors,
+  required int skipped,
+}) {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('نتائج الاستيراد'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('تم استيراد: $imported طالب'),
+          Text('تم تجاهل: $skipped سطر فارغ'),
+          Text('الأخطاء: ${errors.length}'),
+          if (errors.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            const Text('تفاصيل الأخطاء:', style: TextStyle(fontWeight: FontWeight.bold)),
+            Container(
+              height: 200,
+              width: double.maxFinite,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: errors.map((error) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      error,
+                      style: const TextStyle(fontSize: 12, color: Colors.red),
+                    ),
+                  )).toList(),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('موافق'),
+        ),
+      ],
+    ),
+  );
+}
+
+Future<void> downloadExcelTemplate() async {
+  try {
+    final excel = excel_lib.Excel.createExcel();
+    final sheet = excel['قالب_الطلاب'];
+    
+    // إضافة العناوين
+    sheet.appendRow([
+      excel_lib.TextCellValue('الاسم الكامل *'),
+      excel_lib.TextCellValue('الرقم الوطني'),
+      excel_lib.TextCellValue('الجنس'),
+      excel_lib.TextCellValue('تاريخ الميلاد (dd/mm/yyyy)'),
+      excel_lib.TextCellValue('اسم ولي الأمر'),
+      excel_lib.TextCellValue('هاتف ولي الأمر'),
+      excel_lib.TextCellValue('الهاتف'),
+      excel_lib.TextCellValue('البريد الإلكتروني'),
+      excel_lib.TextCellValue('العنوان'),
+      excel_lib.TextCellValue('الصف *'),
+      excel_lib.TextCellValue('الحالة'),
+      excel_lib.TextCellValue('سنة التسجيل'),
+      excel_lib.TextCellValue('الرسوم السنوية'),
+    ]);
+
+    // إضافة بعض الأمثلة
+    sheet.appendRow([
+      excel_lib.TextCellValue('أحمد محمد علي'),
+      excel_lib.TextCellValue('12345678901'),
+      excel_lib.TextCellValue('ذكر'),
+      excel_lib.TextCellValue('15/01/2010'),
+      excel_lib.TextCellValue('محمد علي'),
+      excel_lib.TextCellValue('07701234567'),
+      excel_lib.TextCellValue('07801234567'),
+      excel_lib.TextCellValue('ahmed@example.com'),
+      excel_lib.TextCellValue('بغداد - الكرادة'),
+      excel_lib.TextCellValue('الصف الأول'),
+      excel_lib.TextCellValue('active'),
+      excel_lib.TextCellValue('2024-2025'),
+      excel_lib.TextCellValue('500000'),
+    ]);
+
+    sheet.appendRow([
+      excel_lib.TextCellValue('فاطمة حسن'),
+      excel_lib.TextCellValue('12345678902'),
+      excel_lib.TextCellValue('أنثى'),
+      excel_lib.TextCellValue('22/03/2009'),
+      excel_lib.TextCellValue('حسن محمد'),
+      excel_lib.TextCellValue('07701234568'),
+      excel_lib.TextCellValue('07801234568'),
+      excel_lib.TextCellValue('fatima@example.com'),
+      excel_lib.TextCellValue('البصرة - المعقل'),
+      excel_lib.TextCellValue('الصف الثاني'),
+      excel_lib.TextCellValue('active'),
+      excel_lib.TextCellValue('2024-2025'),
+      excel_lib.TextCellValue('600000'),
+    ]);
+
+    // إضافة ورقة التعليمات
+    final instructionsSheet = excel['التعليمات'];
+    instructionsSheet.appendRow([excel_lib.TextCellValue('تعليمات استيراد بيانات الطلاب')]);
+    instructionsSheet.appendRow([excel_lib.TextCellValue('')]);
+    instructionsSheet.appendRow([excel_lib.TextCellValue('الحقول المطلوبة (يجب ملؤها):')]);
+    instructionsSheet.appendRow([excel_lib.TextCellValue('• الاسم الكامل: اسم الطالب الكامل')]);
+    instructionsSheet.appendRow([excel_lib.TextCellValue('• الصف: يجب أن يطابق اسم صف موجود في النظام')]);
+    instructionsSheet.appendRow([excel_lib.TextCellValue('')]);
+    instructionsSheet.appendRow([excel_lib.TextCellValue('الحقول الاختيارية:')]);
+    instructionsSheet.appendRow([excel_lib.TextCellValue('• الرقم الوطني: 11 رقم')]);
+    instructionsSheet.appendRow([excel_lib.TextCellValue('• الجنس: ذكر أو أنثى')]);
+    instructionsSheet.appendRow([excel_lib.TextCellValue('• تاريخ الميلاد: بصيغة dd/mm/yyyy')]);
+    instructionsSheet.appendRow([excel_lib.TextCellValue('• اسم ولي الأمر')]);
+    instructionsSheet.appendRow([excel_lib.TextCellValue('• هاتف ولي الأمر')]);
+    instructionsSheet.appendRow([excel_lib.TextCellValue('• الهاتف')]);
+    instructionsSheet.appendRow([excel_lib.TextCellValue('• البريد الإلكتروني')]);
+    instructionsSheet.appendRow([excel_lib.TextCellValue('• العنوان')]);
+    instructionsSheet.appendRow([excel_lib.TextCellValue('• الحالة: active, inactive, graduated, transferred')]);
+    instructionsSheet.appendRow([excel_lib.TextCellValue('• سنة التسجيل: مثل 2024-2025')]);
+    instructionsSheet.appendRow([excel_lib.TextCellValue('• الرسوم السنوية: رقم بدون فواصل')]);
+    instructionsSheet.appendRow([excel_lib.TextCellValue('')]);
+    instructionsSheet.appendRow([excel_lib.TextCellValue('ملاحظات مهمة:')]);
+    instructionsSheet.appendRow([excel_lib.TextCellValue('• تأكد من وجود الصفوف في النظام قبل الاستيراد')]);
+    instructionsSheet.appendRow([excel_lib.TextCellValue('• لا تحذف السطر الأول (العناوين)')]);
+    instructionsSheet.appendRow([excel_lib.TextCellValue('• تأكد من صحة صيغة التواريخ')]);
+
+    final fileBytes = excel.encode();
+    if (fileBytes != null) {
+      await Printing.sharePdf(
+        bytes: Uint8List.fromList(fileBytes),
+        filename: 'قالب_استيراد_الطلاب.xlsx',
+      );
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تم تحميل ملف القالب بنجاح!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('خطأ في إنشاء ملف القالب: $e'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+}
+
+// إنشاء سجل قسط للطالب الجديد
+Future<void> _createFeeStatusForStudent(Student student) async {
+  try {
+    // التحقق من عدم وجود سجل قسط بالفعل
+    final existingFeeStatus = await isar.studentFeeStatus
+        .filter()
+        .studentIdEqualTo(student.id.toString())
+        .academicYearEqualTo(academicYear)
+        .findFirst();
+    
+    if (existingFeeStatus != null) {
+      return; // السجل موجود بالفعل
+    }
+
+    // إنشاء سجل قسط جديد
+    final feeStatus = StudentFeeStatus()
+      ..studentId = student.id.toString()
+      ..className = student.schoolclass.value?.name ?? ''
+      ..academicYear = academicYear
+      ..annualFee = student.annualFee ?? 0
+      ..paidAmount = 0
+      ..discountAmount = 0
+      ..transferredDebtAmount = 0
+      ..dueAmount = student.annualFee ?? 0
+      ..nextDueDate = DateTime.now().add(const Duration(days: 30))
+      ..createdAt = DateTime.now();
+
+    await isar.studentFeeStatus.put(feeStatus);
+  } catch (e) {
+    debugPrint('خطأ في إنشاء سجل القسط للطالب ${student.fullName}: $e');      
+  }
+}
 }
