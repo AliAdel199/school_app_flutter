@@ -18,8 +18,14 @@ class _MarksManagementScreenState extends State<MarksManagementScreen> {
   List<Subject> subjects = [];
   List<SubjectMark> marks = [];
   List<SchoolClass> classes = [];
-  
-  SchoolClass? selectedClass;
+        await _refreshMarks();
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تم حذف الدرجة بنجاح'),
+          backgroundColor: Colors.orange,
+        ),
+      );olClass? selectedClass;
   Subject? selectedSubject;
   String selectedEvaluationType = 'نصف سنة';
   String selectedAcademicYear = DateTime.now().year.toString();
@@ -33,6 +39,23 @@ class _MarksManagementScreenState extends State<MarksManagementScreen> {
     _loadData();
   }
 
+  Future<void> _refreshMarks() async {
+    try {
+      // تحديث الدرجات فقط بدلاً من إعادة تحميل كل شيء
+      marks = await isar.subjectMarks.where().findAll();
+      
+      // تحميل العلاقات للدرجات الجديدة
+      for (var mark in marks) {
+        await mark.student.load();
+        await mark.subject.load();
+      }
+      
+      setState(() {});
+    } catch (e) {
+      debugPrint('خطأ في تحديث الدرجات: $e');
+    }
+  }
+
   Future<void> _loadData() async {
     setState(() => isLoading = true);
     
@@ -42,6 +65,13 @@ class _MarksManagementScreenState extends State<MarksManagementScreen> {
       subjects = await isar.subjects.where().findAll();
       marks = await isar.subjectMarks.where().findAll();
       classes = await isar.schoolClass.where().findAll();
+
+      // إزالة التكرار إذا وجد
+      final uniqueClasses = <int, SchoolClass>{};
+      for (var schoolClass in classes) {
+        uniqueClasses[schoolClass.id] = schoolClass;
+      }
+      classes = uniqueClasses.values.toList();
 
       // تحميل العلاقات
       for (var student in students) {
@@ -55,6 +85,23 @@ class _MarksManagementScreenState extends State<MarksManagementScreen> {
       for (var mark in marks) {
         await mark.student.load();
         await mark.subject.load();
+      }
+
+      // الاحتفاظ بالاختيارات الحالية إذا كانت لا تزال صالحة
+      if (selectedClass != null) {
+        final classStillExists = classes.any((c) => c.id == selectedClass!.id);
+        if (!classStillExists) {
+          selectedClass = null;
+          selectedSubject = null;
+        } else if (selectedSubject != null) {
+          // التحقق من أن المادة المختارة لا تزال متاحة للصف المختار
+          final subjectStillValid = subjects.any((s) => 
+            s.id == selectedSubject!.id && 
+            s.schoolClass.value?.id == selectedClass!.id);
+          if (!subjectStillValid) {
+            selectedSubject = null;
+          }
+        }
       }
 
       setState(() {
@@ -73,9 +120,20 @@ class _MarksManagementScreenState extends State<MarksManagementScreen> {
   }
 
   List<Subject> get filteredSubjects {
-    if (selectedClass == null) return subjects;
-    return subjects.where((subject) => 
+    if (selectedClass == null) return [];
+    final filtered = subjects.where((subject) => 
       subject.schoolClass.value?.id == selectedClass!.id).toList();
+    
+    // التأكد من أن selectedSubject لا يزال في القائمة المفلترة
+    if (selectedSubject != null && !filtered.any((s) => s.id == selectedSubject!.id)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        setState(() {
+          selectedSubject = null;
+        });
+      });
+    }
+    
+    return filtered;
   }
 
   @override
@@ -126,12 +184,18 @@ class _MarksManagementScreenState extends State<MarksManagementScreen> {
                       labelText: 'الصف',
                       border: OutlineInputBorder(),
                     ),
-                    items: classes.map((schoolClass) {
-                      return DropdownMenuItem(
-                        value: schoolClass,
-                        child: Text(schoolClass.name),
-                      );
-                    }).toList(),
+                    items: [
+                      const DropdownMenuItem<SchoolClass>(
+                        value: null,
+                        child: Text('اختر الصف'),
+                      ),
+                      ...classes.map((schoolClass) {
+                        return DropdownMenuItem(
+                          value: schoolClass,
+                          child: Text(schoolClass.name),
+                        );
+                      }).toList(),
+                    ],
                     onChanged: (value) {
                       setState(() {
                         selectedClass = value;
@@ -148,15 +212,22 @@ class _MarksManagementScreenState extends State<MarksManagementScreen> {
                       labelText: 'المادة',
                       border: OutlineInputBorder(),
                     ),
-                    items: filteredSubjects.map((subject) {
-                      return DropdownMenuItem(
-                        value: subject,
-                        child: Text(subject.name),
-                      );
-                    }).toList(),
+                    items: [
+                      const DropdownMenuItem<Subject>(
+                        value: null,
+                        child: Text('اختر المادة'),
+                      ),
+                      ...filteredSubjects.map((subject) {
+                        return DropdownMenuItem(
+                          value: subject,
+                          child: Text(subject.name),
+                        );
+                      }).toList(),
+                    ],
                     onChanged: (value) {
                       setState(() {
                         selectedSubject = value;
+                        // إعادة تحديث واجهة المستخدم لإزالة الدرجات السابقة
                       });
                     },
                   ),
@@ -244,6 +315,7 @@ class _MarksManagementScreenState extends State<MarksManagementScreen> {
     }
 
     return Card(
+      key: ValueKey('${student.id}_${selectedSubject?.id ?? 'no_subject'}_${selectedEvaluationType}_$selectedAcademicYear'),
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -269,6 +341,7 @@ class _MarksManagementScreenState extends State<MarksManagementScreen> {
             if (selectedSubject != null) ...[
               Expanded(
                 child: TextFormField(
+                  key: ValueKey('mark_input_${student.id}_${selectedSubject?.id}_${selectedEvaluationType}_$selectedAcademicYear'),
                   initialValue: existingMark?.mark?.toString() ?? '',
                   decoration: InputDecoration(
                     labelText: 'الدرجة',
@@ -347,14 +420,16 @@ class _MarksManagementScreenState extends State<MarksManagementScreen> {
         }
       });
 
-      await _loadData(); // إعادة تحميل البيانات
+      await _refreshMarks(); // تحديث الدرجات فقط
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('تم حفظ الدرجة بنجاح'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم حفظ الدرجة بنجاح'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     } catch (e) {
       _showErrorDialog('خطأ في حفظ الدرجة: $e');
     }
@@ -364,71 +439,89 @@ class _MarksManagementScreenState extends State<MarksManagementScreen> {
     final markController = TextEditingController(
       text: existingMark?.mark?.toString() ?? '',
     );
-    String evaluationType = existingMark?.evaluationType ?? selectedEvaluationType;
+    
+    // التأكد من أن نوع التقييم موجود في القائمة
+    String evaluationType = selectedEvaluationType;
+    if (existingMark?.evaluationType != null && 
+        evaluationTypes.contains(existingMark!.evaluationType!)) {
+      evaluationType = existingMark.evaluationType!;
+    }
+    
     String academicYear = existingMark?.academicYear ?? selectedAcademicYear;
+    
+    // التأكد من أن السنة الدراسية ليست فارغة
+    if (academicYear.trim().isEmpty) {
+      academicYear = selectedAcademicYear;
+    }
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('درجات ${student.fullName}'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextFormField(
-              controller: markController,
-              decoration: const InputDecoration(
-                labelText: 'الدرجة',
-                border: OutlineInputBorder(),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text('درجات ${student.fullName}'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: markController,
+                decoration: const InputDecoration(
+                  labelText: 'الدرجة',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
               ),
-              keyboardType: TextInputType.number,
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: evaluationType,
+                decoration: const InputDecoration(
+                  labelText: 'نوع التقييم',
+                  border: OutlineInputBorder(),
+                ),
+                items: evaluationTypes.map((type) {
+                  return DropdownMenuItem(value: type, child: Text(type));
+                }).toList(),
+                onChanged: (value) {
+                  setDialogState(() {
+                    evaluationType = value!;
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                initialValue: academicYear,
+                decoration: const InputDecoration(
+                  labelText: 'السنة الدراسية',
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (value) => academicYear = value,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('إلغاء'),
             ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              value: evaluationType,
-              decoration: const InputDecoration(
-                labelText: 'نوع التقييم',
-                border: OutlineInputBorder(),
+            if (existingMark != null)
+              TextButton(
+                onPressed: () async {
+                  await _deleteMark(existingMark);
+                  Navigator.pop(context);
+                },
+                child: const Text('حذف', style: TextStyle(color: Colors.red)),
               ),
-              items: evaluationTypes.map((type) {
-                return DropdownMenuItem(value: type, child: Text(type));
-              }).toList(),
-              onChanged: (value) => evaluationType = value!,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              initialValue: academicYear,
-              decoration: const InputDecoration(
-                labelText: 'السنة الدراسية',
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (value) => academicYear = value,
+            ElevatedButton(
+              onPressed: () async {
+                final mark = double.tryParse(markController.text);
+                if (mark != null && selectedSubject != null) {
+                  await _saveDetailedMark(student, mark, evaluationType, academicYear);
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('حفظ'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء'),
-          ),
-          if (existingMark != null)
-            TextButton(
-              onPressed: () async {
-                await _deleteMark(existingMark);
-                Navigator.pop(context);
-              },
-              child: const Text('حذف', style: TextStyle(color: Colors.red)),
-            ),
-          ElevatedButton(
-            onPressed: () async {
-              final mark = double.tryParse(markController.text);
-              if (mark != null && selectedSubject != null) {
-                await _saveDetailedMark(student, mark, evaluationType, academicYear);
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('حفظ'),
-          ),
-        ],
       ),
     );
   }
@@ -474,14 +567,16 @@ class _MarksManagementScreenState extends State<MarksManagementScreen> {
         }
       });
 
-      await _loadData();
+      await _refreshMarks();
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('تم حفظ الدرجة بنجاح'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم حفظ الدرجة بنجاح'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     } catch (e) {
       _showErrorDialog('خطأ في حفظ الدرجة: $e');
     }
@@ -493,14 +588,16 @@ class _MarksManagementScreenState extends State<MarksManagementScreen> {
         await isar.subjectMarks.delete(mark.id);
       });
 
-      await _loadData();
+      await _refreshMarks();
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('تم حذف الدرجة بنجاح'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم حذف الدرجة بنجاح'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
     } catch (e) {
       _showErrorDialog('خطأ في حذف الدرجة: $e');
     }
@@ -542,12 +639,18 @@ class _MarksManagementScreenState extends State<MarksManagementScreen> {
                   labelText: 'الصف',
                   border: OutlineInputBorder(),
                 ),
-                items: classes.map((schoolClass) {
-                  return DropdownMenuItem(
-                    value: schoolClass,
-                    child: Text(schoolClass.name),
-                  );
-                }).toList(),
+                items: [
+                  const DropdownMenuItem<SchoolClass>(
+                    value: null,
+                    child: Text('اختر الصف'),
+                  ),
+                  ...classes.map((schoolClass) {
+                    return DropdownMenuItem(
+                      value: schoolClass,
+                      child: Text(schoolClass.name),
+                    );
+                  }).toList(),
+                ],
                 onChanged: (value) {
                   setDialogState(() {
                     selectedClassForSubject = value;
@@ -593,7 +696,7 @@ class _MarksManagementScreenState extends State<MarksManagementScreen> {
         await subject.schoolClass.save();
       });
 
-      await _loadData();
+      await _refreshMarks();
       
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
