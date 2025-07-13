@@ -3,6 +3,9 @@ import 'package:isar/isar.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:excel/excel.dart' as excel;
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 import '../localdatabase/student.dart';
 import '../localdatabase/subject.dart';
 import '../localdatabase/subject_mark.dart';
@@ -180,6 +183,12 @@ class _StudentGradesReportScreenState extends State<StudentGradesReportScreen> {
         backgroundColor: Colors.blue[700],
         foregroundColor: Colors.white,
         actions: [
+          if (selectedStudent != null)
+            IconButton(
+              onPressed: () => _exportStudentToExcel(),
+              icon: const Icon(Icons.file_download),
+              tooltip: 'تصدير إلى Excel',
+            ),
           if (selectedStudent != null)
             IconButton(
               onPressed: () => _generatePrintableCertificate(),
@@ -1049,6 +1058,166 @@ class _StudentGradesReportScreenState extends State<StudentGradesReportScreen> {
       _showSuccessMessage('تم إنشاء الشهادة بنجاح');
     } catch (e) {
       _showErrorMessage('خطأ في إنشاء الشهادة: $e');
+    }
+  }
+
+  Future<void> _exportStudentToExcel() async {
+    if (selectedStudent == null) return;
+    
+    try {
+      // إنشاء ملف Excel جديد
+      final excelFile = excel.Excel.createExcel();
+      
+      // تعيين اسم الصفحة
+      excelFile.rename('Sheet1', 'درجات ${selectedStudent!.fullName}');
+      final sheet = excelFile['درجات ${selectedStudent!.fullName}'];
+      
+      // معلومات الطالب
+      final studentInfo = [
+        ['معلومات الطالب', ''],
+        ['الاسم', selectedStudent!.fullName],
+        ['الصف', selectedStudent!.schoolclass.value?.name ?? 'غير محدد'],
+        ['السنة الدراسية', selectedAcademicYear],
+        ['نوع التقييم', selectedEvaluationType],
+        ['تاريخ التقرير', DateTime.now().toString().split(' ')[0]],
+        ['', ''], // مسافة فارغة
+      ];
+      
+      // إضافة معلومات الطالب
+      int currentRow = 0;
+      for (final info in studentInfo) {
+        for (int col = 0; col < info.length; col++) {
+          final cell = sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: col, rowIndex: currentRow));
+          cell.value = excel.TextCellValue(info[col]);
+          
+          // تنسيق العناوين
+          if (currentRow == 0 || (info[0].isNotEmpty && col == 0)) {
+            cell.cellStyle = excel.CellStyle(bold: true);
+          }
+        }
+        currentRow++;
+      }
+      
+      // رؤوس جدول الدرجات
+      final gradeHeaders = ['المادة', 'الدرجة', 'الدرجة الكاملة', 'النسبة المئوية', 'الحالة'];
+      for (int i = 0; i < gradeHeaders.length; i++) {
+        final cell = sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: i, rowIndex: currentRow));
+        cell.value = excel.TextCellValue(gradeHeaders[i]);
+        cell.cellStyle = excel.CellStyle(bold: true);
+      }
+      currentRow++;
+      
+      // جلب درجات الطالب
+      final studentMarks = _getStudentMarks();
+      
+      // حساب المتوسط والإحصائيات
+      double totalMarks = 0;
+      double totalMaxMarks = 0;
+      int passedSubjects = 0;
+      int failedSubjects = 0;
+      
+      // إضافة الدرجات
+      for (final mark in studentMarks) {
+        await mark.subject.load();
+        final subject = mark.subject.value;
+        
+        if (subject != null && mark.mark != null) {
+          final percentage = (mark.mark! / subject.maxMark * 100);
+          final status = percentage >= 50 ? 'نجح' : 'راسب';
+          
+          if (percentage >= 50) {
+            passedSubjects++;
+          } else {
+            failedSubjects++;
+          }
+          
+          totalMarks += mark.mark!;
+          totalMaxMarks += subject.maxMark;
+          
+          final rowData = [
+            subject.name,
+            mark.mark!.toString(),
+            subject.maxMark.toString(),
+            '${percentage.toStringAsFixed(2)}%',
+            status,
+          ];
+          
+          for (int i = 0; i < rowData.length; i++) {
+            final cell = sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: i, rowIndex: currentRow));
+            cell.value = excel.TextCellValue(rowData[i]);
+          }
+          currentRow++;
+        }
+      }
+      
+      // إضافة الإحصائيات
+      currentRow += 2; // مسافة فارغة
+      
+      final overallPercentage = totalMaxMarks > 0 ? (totalMarks / totalMaxMarks * 100) : 0;
+      final overallStatus = overallPercentage >= 50 ? 'نجح' : 'راسب';
+      
+      final statistics = [
+        ['الإحصائيات النهائية', ''],
+        ['إجمالي الدرجات', totalMarks.toStringAsFixed(2)],
+        ['إجمالي الدرجات الكاملة', totalMaxMarks.toStringAsFixed(2)],
+        ['المعدل العام', '${overallPercentage.toStringAsFixed(2)}%'],
+        ['الحالة العامة', overallStatus],
+        ['المواد المجتازة', passedSubjects.toString()],
+        ['المواد الراسبة', failedSubjects.toString()],
+        ['إجمالي المواد', studentMarks.length.toString()],
+      ];
+      
+      for (final stat in statistics) {
+        for (int col = 0; col < stat.length; col++) {
+          final cell = sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: col, rowIndex: currentRow));
+          cell.value = excel.TextCellValue(stat[col]);
+          
+          // تنسيق العناوين
+          if (stat[0] == 'الإحصائيات النهائية' || col == 0) {
+            cell.cellStyle = excel.CellStyle(bold: true);
+          }
+        }
+        currentRow++;
+      }
+      
+      // تعديل عرض الأعمدة
+      for (int i = 0; i < 5; i++) {
+        sheet.setColumnWidth(i, 20.0);
+      }
+      
+      // حفظ الملف
+      final directory = await getApplicationDocumentsDirectory();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = 'درجات_${selectedStudent!.fullName}_$timestamp.xlsx';
+      final filePath = '${directory.path}/$fileName';
+      
+      final file = File(filePath);
+      await file.writeAsBytes(excelFile.save()!);
+      
+      // إظهار رسالة نجاح
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تم تصدير درجات ${selectedStudent!.fullName} بنجاح'),
+            backgroundColor: Colors.green,
+            action: SnackBarAction(
+              label: 'موافق',
+              onPressed: () {},
+            ),
+          ),
+        );
+      }
+      
+    } catch (e) {
+      // إظهار رسالة خطأ
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('حدث خطأ أثناء التصدير: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 }

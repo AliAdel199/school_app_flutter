@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:isar/isar.dart';
+import 'package:excel/excel.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 import '../localdatabase/student.dart';
 import '../localdatabase/subject.dart';
 import '../localdatabase/subject_mark.dart';
@@ -230,6 +233,12 @@ class _MarksManagementScreenState extends State<MarksManagementScreen> {
         backgroundColor: Colors.blue[700],
         foregroundColor: Colors.white,
         actions: [
+          //هنا تصدير اكسل
+          // IconButton(
+          //   onPressed: _exportToExcel,
+          //   icon: const Icon(Icons.file_download),
+          //   tooltip: 'تصدير إلى Excel',
+          // ),
           IconButton(
             onPressed: _showSubjectsManagementDialog,
             icon: const Icon(Icons.list),
@@ -1279,5 +1288,204 @@ class _MarksManagementScreenState extends State<MarksManagementScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _exportToExcel() async {
+    try {
+      // إنشاء ملف Excel جديد
+      final excel = Excel.createExcel();
+      
+      // تعيين عنوان الصفحة
+      excel.rename('Sheet1', 'درجات الطلاب');
+      final gradesSheet = excel['درجات الطلاب'];
+      
+      // إعداد رؤوس الأعمدة
+      final headers = [
+        'اسم الطالب',
+        'الصف',
+        'المادة',
+        'الدرجة',
+        'الدرجة الكاملة',
+        'النسبة المئوية',
+        'نوع التقييم',
+        'السنة الدراسية',
+        'تاريخ الإدخال'
+      ];
+      
+      // إضافة رؤوس الأعمدة
+      for (int i = 0; i < headers.length; i++) {
+        final cell = gradesSheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0));
+        cell.value = TextCellValue(headers[i]);
+        cell.cellStyle = CellStyle(
+          bold: true,
+          horizontalAlign: HorizontalAlign.Center,
+        );
+      }
+      
+      int currentRow = 1;
+      
+      // جمع البيانات المفلترة
+      final filteredMarks = await _getFilteredMarks();
+      
+      for (final mark in filteredMarks) {
+        // تحميل علاقات البيانات
+        await mark.student.load();
+        await mark.subject.load();
+        await mark.student.value?.schoolclass.load();
+        await mark.subject.value?.schoolClass.load();
+        
+        final student = mark.student.value;
+        final subject = mark.subject.value;
+        final studentClass = student?.schoolclass.value;
+        
+        if (student != null && subject != null && mark.mark != null) {
+          // حساب النسبة المئوية
+          final percentage = (mark.mark! / subject.maxMark * 100).toStringAsFixed(2);
+          
+          // إضافة بيانات الصف
+          final rowData = [
+            student.fullName,
+            studentClass?.name ?? 'غير محدد',
+            subject.name,
+            mark.mark.toString(),
+            subject.maxMark.toString(),
+            '$percentage%',
+            mark.evaluationType ?? 'غير محدد',
+            mark.academicYear ?? 'غير محدد',
+            mark.createdAt.toString().split(' ')[0], // التاريخ فقط بدون الوقت
+          ];
+          
+          for (int i = 0; i < rowData.length; i++) {
+            final cell = gradesSheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: currentRow));
+            cell.value = TextCellValue(rowData[i]);
+          }
+          
+          currentRow++;
+        }
+      }
+      
+      // إضافة إحصائيات في النهاية
+      currentRow += 2; // ترك مسافة
+      
+      // إضافة عنوان الإحصائيات
+      var statsCell = gradesSheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow));
+      statsCell.value = TextCellValue('الإحصائيات:');
+      statsCell.cellStyle = CellStyle(
+        bold: true,
+        fontSize: 14,
+      );
+      
+      currentRow++;
+      
+      // إحصائيات مختلفة
+      final totalMarks = filteredMarks.length;
+      final uniqueStudents = filteredMarks.map((m) => m.student.value?.id).toSet().length;
+      final uniqueSubjects = filteredMarks.map((m) => m.subject.value?.id).toSet().length;
+      
+      final stats = [
+        'إجمالي الدرجات المسجلة: $totalMarks',
+        'عدد الطلاب: $uniqueStudents',
+        'عدد المواد: $uniqueSubjects',
+        'تاريخ التصدير: ${DateTime.now().toString().split(' ')[0]}',
+      ];
+      
+      for (final stat in stats) {
+        var cell = gradesSheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow));
+        cell.value = TextCellValue(stat);
+        currentRow++;
+      }
+      
+      // تعديل عرض الأعمدة
+      for (int i = 0; i < headers.length; i++) {
+        gradesSheet.setColumnWidth(i, 20.0);
+      }
+      
+      // حفظ الملف
+      final directory = await getApplicationDocumentsDirectory();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = 'درجات_الطلاب_$timestamp.xlsx';
+      final filePath = '${directory.path}/$fileName';
+      
+      final file = File(filePath);
+      await file.writeAsBytes(excel.save()!);
+      
+      // إظهار رسالة نجاح
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تم تصدير الملف بنجاح: $fileName'),
+            backgroundColor: Colors.green,
+            action: SnackBarAction(
+              label: 'موافق',
+              onPressed: () {},
+            ),
+          ),
+        );
+      }
+      
+    } catch (e) {
+      // إظهار رسالة خطأ
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('حدث خطأ أثناء التصدير: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<List<SubjectMark>> _getFilteredMarks() async {
+    try {
+      final queryBuilder = isar.subjectMarks.where();
+      
+      // تطبيق فلاتر المرحلة والمادة إذا تم تحديدها
+      if (selectedClass != null) {
+        final classStudents = students.where((s) => s.schoolclass.value?.id == selectedClass!.id).toList();
+        final studentIds = classStudents.map((s) => s.id).toList();
+        
+        if (studentIds.isNotEmpty) {
+          // فلترة حسب معرفات الطلاب في الصف المحدد
+          final filteredMarks = <SubjectMark>[];
+          final allMarks = await queryBuilder.findAll();
+          
+          for (final mark in allMarks) {
+            await mark.student.load();
+            if (mark.student.value != null && studentIds.contains(mark.student.value!.id)) {
+              // فلترة حسب المادة إذا تم تحديدها
+              if (selectedSubject != null) {
+                await mark.subject.load();
+                if (mark.subject.value?.id == selectedSubject!.id) {
+                  filteredMarks.add(mark);
+                }
+              } else {
+                filteredMarks.add(mark);
+              }
+            }
+          }
+          return filteredMarks;
+        }
+      } else if (selectedSubject != null) {
+        // فلترة حسب المادة فقط
+        final allMarks = await queryBuilder.findAll();
+        final filteredMarks = <SubjectMark>[];
+        
+        for (final mark in allMarks) {
+          await mark.subject.load();
+          if (mark.subject.value?.id == selectedSubject!.id) {
+            filteredMarks.add(mark);
+          }
+        }
+        return filteredMarks;
+      }
+      
+      // إرجاع جميع الدرجات إذا لم يتم تطبيق أي فلاتر
+      return await queryBuilder.findAll();
+      
+    } catch (e) {
+      debugPrint('خطأ في _getFilteredMarks: $e');
+      return [];
+    }
   }
 }
