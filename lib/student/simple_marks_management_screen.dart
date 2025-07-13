@@ -671,7 +671,9 @@ class _MarksManagementScreenState extends State<MarksManagementScreen> {
               TextButton(
                 onPressed: () async {
                   await _deleteMark(existingMark);
-                  Navigator.pop(context);
+                  if (mounted) {
+                    Navigator.pop(context);
+                  }
                 },
                 child: const Text('حذف', style: TextStyle(color: Colors.red)),
               ),
@@ -680,7 +682,9 @@ class _MarksManagementScreenState extends State<MarksManagementScreen> {
                 final mark = double.tryParse(markController.text);
                 if (mark != null && selectedSubject != null) {
                   await _saveDetailedMark(student, mark, evaluationType, academicYear);
-                  Navigator.pop(context);
+                  if (mounted) {
+                    Navigator.pop(context);
+                  }
                 }
               },
               child: const Text('حفظ'),
@@ -867,7 +871,9 @@ class _MarksManagementScreenState extends State<MarksManagementScreen> {
                     maxMark,
                     selectedClassForSubject!,
                   );
-                  Navigator.pop(context);
+                  if (mounted) {
+                    Navigator.pop(context);
+                  }
                 }
               },
               child: const Text('إضافة'),
@@ -1119,7 +1125,9 @@ class _MarksManagementScreenState extends State<MarksManagementScreen> {
                     maxMark,
                     selectedClassForSubject!,
                   );
-                  Navigator.pop(context);
+                  if (mounted) {
+                    Navigator.pop(context);
+                  }
                 }
               },
               child: const Text('حفظ التعديل'),
