@@ -18,14 +18,8 @@ class _MarksManagementScreenState extends State<MarksManagementScreen> {
   List<Subject> subjects = [];
   List<SubjectMark> marks = [];
   List<SchoolClass> classes = [];
-        await _refreshMarks();
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('تم حذف الدرجة بنجاح'),
-          backgroundColor: Colors.orange,
-        ),
-      );olClass? selectedClass;
+  
+  SchoolClass? selectedClass;
   Subject? selectedSubject;
   String selectedEvaluationType = 'نصف سنة';
   String selectedAcademicYear = DateTime.now().year.toString();
@@ -696,7 +690,7 @@ class _MarksManagementScreenState extends State<MarksManagementScreen> {
         await subject.schoolClass.save();
       });
 
-      await _refreshMarks();
+      await _loadData();
       
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
