@@ -25,7 +25,7 @@ class _MarksManagementScreenState extends State<MarksManagementScreen> {
   SchoolClass? selectedClass;
   Subject? selectedSubject;
   String selectedEvaluationType = 'نصف سنة';
-  String selectedAcademicYear = DateTime.now().year.toString();
+  String selectedAcademicYear = academicYear.trim();
   
   final List<String> evaluationTypes = ['نصف سنة', 'نهائي', 'شفوي', 'عملي', 'مشاركة'];
   bool isLoading = true;
