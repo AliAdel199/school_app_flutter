@@ -157,6 +157,7 @@ onPressed: () => Navigator.push(
       {'label': 'إضافة طالب', 'icon': Icons.person_add, 'route': '/add-student'},
       {'label': 'المراحل', 'icon': Icons.score, 'route': '/classes'},
       {'label': 'إدارة الدرجات', 'icon': Icons.grade, 'route': '/marks-management'},
+      {'label': 'تقرير درجات الطالب', 'icon': Icons.school, 'route': '/student-grades-report'},
       {'label': 'إدارة الخصومات', 'icon': Icons.percent, 'route': '/discount-management'}, // إضافة جديدة
       {'label': 'التقارير العامة', 'icon': Icons.bar_chart, 'route': '/reportsscreen'},
       {'label': 'تقرير حالة الطلاب', 'icon': Icons.assignment, 'route': '/student-payment-status'},

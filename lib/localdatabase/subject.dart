@@ -11,6 +11,7 @@ class Subject {
 
   late String name;
   String? description;
+  double maxMark = 100.0; // الدرجة الكاملة للمادة (افتراضياً 100)
   DateTime createdAt = DateTime.now();
 
   final school = IsarLink<School>();

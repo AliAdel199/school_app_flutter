@@ -27,8 +27,13 @@ const SubjectSchema = CollectionSchema(
       name: r'description',
       type: IsarType.string,
     ),
-    r'name': PropertySchema(
+    r'maxMark': PropertySchema(
       id: 2,
+      name: r'maxMark',
+      type: IsarType.double,
+    ),
+    r'name': PropertySchema(
+      id: 3,
       name: r'name',
       type: IsarType.string,
     )
@@ -90,7 +95,8 @@ void _subjectSerialize(
 ) {
   writer.writeDateTime(offsets[0], object.createdAt);
   writer.writeString(offsets[1], object.description);
-  writer.writeString(offsets[2], object.name);
+  writer.writeDouble(offsets[2], object.maxMark);
+  writer.writeString(offsets[3], object.name);
 }
 
 Subject _subjectDeserialize(
@@ -103,7 +109,8 @@ Subject _subjectDeserialize(
   object.createdAt = reader.readDateTime(offsets[0]);
   object.description = reader.readStringOrNull(offsets[1]);
   object.id = id;
-  object.name = reader.readString(offsets[2]);
+  object.maxMark = reader.readDouble(offsets[2]);
+  object.name = reader.readString(offsets[3]);
   return object;
 }
 
@@ -119,6 +126,8 @@ P _subjectDeserializeProp<P>(
     case 1:
       return (reader.readStringOrNull(offset)) as P;
     case 2:
+      return (reader.readDouble(offset)) as P;
+    case 3:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -470,6 +479,68 @@ extension SubjectQueryFilter
     });
   }
 
+  QueryBuilder<Subject, Subject, QAfterFilterCondition> maxMarkEqualTo(
+    double value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'maxMark',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Subject, Subject, QAfterFilterCondition> maxMarkGreaterThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'maxMark',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Subject, Subject, QAfterFilterCondition> maxMarkLessThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'maxMark',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Subject, Subject, QAfterFilterCondition> maxMarkBetween(
+    double lower,
+    double upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'maxMark',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
   QueryBuilder<Subject, Subject, QAfterFilterCondition> nameEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -671,6 +742,18 @@ extension SubjectQuerySortBy on QueryBuilder<Subject, Subject, QSortBy> {
     });
   }
 
+  QueryBuilder<Subject, Subject, QAfterSortBy> sortByMaxMark() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'maxMark', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Subject, Subject, QAfterSortBy> sortByMaxMarkDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'maxMark', Sort.desc);
+    });
+  }
+
   QueryBuilder<Subject, Subject, QAfterSortBy> sortByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -722,6 +805,18 @@ extension SubjectQuerySortThenBy
     });
   }
 
+  QueryBuilder<Subject, Subject, QAfterSortBy> thenByMaxMark() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'maxMark', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Subject, Subject, QAfterSortBy> thenByMaxMarkDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'maxMark', Sort.desc);
+    });
+  }
+
   QueryBuilder<Subject, Subject, QAfterSortBy> thenByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -750,6 +845,12 @@ extension SubjectQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Subject, Subject, QDistinct> distinctByMaxMark() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'maxMark');
+    });
+  }
+
   QueryBuilder<Subject, Subject, QDistinct> distinctByName(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -775,6 +876,12 @@ extension SubjectQueryProperty
   QueryBuilder<Subject, String?, QQueryOperations> descriptionProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'description');
+    });
+  }
+
+  QueryBuilder<Subject, double, QQueryOperations> maxMarkProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'maxMark');
     });
   }
 
