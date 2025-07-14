@@ -57,6 +57,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'student/subject_marks_management_screen.dart';
 import 'student/student_grades_report_screen.dart';
+import 'student/class_grades_report_screen.dart';
 
 late Isar isar; // تعريف متغير Isar عالمي يمكن استخدامه في أي مكان
 
@@ -230,6 +231,7 @@ class SchoolApp extends StatelessWidget {
         '/income': (context) => const IncomesListScreen(),
         '/marks-management': (context) => const MarksManagementScreen(),
         '/student-grades-report': (context) => const StudentGradesReportScreen(),
+        '/class-grades-report': (context) => const ClassGradesReportScreen(),
         '/subject-marks-advanced': (context) => const SubjectMarksManagementScreen(),
         '/user-screen': (context) => const UsersScreen(),
         '/logs-screen': (context) => const LogsScreen(),
