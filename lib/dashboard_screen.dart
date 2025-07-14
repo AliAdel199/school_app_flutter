@@ -53,11 +53,170 @@ class _DashboardScreenState extends State<DashboardScreen> {
       setState(() => isLoading = false);
     }
   }
+  Widget _buildStatsCards() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // عنوان مع مؤشر السكرول
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Row(
+            children: [
+              const Text(
+                'الإحصائيات السريعة',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey,
+                ),
+              ),
+              const Spacer(),
+              Icon(
+                Icons.swipe_left,
+                size: 16,
+                color: Colors.grey.shade400,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                'اسحب لعرض المزيد',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Colors.grey.shade400,
+                ),
+              ),
+            ],
+          ),
+        ),
+        // البطاقات مع السكرول
+        Container(
+          height: 120, // تثبيت الارتفاع
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          child: ListView(
+            scrollDirection: Axis.horizontal, // تفعيل السكرول الأفقي
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            children: [
+              _buildStatCardFixed(
+                'عدد الطلاب',
+                '$studentCount',
+                Icons.people,
+                Colors.blue,
+                'طالب',
+              ),
+              const SizedBox(width: 12),
+              _buildStatCardFixed(
+                'عدد الصفوف',
+                '$classCount',
+                Icons.class_,
+                Colors.green,
+                'صف دراسي',
+              ),
+              const SizedBox(width: 12),
+              _buildStatCardFixed(
+                'أيام متبقية',
+                '$remainingDays',
+                Icons.timer,
+                isTrial ? Colors.orange : Colors.purple,
+                'يوم',
+              ),
+              const SizedBox(width: 12),
+              _buildStatCardFixed(
+                'المستخدمين',
+                '3', // يمكنك إضافة عداد المستخدمين هنا
+                Icons.admin_panel_settings,
+                Colors.teal,
+                'مستخدم',
+              ),
+              const SizedBox(width: 12),
+              _buildStatCardFixed(
+                'التقارير',
+                '12', // يمكنك إضافة عداد التقارير هنا
+                Icons.assessment,
+                Colors.purple,
+                'تقرير',
+              ),
+              const SizedBox(width: 12),
+              _buildStatCardFixed(
+                'الفواتير',
+                '25', // يمكنك إضافة عداد الفواتير هنا
+                Icons.receipt_long,
+                Colors.indigo,
+                'فاتورة',
+              ),
+              const SizedBox(width: 8),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCardFixed(String title, String value, IconData icon, Color color, String unit) {
+    return Container(
+      width: 160, // عرض ثابت لكل بطاقة
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [color.withOpacity(0.08), color.withOpacity(0.03)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Icon(icon, color: color, size: 24),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              unit,
+              style: TextStyle(
+                fontSize: 10,
+                color: Colors.grey.shade500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
 
   @override
   Widget build(BuildContext context) {
-    final isWide = MediaQuery.of(context).size.width > 900;
-
     return Scaffold(
       appBar: AppBar(
         title:  Row(
@@ -129,23 +288,18 @@ onPressed: () => Navigator.push(
         padding: const EdgeInsets.all(16),
         child: isLoading
             ? const Center(child: CircularProgressIndicator())
-            : isWide
-                ? Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Expanded(child: _buildActionCards(context)),
-                      const SizedBox(width: 16),
-                    ],
-                  )
-                : SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        _buildActionCards(context),
-                        const SizedBox(height: 16),
-                        _buildOverviewPanel(),
-                      ],
-                    ),
-                  ),
+            : SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    _buildStatsCards(),
+                    const SizedBox(height: 16),
+                    _buildActionCards(context),
+                    // const SizedBox(height: 16),
+                    // _buildOverviewPanel(),
+                  ],
+                ),
+              )
       ),
       bottomNavigationBar: ProgramInfo.buildCopyrightFooter(),
     );
@@ -168,39 +322,43 @@ onPressed: () => Navigator.push(
       {'label': 'سجل العمليات', 'icon': Icons.history, 'route': '/logs-screen'},
     ];
 
-    return Center(
-      child: GridView.builder(
-        itemCount: actions.length,
-        shrinkWrap: true,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 4,
-          childAspectRatio: 2.2,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-        ),
-        itemBuilder: (context, index) {
-          final action = actions[index];
-          return InkWell(
-            onTap: () => Navigator.pushNamed(context, action['route'] as String),
-            child: Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              color: Colors.teal.shade50,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(action['icon'] as IconData, size: 32, color: Colors.teal),
-                  const SizedBox(width: 12),
-                  Text(
+    return GridView.builder(
+      itemCount: actions.length,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 4,
+        childAspectRatio: 2.2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+      ),
+      itemBuilder: (context, index) {
+        final action = actions[index];
+        return InkWell(
+          onTap: () => Navigator.pushNamed(context, action['route'] as String),
+          child: Card(
+            elevation: 4,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            color: Colors.teal.shade50,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(action['icon'] as IconData, size: 32, color: Colors.teal),
+                const SizedBox(width: 12),
+                Flexible(
+                  child: Text(
                     action['label']! as String,
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 
