@@ -109,7 +109,7 @@ Future<void> fetchClassesFromIsar() async {
         final fullName = student.fullName.toLowerCase();
         final studentId = student.id.toString().toLowerCase();
         final nationalId = student.nationalId?.toLowerCase() ?? '';
-        final className = student.schoolclass.value?.name.trim();
+        final className = student.schoolclass.value?.name.trim()??"لا يوجد بيانات";
         final status = student.status.toString();
 
         final matchesQuery = fullName.contains(query) ||
@@ -603,7 +603,7 @@ TextButton.icon(
                     return;
                   }
                   
-                  final newAcademicYear = newAcademicYearController.text.trim();
+                  final newAcademicYear = newAcademicYearController.text.trim()??"لا يوجد بيانات";
                   final exists = await isar.studentFeeStatus
                       .filter()
                       .studentIdEqualTo(student.id.toString())
@@ -629,7 +629,7 @@ TextButton.icon(
     if (result == true && selectedNewClassId != null) {
       final newClass = await isar.schoolClass.get(int.parse(selectedNewClassId!));
       final newFee = double.tryParse(annualFeeController.text) ?? student.annualFee ?? 0;
-      final newAcademicYear = newAcademicYearController.text.trim();
+      final newAcademicYear = newAcademicYearController.text.trim()??"لا يوجد بيانات";
 
       // جلب آخر سجل قسط للطالب (أحدث سنة دراسية)
       final allFeeStatuses = await isar.studentFeeStatus
@@ -1212,19 +1212,19 @@ TextButton.icon(
           }
 
           // قراءة البيانات من الأعمدة
-          final fullName = _getCellValue(row, 0)?.trim();
-          final nationalId = _getCellValue(row, 1)?.trim();
-          final gender = _getCellValue(row, 2)?.trim();
-          final birthDateStr = _getCellValue(row, 3)?.trim();
-          final parentName = _getCellValue(row, 4)?.trim();
-          final parentPhone = _getCellValue(row, 5)?.trim();
-          final phone = _getCellValue(row, 6)?.trim();
-          final email = _getCellValue(row, 7)?.trim();
-          final address = _getCellValue(row, 8)?.trim();
-          final className = _getCellValue(row, 9)?.trim();
+          final fullName = _getCellValue(row, 0)?.trim()??"لا يوجد بيانات";
+          final nationalId = _getCellValue(row, 1)?.trim()??"لا يوجد بيانات";
+          final gender = _getCellValue(row, 2)?.trim()??"لا يوجد بيانات";
+          final birthDateStr = _getCellValue(row, 3)?.trim()??"لا يوجد بيانات";
+          final parentName = _getCellValue(row, 4)?.trim()??"لا يوجد بيانات";
+          final parentPhone = _getCellValue(row, 5)?.trim()??"لا يوجد بيانات";
+          final phone = _getCellValue(row, 6)?.trim()??"لا يوجد بيانات";
+          final email = _getCellValue(row, 7)?.trim()??"لا يوجد بيانات";
+          final address = _getCellValue(row, 8)?.trim()??"لا يوجد بيانات";
+          final className = _getCellValue(row, 9)?.trim()??"لا يوجد بيانات";
           final status = _getCellValue(row, 10)?.trim() ?? 'active';
-          final registrationYearStr = _getCellValue(row, 11)?.trim();
-          final annualFeeStr = _getCellValue(row, 12)?.trim();
+          final registrationYearStr = _getCellValue(row, 11)?.trim()??"لا يوجد بيانات";
+          final annualFeeStr = _getCellValue(row, 12)?.trim()??"لا يوجد بيانات";
 
           debugPrint('📋 بيانات السطر ${i + 1}: الاسم="$fullName", الصف="$className", الحالة="$status"');
 
