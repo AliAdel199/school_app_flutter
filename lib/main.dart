@@ -5,6 +5,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:school_app_flutter/localdatabase/subject_mark.dart';
+import 'package:school_app_flutter/localdatabase/attendance.dart';
 import '/localdatabase/expense.dart';
 import '/localdatabase/expense_category.dart';
 import '/localdatabase/income.dart';
@@ -48,6 +49,7 @@ import 'reports/login_screen.dart';
 import 'student/auto_discount_screen.dart';
 import 'student/discount_management_screen.dart';
 import 'student/simple_marks_management_screen.dart';
+import 'student/attendance_management_screen.dart';
 import 'student/student_discounts_screen.dart';
 import 'student/studentpaymentscreen.dart';
 import 'student/students_list_screen_supabase.dart';
@@ -124,6 +126,7 @@ print(dir2.path);
     StudentDiscountSchema,      // إضافة جديدة
     DiscountTypeSchema,         // إضافة جديدة
     AutoDiscountSettingsSchema, // إضافة إعدادات الخصومات التلقائية
+    AttendanceSchema,           // إضافة نموذج الحضور
   ], directory: dir.path, inspector: true, name: 'school_app_flutter');
 
   // تحميل السنة الدراسية من الإعدادات
@@ -230,6 +233,7 @@ class SchoolApp extends StatelessWidget {
             ),
         '/income': (context) => const IncomesListScreen(),
         '/marks-management': (context) => const MarksManagementScreen(),
+        '/attendance-management': (context) => const AttendanceManagementScreen(), // إضافة جديدة
         '/student-grades-report': (context) => const StudentGradesReportScreen(),
         '/class-grades-report': (context) => const ClassGradesReportScreen(),
         '/subject-marks-advanced': (context) => const SubjectMarksManagementScreen(),

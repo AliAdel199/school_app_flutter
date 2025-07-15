@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:io';
 
 import 'package:excel/excel.dart' as excel_lib;
 import 'package:flutter/material.dart';
@@ -278,9 +279,15 @@ for (final student in filteredStudents) {
                  child: SizedBox(
                    width: 200,
                    child: ElevatedButton.icon(
-                     onPressed: importFromExcel,
-                     icon: const Icon(Icons.file_upload),
-                     label: const Text('استيراد Excel'),
+                     onPressed: isLoading ? null : importFromExcel,
+                     icon: isLoading 
+                       ? const SizedBox(
+                           width: 16,
+                           height: 16,
+                           child: CircularProgressIndicator(strokeWidth: 2),
+                         )
+                       : const Icon(Icons.file_upload),
+                     label: Text(isLoading ? 'جاري الاستيراد...' : 'استيراد Excel'),
                      style: ElevatedButton.styleFrom(
                        backgroundColor: Colors.green,
                        foregroundColor: Colors.white,
@@ -1088,42 +1095,118 @@ TextButton.icon(
 
   Future<void> importFromExcel() async {
   try {
+    debugPrint('🔄 بدء عملية استيراد الطلاب...');
+    
     // اختيار ملف Excel
-    FilePickerResult? result = await FilePicker .platform.pickFiles(
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['xlsx', 'xls'],
+      allowMultiple: false,
+      withData: true, // إجبار قراءة البيانات في الذاكرة
     );
 
-    if (result != null && result.files.single.bytes != null) {
-      final bytes = result.files.single.bytes!;
+    debugPrint('📁 نتيجة اختيار الملف: ${result != null ? "تم الاختيار" : "لم يتم الاختيار"}');
+    
+    if (result != null) {
+      debugPrint('📄 عدد الملفات المختارة: ${result.files.length}');
+      debugPrint('📝 اسم الملف: ${result.files.single.name}');
+      debugPrint('📏 حجم الملف: ${result.files.single.size} بايت');
+      debugPrint('🔍 نوع البيانات: ${result.files.single.bytes != null ? "bytes متاح" : "bytes غير متاح"}');
+      debugPrint('🔍 مسار الملف: ${result.files.single.path ?? "لا يوجد مسار"}');
+    }
+
+    if (result != null && (result.files.single.bytes != null || result.files.single.path != null)) {
+      Uint8List? bytes;
+      
+      // محاولة الحصول على البيانات من bytes أولاً
+      if (result.files.single.bytes != null) {
+        bytes = result.files.single.bytes!;
+        debugPrint('📊 تم الحصول على البيانات من bytes: ${bytes.length} بايت');
+      } 
+      // إذا لم تتوفر bytes، حاول قراءة الملف من المسار
+      else if (result.files.single.path != null) {
+        debugPrint('📂 محاولة قراءة الملف من المسار...');
+        try {
+          final file = File(result.files.single.path!);
+          bytes = await file.readAsBytes();
+          debugPrint('📊 تم قراءة الملف من المسار: ${bytes.length} بايت');
+        } catch (e) {
+          debugPrint('❌ فشل في قراءة الملف من المسار: $e');
+        }
+      }
+      
+      if (bytes == null) {
+        debugPrint('❌ لم يتم الحصول على بيانات الملف');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('فشل في قراءة بيانات الملف'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      debugPrint('📊 حجم البيانات المقروءة: ${bytes.length} بايت');
+      
       final excel = excel_lib.Excel.decodeBytes(bytes);
+      
+      debugPrint('📋 تم فك تشفير ملف Excel بنجاح');
       
       // التحقق من وجود ورقة العمل
       final sheetName = excel.tables.keys.first;
       final sheet = excel.tables[sheetName];
       
+      debugPrint('📄 اسم الورقة: $sheetName');
+      debugPrint('📏 عدد الصفوف: ${sheet?.maxRows ?? 0}');
+      
       if (sheet == null) {
+        debugPrint('❌ لا توجد بيانات في الملف');
         throw Exception('لا توجد بيانات في الملف');
       }
 
       // عرض نافذة تأكيد مع معاينة البيانات
+      debugPrint('🔍 عرض نافذة المعاينة...');
       final shouldImport = await _showImportPreviewDialog(sheet);
+      debugPrint('✅ قرار المستخدم: ${shouldImport ? "متابعة" : "إلغاء"}');
       if (!shouldImport) return;
 
       setState(() => isLoading = true);
+      debugPrint('⏳ بدء معالجة البيانات...');
+
+      // التحقق من وجود صفوف في النظام
+      final availableClasses = await isar.schoolClass.where().findAll();
+      debugPrint('📚 الصفوف المتاحة في النظام: ${availableClasses.length}');
+      for (var cls in availableClasses) {
+        debugPrint('  - ${cls.name} (المستوى: ${cls.level})');
+      }
+
+      if (availableClasses.isEmpty) {
+        setState(() => isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('لا توجد صفوف في النظام. يجب إضافة صفوف أولاً.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
 
       // قراءة البيانات وإنشاء الطلاب
       List<Student> newStudents = [];
       List<String> errors = [];
       int skippedRows = 0;
       
+      debugPrint('📊 معالجة ${sheet.maxRows - 1} صف من البيانات...');
+      
       // البدء من السطر الثاني (تجاهل العناوين)
       for (int i = 1; i < sheet.maxRows; i++) {
         try {
           final row = sheet.rows[i];
+          debugPrint('🔄 معالجة السطر ${i + 1}...');
           
           // التحقق من وجود بيانات في السطر
           if (row.isEmpty || _isRowEmpty(row)) {
+            debugPrint('⏭️ تجاهل السطر ${i + 1} - فارغ');
             skippedRows++;
             continue;
           }
@@ -1143,24 +1226,35 @@ TextButton.icon(
           final registrationYearStr = _getCellValue(row, 11)?.trim();
           final annualFeeStr = _getCellValue(row, 12)?.trim();
 
+          debugPrint('📋 بيانات السطر ${i + 1}: الاسم="$fullName", الصف="$className", الحالة="$status"');
+
           // التحقق من البيانات الأساسية
           if (fullName == null || fullName.isEmpty) {
+            debugPrint('❌ السطر ${i + 1}: اسم الطالب فارغ');
             errors.add('السطر ${i + 1}: اسم الطالب مطلوب');
             continue;
           }
 
+          debugPrint('👤 السطر ${i + 1}: الطالب "$fullName"');
+
           // البحث عن الصف
           SchoolClass? schoolClass;
           if (className != null && className.isNotEmpty) {
+            debugPrint('🔍 البحث عن الصف: "$className"');
             schoolClass = await isar.schoolClass
                 .filter()
                 .nameEqualTo(className)
                 .findFirst();
             
             if (schoolClass == null) {
+              debugPrint('❌ الصف "$className" غير موجود');
               errors.add('السطر ${i + 1}: الصف "$className" غير موجود');
               continue;
+            } else {
+              debugPrint('✅ تم العثور على الصف: ${schoolClass.name}');
             }
+          } else {
+            debugPrint('⚠️ لم يتم تحديد صف للطالب');
           }
 
           // تحويل التاريخ
@@ -1206,20 +1300,25 @@ TextButton.icon(
           // ربط الصف
           if (schoolClass != null) {
             student.schoolclass.value = schoolClass;
-            
           }
 
           newStudents.add(student);
+          debugPrint('✅ تمت إضافة الطالب "$fullName" للقائمة (${newStudents.length})');
 
         } catch (e) {
+          debugPrint('❌ خطأ في السطر ${i + 1}: $e');
           errors.add('السطر ${i + 1}: خطأ في معالجة البيانات - $e');
         }
       }
 
+      debugPrint('📊 انتهاء المعالجة: ${newStudents.length} طالب، ${errors.length} أخطاء، $skippedRows متجاهل');
+
       // حفظ الطلاب في قاعدة البيانات
       if (newStudents.isNotEmpty) {
+        debugPrint('💾 بدء حفظ ${newStudents.length} طالب في قاعدة البيانات...');
         await isar.writeTxn(() async {
           for (final student in newStudents) {
+            debugPrint('💾 حفظ الطالب: ${student.fullName}');
             final studentId = await isar.students.put(student);
             await student.schoolclass.save();
             
@@ -1229,13 +1328,18 @@ TextButton.icon(
             }
             
             // إنشاء سجل قسط للطالب
+            debugPrint('💰 إنشاء سجل القسط للطالب ${student.fullName}');
             await _createFeeStatusForStudent(student);
           }
         });
+        debugPrint('✅ تم حفظ جميع الطلاب بنجاح');
+      } else {
+        debugPrint('⚠️ لا يوجد طلاب للحفظ');
       }
 
       setState(() => isLoading = false);
 
+      debugPrint('📋 عرض نتائج الاستيراد...');
       // عرض نتائج الاستيراد
       _showImportResultsDialog(
         imported: newStudents.length,
@@ -1245,11 +1349,29 @@ TextButton.icon(
 
       // تحديث قائمة الطلاب
       if (newStudents.isNotEmpty) {
+        debugPrint('🔄 تحديث قائمة الطلاب...');
         fetchStudentsFromIsar();
       }
 
+    } else {
+      debugPrint('❌ لم يتم اختيار ملف أو فشل في الوصول لبيانات الملف');
+      if (result != null) {
+        debugPrint('🔍 تفاصيل الملف المختار:');
+        debugPrint('  - الاسم: ${result.files.single.name}');
+        debugPrint('  - الحجم: ${result.files.single.size}');
+        debugPrint('  - النوع: ${result.files.single.extension}');
+        debugPrint('  - bytes متاح: ${result.files.single.bytes != null}');
+        debugPrint('  - مسار متاح: ${result.files.single.path != null}');
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('لم يتم اختيار ملف صحيح أو فشل في قراءة بيانات الملف'),
+          backgroundColor: Colors.orange,
+        ),
+      );
     }
   } catch (e) {
+    debugPrint('💥 خطأ عام في الاستيراد: $e');
     setState(() => isLoading = false);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -1497,6 +1619,8 @@ Future<void> downloadExcelTemplate() async {
 // إنشاء سجل قسط للطالب الجديد
 Future<void> _createFeeStatusForStudent(Student student) async {
   try {
+    debugPrint('💰 بدء إنشاء سجل القسط للطالب: ${student.fullName}');
+    
     // التحقق من عدم وجود سجل قسط بالفعل
     final existingFeeStatus = await isar.studentFeeStatus
         .filter()
@@ -1505,6 +1629,7 @@ Future<void> _createFeeStatusForStudent(Student student) async {
         .findFirst();
     
     if (existingFeeStatus != null) {
+      debugPrint('⚠️ سجل القسط موجود بالفعل للطالب ${student.fullName}');
       return; // السجل موجود بالفعل
     }
 
@@ -1522,8 +1647,9 @@ Future<void> _createFeeStatusForStudent(Student student) async {
       ..createdAt = DateTime.now();
 
     await isar.studentFeeStatus.put(feeStatus);
+    debugPrint('✅ تم إنشاء سجل القسط للطالب ${student.fullName} بمبلغ ${student.annualFee}');
   } catch (e) {
-    debugPrint('خطأ في إنشاء سجل القسط للطالب ${student.fullName}: $e');      
+    debugPrint('❌ خطأ في إنشاء سجل القسط للطالب ${student.fullName}: $e');      
   }
 }
 }

@@ -311,8 +311,9 @@ onPressed: () => Navigator.push(
       {'label': 'إضافة طالب', 'icon': Icons.person_add, 'route': '/add-student'},
       {'label': 'المراحل', 'icon': Icons.score, 'route': '/classes'},
       {'label': 'إدارة الدرجات', 'icon': Icons.grade, 'route': '/marks-management'},
+      {'label': 'الحضور والانصراف', 'icon': Icons.how_to_reg, 'route': '/attendance-management'}, // إضافة جديدة
       {'label': 'تقرير درجات الطالب', 'icon': Icons.school, 'route': '/student-grades-report'},
-      {'label': 'إدارة الخصومات', 'icon': Icons.percent, 'route': '/discount-management'}, // إضافة جديدة
+      {'label': 'إدارة الخصومات', 'icon': Icons.percent, 'route': '/discount-management'},
       {'label': 'التقارير العامة', 'icon': Icons.bar_chart, 'route': '/reportsscreen'},
       {'label': 'تقرير حالة الطلاب', 'icon': Icons.assignment, 'route': '/student-payment-status'},
       {'label': 'قائمة المصروفات', 'icon': Icons.money_off, 'route': '/expense-list'},
@@ -320,6 +321,7 @@ onPressed: () => Navigator.push(
       {'label': 'سجل الفواتير', 'icon': Icons.receipt_long, 'route': '/payment-list'},
       {'label': 'إدارة المستخدمين', 'icon': Icons.admin_panel_settings, 'route': '/user-screen'},
       {'label': 'سجل العمليات', 'icon': Icons.history, 'route': '/logs-screen'},
+      // {'label': 'بيانات تجريبية', 'icon': Icons.science, 'route': '/test-data-generator'}, // جديد
     ];
 
     return GridView.builder(
