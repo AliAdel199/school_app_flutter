@@ -102,13 +102,17 @@ static Future<bool> trialFileExists() async {
 
   static Future<bool> activateWithCode(String code) async {
     final current = await DeviceInfoService.getDeviceFingerprint();
-    final expected = _encrypt(current);
 
     // فك التشفير والتحقق من الكود
     try {
       final decoded = _decrypt(code);
       if (decoded == current) {
         await createLicenseFile();
+        
+        // حذف ملف الفترة التجريبية بعد التفعيل الناجح
+        await deleteTrialFile();
+        
+        print('🔒 تم التفعيل بنجاح وحذف ملف الفترة التجريبية');
         return true;
       }
     } catch (_) {}
@@ -204,5 +208,37 @@ static Future<bool> trialFileExists() async {
       print('🔒 خطأ في حذف ملف الفترة التجريبية: $e');
       return false;
     }
+  }
+
+  // دالة للحصول على حالة الترخيص الشاملة
+  static Future<Map<String, dynamic>> getLicenseStatus() async {
+    final isActivated = await verifyLicense();
+    final isTrialActive = await isTrialValid();
+    final remainingDays = await getRemainingTrialDays();
+    final trialExists = await trialFileExists();
+    
+    return {
+      'isActivated': isActivated,
+      'isTrialActive': isTrialActive,
+      'remainingDays': remainingDays,
+      'trialExists': trialExists,
+      'needsActivation': !isActivated && !isTrialActive,
+      'status': isActivated ? 'مُفعَّل' : 
+                isTrialActive ? 'فترة تجريبية نشطة' : 
+                'يحتاج تفعيل',
+    };
+  }
+
+  // دالة لإصلاح مشكلة بقاء الفترة التجريبية بعد التفعيل
+  static Future<bool> fixTrialAfterActivation() async {
+    final isActivated = await verifyLicense();
+    final trialExists = await trialFileExists();
+    
+    if (isActivated && trialExists) {
+      print('🔒 تم اكتشاف ترخيص مُفعَّل مع فترة تجريبية موجودة - سيتم الحذف');
+      return await deleteTrialFile();
+    }
+    
+    return false;
   }
 }

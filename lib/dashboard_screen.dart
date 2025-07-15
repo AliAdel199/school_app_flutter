@@ -24,7 +24,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     loadAcademicYear();
     fetchStats();
-    
+  }
+
+  // تحديث البيانات عند العودة إلى الشاشة
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // إعادة جلب البيانات في حالة تغيير حالة الترخيص
+    fetchStats();
   }
 
   Future<void> fetchStats() async {
@@ -34,21 +41,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
       studentCount = 5;
       classCount = 6;
 
-      final now = DateTime.now();
-      final endDate = await LicenseManager.getEndDate();
-      print(endDate); // Debugging line to see the end date
-      if (endDate != null) {
-        final diff = endDate.difference(now).inDays;
-        remainingDays = diff;
-        if (diff < 0) {
-          subscriptionAlert = 'انتهت الفترة!';
-        } else {
-          subscriptionAlert = 'تبقى $diff يومًا للاشتراك';
-        }
+      // جلب حالة الترخيص الشاملة
+      final licenseStatus = await LicenseManager.getLicenseStatus();
+      
+      // استخدام البيانات من حالة الترخيص
+      remainingDays = licenseStatus['remainingDays'] ?? 0;
+      isTrial = licenseStatus['isTrialActive'] ?? false;
+      final isActivated = licenseStatus['isActivated'] ?? false;
+      
+      // تحديد رسالة الاشتراك بناء على الحالة
+      if (isActivated) {
+        subscriptionAlert = 'النسخة مُفعَّلة';
+        isTrial = false; // التأكد من أن isTrial = false للنسخة المُفعَّلة
+      } else if (isTrial && remainingDays > 0) {
+        subscriptionAlert = 'تبقى $remainingDays يومًا للفترة التجريبية';
+      } else if (remainingDays <= 0) {
+        subscriptionAlert = 'انتهت الفترة التجريبية!';
+        isTrial = false;
+      } else {
+        subscriptionAlert = 'يحتاج تفعيل';
+        isTrial = false;
       }
-      isTrial = await LicenseManager.isTrialLicense();
+      
+      // طباعة معلومات التشخيص
+      print('🔍 حالة الترخيص: ${licenseStatus['status']}');
+      print('🔍 مُفعَّل: $isActivated');
+      print('🔍 فترة تجريبية نشطة: $isTrial');
+      print('🔍 أيام متبقية: $remainingDays');
+      print('🔍 رسالة الاشتراك: $subscriptionAlert');
+      
     } catch (e) {
       debugPrint('Error fetching dashboard stats: \n$e');
+      // قيم افتراضية في حالة الخطأ
+      subscriptionAlert = 'خطأ في جلب البيانات';
+      remainingDays = 0;
+      isTrial = false;
     } finally {
       setState(() => isLoading = false);
     }
@@ -113,10 +140,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(width: 12),
               _buildStatCardFixed(
                 'أيام متبقية',
-                '$remainingDays',
+                subscriptionAlert == 'النسخة مُفعَّلة' ? '∞' : '$remainingDays',
                 Icons.timer,
-                isTrial ? Colors.orange : Colors.purple,
-                'يوم',
+                subscriptionAlert == 'النسخة مُفعَّلة' ? Colors.green : 
+                isTrial ? Colors.orange : Colors.red,
+                subscriptionAlert == 'النسخة مُفعَّلة' ? 'مُفعَّل' : 'يوم',
               ),
               const SizedBox(width: 12),
               _buildStatCardFixed(
@@ -268,16 +296,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         actions: [
           ProgramInfo.buildInfoButton(context),
-              if (isTrial)
-      TextButton.icon(
-        style: TextButton.styleFrom(foregroundColor: Colors.white,backgroundColor: isTrial ? Colors.orange.shade800 : Colors.green.shade800,),
-onPressed: () => Navigator.push(
-  context,
-  MaterialPageRoute(builder: (_) => const LicenseCheckScreen()),
-),
-        icon: const Icon(Icons.lock_open),
-        label:  Text(' $subscriptionAlert تفعيل' ),
-      ),
+          // عرض زر التفعيل فقط إذا لم يكن مُفعَّلاً
+          if (isTrial || subscriptionAlert.contains('يحتاج تفعيل') || subscriptionAlert.contains('انتهت'))
+            TextButton.icon(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.white,
+                backgroundColor: isTrial ? Colors.orange.shade800 : Colors.red.shade800,
+              ),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const LicenseCheckScreen()),
+              ),
+              icon: const Icon(Icons.lock_open),
+              label: Text(isTrial ? 'فترة تجريبية - تفعيل' : 'تفعيل'),
+            ),
+          // عرض حالة التفعيل إذا كان مُفعَّلاً
+          if (subscriptionAlert == 'النسخة مُفعَّلة')
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.green.shade800,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.verified, color: Colors.white, size: 16),
+                  SizedBox(width: 4),
+                  Text('مُفعَّل', style: TextStyle(color: Colors.white, fontSize: 12)),
+                ],
+              ),
+            ),
           IconButton(
             onPressed: () => Navigator.popAndPushNamed(context, '/'),
             icon: const Icon(Icons.logout_outlined),
@@ -361,48 +410,6 @@ onPressed: () => Navigator.push(
           ),
         );
       },
-    );
-  }
-
-  Widget _buildOverviewPanel() {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('التقارير والتنبيهات', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            if (isTrial)
-              _buildItem(Icons.hourglass_bottom, 'الفترة التجريبية', 'تبقّى $remainingDays يومًا'),
-            _buildItem(Icons.notifications, 'تنبيهات الاشتراك', subscriptionAlert),
-            const Divider(),
-            _buildItem(Icons.bar_chart, 'عدد الطلاب', '$studentCount طالبًا'),
-            const Divider(),
-            _buildItem(Icons.school, 'عدد الصفوف', '$classCount صفًا دراسيًا'),
-            const Divider(),
-            if (isTrial)
-              Center(
-                child: ElevatedButton.icon(
-                  onPressed: () => Navigator.pushNamed(context, '/'),
-                  icon: const Icon(Icons.lock_open),
-                  label: const Text('تفعيل النسخة الآن'),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildItem(IconData icon, String title, String subtitle) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Icon(icon, color: Colors.teal),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-      subtitle: Text(subtitle),
     );
   }
 }

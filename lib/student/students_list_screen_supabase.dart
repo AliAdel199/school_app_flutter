@@ -40,6 +40,17 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
   List<String> availableAcademicYears = [];
   String? selectedAcademicYearForStats;
 
+  // دالة للتحقق من صحة البيانات قبل تحديث الـ DropdownButton
+  void _updateSelectedAcademicYear(String? newValue) {
+    if (newValue != null && availableAcademicYears.contains(newValue)) {
+      setState(() {
+        selectedAcademicYearForStats = newValue;
+      });
+    } else {
+      debugPrint('⚠️ محاولة تعيين سنة دراسية غير موجودة: $newValue');
+    }
+  }
+
   @override
    void initState() {
     super.initState();
@@ -54,15 +65,29 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
   Future<void> loadAvailableAcademicYears() async {
     try {
       final feeStatuses = await isar.studentFeeStatus.where().findAll();
-      final years = feeStatuses.map((status) => status.academicYear).toSet().toList();
+      final years = feeStatuses.map((status) => status.academicYear).where((year) => year.isNotEmpty).toSet().toList();
       years.sort((a, b) => b.compareTo(a)); // ترتيب تنازلي (الأحدث أولاً)
       
       setState(() {
         availableAcademicYears = years;
-        selectedAcademicYearForStats = academicYear; // افتراضياً السنة الحالية
+        // التأكد من أن القيمة المختارة موجودة في القائمة
+        if (years.contains(academicYear)) {
+          selectedAcademicYearForStats = academicYear;
+        } else if (years.isNotEmpty) {
+          selectedAcademicYearForStats = years.first;
+        } else {
+          selectedAcademicYearForStats = null;
+        }
       });
+      
+      debugPrint('🗓️ السنوات المتاحة: $availableAcademicYears');
+      debugPrint('🎯 السنة المختارة: $selectedAcademicYearForStats');
     } catch (e) {
       debugPrint('خطأ في تحميل السنوات الدراسية: $e');
+      setState(() {
+        availableAcademicYears = [];
+        selectedAcademicYearForStats = null;
+      });
     }
   }
 
@@ -987,13 +1012,13 @@ TextButton.icon(
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: DropdownButton<String>(
-                          value: selectedAcademicYearForStats,
+                          value: availableAcademicYears.contains(selectedAcademicYearForStats) 
+                              ? selectedAcademicYearForStats 
+                              : null,
                           hint: const Text('اختر السنة'),
                           underline: Container(),
                           onChanged: (String? newValue) {
-                            setState(() {
-                              selectedAcademicYearForStats = newValue;
-                            });
+                            _updateSelectedAcademicYear(newValue);
                           },
                           items: availableAcademicYears.map<DropdownMenuItem<String>>((String year) {
                             return DropdownMenuItem<String>(

@@ -135,6 +135,12 @@ print(dir2.path);
 
   final archived = await LicenseManager.verifyLicense();
   final inTrial = await LicenseManager.isTrialValid();
+  
+  // إصلاح مشكلة بقاء الفترة التجريبية بعد التفعيل
+  if (archived) {
+    await LicenseManager.fixTrialAfterActivation();
+  }
+  
   final schools = await isar.schools.where().findAll();
 
 if (schools.isEmpty && !archived && !inTrial) {
