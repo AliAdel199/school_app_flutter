@@ -1569,7 +1569,7 @@ Future<void> downloadExcelTemplate() async {
       excel_lib.TextCellValue('07801234567'),
       excel_lib.TextCellValue('ahmed@example.com'),
       excel_lib.TextCellValue('بغداد - الكرادة'),
-      excel_lib.TextCellValue('الصف الأول'),
+      excel_lib.TextCellValue('الصف الاول'),
       excel_lib.TextCellValue('active'),
       excel_lib.TextCellValue('2024-2025'),
       excel_lib.TextCellValue('500000'),

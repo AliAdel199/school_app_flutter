@@ -4,6 +4,7 @@
 import 'dart:io';
 import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
@@ -264,8 +265,8 @@ Future<void> showAddIncomeDialogIsar(BuildContext context, void Function() onSuc
 
   Future<void> printIncomesReport(List<Income> filteredIncomes) async {
     final pdf = pw.Document();
-    final arabicFont = await PdfGoogleFonts.cairoRegular();
-    final arabicBoldFont = await PdfGoogleFonts.cairoBold();
+    final arabicFont = pw.Font.ttf(await rootBundle.load('assets/fonts/Amiri-Regular.ttf'));
+    final arabicBoldFont =pw.Font.ttf(await rootBundle.load('assets/fonts/Amiri-Bold.ttf'));
 
     pdf.addPage(
       pw.Page(

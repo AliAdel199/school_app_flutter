@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
@@ -37,8 +38,8 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
     final pdf = pw.Document();
 
     // إعداد الخط العربي (مثال: Cairo أو Amiri)
-    final arabicFont = await PdfGoogleFonts.amiriRegular();
-    final arabicBoldFont = await PdfGoogleFonts.amiriBold();
+    final arabicFont =pw.Font.ttf(await rootBundle.load('assets/fonts/Amiri-Regular.ttf'));
+    final arabicBoldFont = pw.Font.ttf(await rootBundle.load('assets/fonts/Amiri-Bold.ttf'));
 
     pdf.addPage(
       pw.MultiPage(

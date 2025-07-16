@@ -372,8 +372,16 @@ School school = await isar.schools.where().findFirst() ?? School();
   final format = NumberFormat('#,###');
   final pdf = pw.Document();
 
-  final baseFont = await PdfGoogleFonts.amiriRegular();
-  final boldFont = await PdfGoogleFonts.amiriBold();
+  final baseFont =pw.Font.ttf(await rootBundle.load('assets/fonts/Amiri-Regular.ttf'));
+  final boldFont = pw.Font.ttf(await rootBundle.load('assets/fonts/Amiri-Bold.ttf'));
+ 
+ final phoneIcon = pw.MemoryImage(
+  (await rootBundle.load('assets/phone.png')).buffer.asUint8List(),
+);
+final locationIcon = pw.MemoryImage(
+  (await rootBundle.load('assets/location.png')).buffer.asUint8List(),
+);
+ 
    final Uint8List header =
         await _loadAsset(school.logoUrl ?? '');
     final pw.ImageProvider? imageProvider1 =
@@ -386,7 +394,7 @@ School school = await isar.schools.where().findFirst() ?? School();
 theme: pw.ThemeData.withFont(
   base: baseFont,
   bold: boldFont,
-  fontFallback: [await PdfGoogleFonts.notoColorEmoji()], // ✅ إضافة fallback
+  // fontFallback: [await PdfGoogleFonts.notoColorEmoji()], // ✅ إضافة fallback
 ),
 
       build: (context) {
@@ -565,12 +573,32 @@ theme: pw.ThemeData.withFont(
                     pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.end,
                       children: [
-                        pw.Text('📞 ${school.phone}',
+                        pw.Row(children: [
+                            pw.Row(
+                              children: [
+                                // pw.Text('📞', style: const pw.TextStyle(fontSize: 13)),
+                                pw.Image(phoneIcon, width: 12, height: 12),
+
+                                pw.SizedBox(width: 4),
+                                pw.Text('${school.phone}',
+                                  style: const pw.TextStyle(
+                                    fontSize: 11, color: PdfColors.blueGrey600)),
+                              ],
+                            ),
+                        ]),
+                          pw.Row(children: [
+                            pw.Row(
+                              children: [
+                                pw.Image(locationIcon, width: 12, height: 12),
+
+                                pw.SizedBox(width: 4),
+                                                    pw.Text(' ${school.address}',
                             style: const pw.TextStyle(
                                 fontSize: 11, color: PdfColors.blueGrey600)),
-                        pw.Text('📍 ${school.address}',
-                            style: const pw.TextStyle(
-                                fontSize: 11, color: PdfColors.blueGrey600)),
+                              ],
+                            ),
+                        ]),
+
                       ],
                     ),
                   ],
@@ -598,8 +626,8 @@ Future<void> printStudentPayments(Student student, String academicYear) async {
 
   // Preload fonts before building the PDF page
 
-  final amiriRegular = await PdfGoogleFonts.amiriRegular();
-  final amiriBold = await PdfGoogleFonts.amiriBold();
+  final amiriRegular =pw.Font.ttf(await rootBundle.load('assets/fonts/Amiri-Regular.ttf'));
+  final amiriBold = pw.Font.ttf(await rootBundle.load('assets/fonts/Amiri-Bold.ttf'));
 
   final pdf = pw.Document();
 
@@ -608,7 +636,7 @@ Future<void> printStudentPayments(Student student, String academicYear) async {
       theme: pw.ThemeData.withFont(
   base: amiriRegular,
   bold: amiriBold,
-  fontFallback: [await PdfGoogleFonts.notoColorEmoji()], // ✅ إضافة fallback
+  // fontFallback: [await PdfGoogleFonts.notoColorEmoji()], // ✅ إضافة fallback
 ),
       build: (context) => pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:isar/isar.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -775,8 +776,8 @@ class _StudentGradesReportScreenState extends State<StudentGradesReportScreen> {
 
     try {
       final pdf = pw.Document();
-      final arabicFont = await PdfGoogleFonts.amiriRegular();
-      final arabicBoldFont = await PdfGoogleFonts.amiriBold();
+      final arabicFont =pw.Font.ttf(await rootBundle.load('assets/fonts/Amiri-Regular.ttf'));
+      final arabicBoldFont = pw.Font.ttf(await rootBundle.load('assets/fonts/Amiri-Bold.ttf'));
       
       final studentMarks = _getStudentMarks();
       final average = _calculateAverage();

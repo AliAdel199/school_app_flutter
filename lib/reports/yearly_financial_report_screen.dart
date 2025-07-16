@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:isar/isar.dart';
-import 'debt_tracking_helper.dart';
+import '../helpers/debt_tracking_helper.dart';
 
 class YearlyFinancialReportScreen extends StatefulWidget {
   final Isar isar;

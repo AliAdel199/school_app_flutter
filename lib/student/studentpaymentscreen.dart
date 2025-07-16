@@ -203,7 +203,7 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('دفعات الطالب: ${widget.fullName}')),
+      appBar: AppBar(),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           if (feeStatus == null || feeStatus!.dueAmount! <= 0) {

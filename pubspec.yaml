@@ -81,6 +81,8 @@ flutter:
     - assets/fonts/Amiri-Italic.ttf
     - assets/images/logo.png
     - assets/images/
+    - assets/phone.png
+    - assets/location.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
