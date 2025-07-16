@@ -286,7 +286,7 @@
     
 //     final student = Student()
 //       ..fullName = fullName
-//       ..gender = random.nextBool() ? 'ذكر' : 'أنثى'
+//       ..gender = random.nextBool() ? 'ذكر' : 'انثى'
 //       ..birthDate = DateTime(
 //         2005 + random.nextInt(10), // عمر بين 10-20 سنة
 //         1 + random.nextInt(12),

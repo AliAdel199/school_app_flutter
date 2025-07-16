@@ -1239,7 +1239,7 @@ TextButton.icon(
           // قراءة البيانات من الأعمدة
           final fullName = _getCellValue(row, 0)?.trim()??"لا يوجد بيانات";
           final nationalId = _getCellValue(row, 1)?.trim()??"لا يوجد بيانات";
-          final gender = _getCellValue(row, 2)?.trim()??"لا يوجد بيانات";
+          final gender = _getCellValue(row, 2)?.trim()??"ذكر";
           final birthDateStr = _getCellValue(row, 3)?.trim()??"لا يوجد بيانات";
           final parentName = _getCellValue(row, 4)?.trim()??"لا يوجد بيانات";
           final parentPhone = _getCellValue(row, 5)?.trim()??"لا يوجد بيانات";
@@ -1578,7 +1578,7 @@ Future<void> downloadExcelTemplate() async {
     sheet.appendRow([
       excel_lib.TextCellValue('فاطمة حسن'),
       excel_lib.TextCellValue('12345678902'),
-      excel_lib.TextCellValue('أنثى'),
+      excel_lib.TextCellValue('انثى'),
       excel_lib.TextCellValue('22/03/2009'),
       excel_lib.TextCellValue('حسن محمد'),
       excel_lib.TextCellValue('07701234568'),
@@ -1601,7 +1601,7 @@ Future<void> downloadExcelTemplate() async {
     instructionsSheet.appendRow([excel_lib.TextCellValue('')]);
     instructionsSheet.appendRow([excel_lib.TextCellValue('الحقول الاختيارية:')]);
     instructionsSheet.appendRow([excel_lib.TextCellValue('• الرقم الوطني: 11 رقم')]);
-    instructionsSheet.appendRow([excel_lib.TextCellValue('• الجنس: ذكر أو أنثى')]);
+    instructionsSheet.appendRow([excel_lib.TextCellValue('• الجنس: ذكر أو انثى')]);
     instructionsSheet.appendRow([excel_lib.TextCellValue('• تاريخ الميلاد: بصيغة dd/mm/yyyy')]);
     instructionsSheet.appendRow([excel_lib.TextCellValue('• اسم ولي الأمر')]);
     instructionsSheet.appendRow([excel_lib.TextCellValue('• هاتف ولي الأمر')]);

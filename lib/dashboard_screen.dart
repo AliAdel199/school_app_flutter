@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:isar/isar.dart';
+import 'package:school_app_flutter/localdatabase/class.dart';
+import 'package:school_app_flutter/localdatabase/student.dart';
+import 'package:school_app_flutter/localdatabase/user.dart';
 import '../license_manager.dart';
 import 'LicenseCheckScreen.dart';
 import 'main.dart';
@@ -16,6 +20,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int classCount = 0;
   String subscriptionAlert = '';
   int remainingDays = 0;
+  int userCount = 0; // يمكنك إضافة عداد المستخدمين هنا
   bool isTrial = false;
   bool isLoading = false;
 
@@ -38,8 +43,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     setState(() => isLoading = true);
     try {
       // TODO: Replace with actual student/class count logic
-      studentCount = 5;
-      classCount = 6;
+    List<Student> students=  await isar.students.where().findAll(); // تأكد من استيراد isar
+      studentCount = students.length;
+
+      List<SchoolClass> classes = await isar.schoolClass.where().findAll(); // جلب الصفوف
+      classCount = classes.length;
+
+      List<User> users = await isar.users.where().findAll();
+      
+      userCount=users.length; // جلب المستخدمين
 
       // جلب حالة الترخيص الشاملة
       final licenseStatus = await LicenseManager.getLicenseStatus();
@@ -149,28 +161,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(width: 12),
               _buildStatCardFixed(
                 'المستخدمين',
-                '3', // يمكنك إضافة عداد المستخدمين هنا
+                '$userCount', // يمكنك إضافة عداد المستخدمين هنا
                 Icons.admin_panel_settings,
                 Colors.teal,
                 'مستخدم',
               ),
-              const SizedBox(width: 12),
-              _buildStatCardFixed(
-                'التقارير',
-                '12', // يمكنك إضافة عداد التقارير هنا
-                Icons.assessment,
-                Colors.purple,
-                'تقرير',
-              ),
-              const SizedBox(width: 12),
-              _buildStatCardFixed(
-                'الفواتير',
-                '25', // يمكنك إضافة عداد الفواتير هنا
-                Icons.receipt_long,
-                Colors.indigo,
-                'فاتورة',
-              ),
-              const SizedBox(width: 8),
+              // const SizedBox(width: 12),
+              // _buildStatCardFixed(
+              //   'التقارير',
+              //   '12', // يمكنك إضافة عداد التقارير هنا
+              //   Icons.assessment,
+              //   Colors.purple,
+              //   'تقرير',
+              // ),
+              // const SizedBox(width: 12),
+              // _buildStatCardFixed(
+              //   'الفواتير',
+              //   '25', // يمكنك إضافة عداد الفواتير هنا
+              //   Icons.receipt_long,
+              //   Colors.indigo,
+              //   'فاتورة',
+              // ),
+              // const SizedBox(width: 8),
             ],
           ),
         ),

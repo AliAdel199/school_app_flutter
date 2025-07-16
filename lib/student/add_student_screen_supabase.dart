@@ -46,7 +46,7 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
   final annualFeeFocus = FocusNode();
 
   // متغيرات الحالة
-  String gender = 'male';
+  String gender = 'ذكر';
   String status = 'active';
 
   DateTime? birthDate;
@@ -131,7 +131,7 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
       emailController.text = s.email ?? '';
       phoneController.text = s.phone ?? '';
       registrationYearController.text = s.registrationYear ?? '';
-      gender = s.gender ?? 'male';
+      gender = s.gender ?? 'ذكر';
       status = s.status;
       // ربط الصف المختار
       if (s.schoolclass.value != null) {
@@ -445,8 +445,8 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
                                 prefixIcon: Icon(Icons.person_outline),
                               ),
                               items: const [
-                                DropdownMenuItem(value: 'male', child: Text('ذكر')),
-                                DropdownMenuItem(value: 'female', child: Text('أنثى')),
+                                DropdownMenuItem(value: 'ذكر', child: Text('ذكر')),
+                                DropdownMenuItem(value: 'انثى', child: Text('انثى')),
                               ],
                               onChanged: (val) => setState(() => gender = val!),
                             )),
