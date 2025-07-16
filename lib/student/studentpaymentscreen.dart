@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:isar/isar.dart';
+import 'package:school_app_flutter/localdatabase/school.dart';
+import '../helpers/WhatsAppService.dart';
 import '/localdatabase/student.dart';
 import '/localdatabase/user.dart';
 import '../localdatabase/log.dart';
@@ -31,8 +33,55 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
   String? selectedAcademicYear;
 
   final formatter = NumberFormat('#,###');
+  String? schoolPhoneNumber;
+ 
+ Future<void> getSchoolPhoneNumber() async {
 
-
+ School? school= await isar.schools.where().findFirst();
+    if (school != null) {
+      schoolPhoneNumber = school.phone; // رقم هاتف المدرسة الافتراضي
+    } else {
+       // إذا لم يتم العثور على بيانات المدرسة، سيتم استخدام رقم هاتف افتراضي (مثال: '07800000000')
+       schoolPhoneNumber = '07800000000'; // رقم هاتف المدرسة الافتراضي
+      showDialog(
+        context: context,
+        builder: (context) {
+          final phoneController = TextEditingController();
+          return AlertDialog(
+        title: const Text('إضافة رقم هاتف المدرسة'),
+        content: TextField(
+          controller: phoneController,
+          keyboardType: TextInputType.phone,
+          decoration: const InputDecoration(
+            labelText: 'رقم الهاتف',
+            hintText: 'أدخل رقم هاتف المدرسة',
+          ),
+        ),
+        actions: [
+          TextButton(
+            child: const Text('إلغاء'),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          ElevatedButton(
+            child: const Text('حفظ'),
+            onPressed: () async {
+          final phone = phoneController.text.trim();
+          if (phone.isNotEmpty) {
+            await isar.writeTxn(() async {
+              final newSchool = School()..phone = phone;
+              await isar.schools.put(newSchool);
+            });
+            schoolPhoneNumber = phone;
+          }
+          Navigator.of(context).pop();
+            },
+          ),
+        ],
+          );
+        },
+      );
+    }
+  }
 
 
 
@@ -40,6 +89,7 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
   void initState() {
     super.initState();
     loadAcademicYearsAndInit();
+    getSchoolPhoneNumber();
   }
   Future<bool?> showEditPaymentDialogIsar({
     required BuildContext context,
@@ -197,6 +247,21 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
       debugPrint('Error during reloadAllData: $e');
     } finally {
       setState(() => isLoading = false);
+    }
+  } 
+   void _sendPaymentToWhatsApp(StudentPayment payment) async {
+    try {
+      await WhatsAppService.sendPaymentDetails(
+        schoolPhoneNumber:  "+964$schoolPhoneNumber",
+        parentPhone: "+964${widget.student!.parentPhone}",
+        studentName: "${widget.fullName}",
+        amount: payment.amount.toDouble(),
+        paymentType: payment.notes ?? 'دفعة',
+        paymentDate: DateTime.parse(payment.paidAt.toString()),
+      );
+    } catch (e) {
+      // معالجة الخطأ
+      print('خطأ في إرسال الرسالة: $e');
     }
   }
 
@@ -659,15 +724,33 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
                                     trailing: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
+                                          Container(
+                                            decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: IconButton(
+                                            icon: Image.asset(
+                                              'assets/whatsapp.png', // ضع مسار الصورة هنا
+                                              width: 24,
+                                              height: 24,
+                                            ),
+                                            onPressed: () async {
+                                                     _sendPaymentToWhatsApp( p);
+                                              await reloadAllData();
+                                         
+                                            },
+                                            ),
+                                          ),
+                                        const SizedBox(width: 4),
                                         Container(
                                           decoration: BoxDecoration(
-                                            color: Colors.red.withOpacity(0.1),
+                                            color: Colors.green.withOpacity(0.1),
                                             borderRadius: BorderRadius.circular(8),
                                           ),
                                           child: IconButton(
-                                            icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                                            icon: const Icon(Icons.chat_rounded, color: Colors.red, size: 20),
                                             onPressed: () async {
-                                              await deleteStudentPayment(isar, p.id, widget.studentId.toString(), selectedAcademicYear!);
+                                            await deleteStudentPayment(isar, p.id, widget.studentId.toString(), selectedAcademicYear!);
                                               await reloadAllData();
                                             },
                                           ),

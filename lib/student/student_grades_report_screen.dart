@@ -777,7 +777,7 @@ class _StudentGradesReportScreenState extends State<StudentGradesReportScreen> {
     try {
       final pdf = pw.Document();
       final arabicFont =pw.Font.ttf(await rootBundle.load('assets/fonts/Amiri-Regular.ttf'));
-      final arabicBoldFont = pw.Font.ttf(await rootBundle.load('assets/fonts/Amiri-Bold.ttf'));
+      final arabicBoldFont = await PdfGoogleFonts.amiriBold();
       
       final studentMarks = _getStudentMarks();
       final average = _calculateAverage();
