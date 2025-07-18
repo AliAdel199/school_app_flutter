@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
@@ -382,10 +383,12 @@ final locationIcon = pw.MemoryImage(
   (await rootBundle.load('assets/location.png')).buffer.asUint8List(),
 );
  
-   final Uint8List header =
-        await _loadAsset(school.logoUrl ?? '');
-    final pw.ImageProvider? imageProvider1 =
-        (header.isNotEmpty) ? pw.MemoryImage(header) : null;
+   // Use a default logo if school.logoUrl is null or empty
+   final String logoPath = (school.logoUrl != null && school.logoUrl!.isNotEmpty)
+       ? school.logoUrl!
+       : 'assets/images/logo.jpg';
+   final Uint8List header = await _loadAsset(logoPath);
+   final pw.ImageProvider? imageProvider1 =pw.MemoryImage(await File(logoPath).readAsBytes());
 
   pdf.addPage(
     pw.Page(
@@ -617,6 +620,7 @@ theme: pw.ThemeData.withFont(
 }
 
 Future<void> printStudentPayments(Student student, String academicYear) async {
+
   // جلب الدفعات من Isar حسب الطالب والسنة الأكاديمية
   final payments = await isar.studentPayments
       .filter()
