@@ -18,6 +18,11 @@ class School {
   DateTime? endDate;
   DateTime createdAt = DateTime.now();
 
+  // إضافة معرف Supabase
+  int? supabaseId;
+  bool syncedWithSupabase = false;
+  DateTime? lastSyncAt;
+
   final grades = IsarLinks<Grade>();
   final classes = IsarLinks<SchoolClass>();
 }

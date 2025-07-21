@@ -748,7 +748,7 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
                                             borderRadius: BorderRadius.circular(8),
                                           ),
                                           child: IconButton(
-                                            icon: const Icon(Icons.chat_rounded, color: Colors.red, size: 20),
+                                            icon: const Icon(Icons.delete, color: Colors.red, size: 20),
                                             onPressed: () async {
                                             await deleteStudentPayment(isar, p.id, widget.studentId.toString(), selectedAcademicYear!);
                                               await reloadAllData();

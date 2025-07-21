@@ -254,6 +254,20 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
     }
     return null;
   }
+    // التحقق من صحة الرقم الوطني
+  String? _validateparntPhhoneId(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'رقم ولي الأمر مطلوب';
+    }
+    // تحقق من أن الرقم يحتوي على أرقام فقط وطوله مناسب
+    if (!RegExp(r'^[0-9]+$').hasMatch(value.trim())) {
+      return 'رقم ولي الأمر يجب أن يحتوي على أرقام فقط';
+    }
+    if (value.trim().length < 11) {
+      return 'رقم ولي الأمر يجب أن يكون 11 أرقام على الأقل';
+    }
+    return null;
+  }
 
   // التحقق من صحة رقم الهاتف
   String? _validatePhoneNumber(String? value) {
@@ -617,7 +631,8 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
                               validator: requiredValidator,
                             )),
 
-                            buildInputField(TextFormField(
+                            buildInputField(
+                              TextFormField(
                               controller: parentPhoneController,
                               focusNode: parentPhoneFocus,
                               textInputAction: TextInputAction.next,
@@ -626,10 +641,26 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
                               decoration: const InputDecoration(
                                 labelText: 'هاتف ولي الأمر *',
                                 prefixIcon: Icon(Icons.phone),
-                                hintText: 'رقم هاتف ولي الأمر',
+                                hintText: 'مثال: +964xxxxxxxxxx',
+                                prefixText: '+964 ',
                               ),
-                              validator: _validatePhoneNumber,
-                            )),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                return 'رقم ولي الأمر مطلوب';
+                                }
+                                // إزالة أي فراغات أو رموز غير ضرورية
+                                String cleaned = value.replaceAll(RegExp(r'[^\d]'), '');
+                                // يجب أن يبدأ بـ 7xx أو 77x أو 78x أو 79x بعد مفتاح العراق
+                                if (!RegExp(r'^(7\d{9})$').hasMatch(cleaned)) {
+                                return 'رقم ولي الأمر يجب أن يكون 11 رقم ويبدأ بـ 7 بعد مفتاح العراق';
+                                }
+                                return null;
+                              },
+                              inputFormatters: [
+                                // يمكنك إضافة مزيد من التنسيقات إذا رغبت
+                              ],
+                              ),
+                            ),
 
                             buildInputField(TextFormField(
                               controller: phoneController,

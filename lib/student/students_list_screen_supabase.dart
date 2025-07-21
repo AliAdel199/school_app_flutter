@@ -255,10 +255,10 @@ for (final student in filteredStudents) {
             icon: const Icon(Icons.auto_fix_high),
             tooltip: 'الخصومات التلقائية',
           ),
-          IconButton(
+          IconButton( 
             onPressed: () {
-              // Navigator.pushNamed(context, '/add-student')
-              //     .then((_) => fetchStudentsFromIsar());
+              Navigator.pushNamed(context, '/add-student')
+                  .then((_) => fetchStudentsFromIsar());
             },
             icon: const Icon(Icons.add),
             tooltip: 'إضافة طالب',
@@ -294,7 +294,7 @@ for (final student in filteredStudents) {
                    width: 200,
                    child: ElevatedButton.icon(
                      onPressed: exportToExcel,
-                     icon: const Icon(Icons.file_download),
+                     icon: const Icon(Icons.file_upload),
                      label: const Text('تصدير Excel'),
                    ),
                  ),
@@ -311,7 +311,7 @@ for (final student in filteredStudents) {
                            height: 16,
                            child: CircularProgressIndicator(strokeWidth: 2),
                          )
-                       : const Icon(Icons.file_upload),
+                       : const Icon(Icons.file_download),
                      label: Text(isLoading ? 'جاري الاستيراد...' : 'استيراد Excel'),
                      style: ElevatedButton.styleFrom(
                        backgroundColor: Colors.green,
@@ -349,7 +349,7 @@ for (final student in filteredStudents) {
             items: [
     const DropdownMenuItem(
       value: null,
-      child: Text('إظهار الجميع'),
+      child: Text( ' إظهار الجميع الصفوف   '),
     ),
     ...classOptions.map((c) {
       return DropdownMenuItem(
@@ -394,7 +394,7 @@ for (final student in filteredStudents) {
             items: const [
                 DropdownMenuItem(
       value: null,
-      child: Text('إظهار الجميع'),
+      child: Text(' إظهار الجميع الحالات   '),
     ),
               DropdownMenuItem(value: 'active', child: Text('فعال')),
               DropdownMenuItem(value: 'inactive', child: Text('غير فعال')),
