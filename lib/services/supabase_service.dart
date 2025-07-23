@@ -1,4 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../device_info_service.dart';
+import '../license_manager.dart';
 
 class SupabaseService {
   static const String supabaseUrl = 'https://xuwlqukmwaytbzncupnk.supabase.co';
@@ -58,6 +60,33 @@ class SupabaseService {
       await client.from('educational_organizations').select('id').limit(1);
       print('✅ الاتصال بـ Supabase سليم');
       
+      // الحصول على بصمة الجهاز وحالة الترخيص
+      String deviceFingerprint = '';
+      String activationCode = '';
+      String subscriptionStatus = 'trial';
+      
+      try {
+        deviceFingerprint = await DeviceInfoService.getDeviceFingerprint();
+        activationCode = LicenseManager.generateActivationCodeForDevice(deviceFingerprint);
+        
+        // التحقق من حالة الترخيص الحالية
+        final licenseStatus = await LicenseManager.getLicenseStatus();
+        if (licenseStatus['isActivated']) {
+          subscriptionStatus = 'active';
+        } else if (licenseStatus['isTrialActive']) {
+          subscriptionStatus = 'trial';
+        } else {
+          subscriptionStatus = 'expired';
+        }
+        
+        print('🔑 بصمة الجهاز: ${deviceFingerprint.substring(0, 20)}...');
+        print('🗝️ كود التفعيل تم إنشاؤه');
+        print('📋 حالة الاشتراك: $subscriptionStatus');
+      } catch (e) {
+        print('⚠️ خطأ في الحصول على معلومات الجهاز: $e');
+        // المتابعة بدون هذه المعلومات إذا حدث خطأ
+      }
+      
       // 1. إنشاء المؤسسة التعليمية
       print('📋 إنشاء المؤسسة: $organizationName');
       final orgResponse = await client.from('educational_organizations').insert({
@@ -67,8 +96,10 @@ class SupabaseService {
         'address': organizationAddress,
         'logo_url': organizationLogo,
         'subscription_plan': 'basic',
-        'subscription_status': 'trial',
-        'trial_expires_at': DateTime.now().add(Duration(days: 30)).toIso8601String(),
+        'subscription_status': subscriptionStatus,
+        'trial_expires_at': DateTime.now().add(Duration(days: 7)).toIso8601String(),
+        'device_fingerprint': deviceFingerprint,
+        'activation_code': activationCode,
       }).select().single();
       
       final organizationId = orgResponse['id'];
@@ -180,6 +211,87 @@ class SupabaseService {
         print('🌐 مشكلة اتصال بالإنترنت');
       }
       
+      return null;
+    }
+  }
+  
+  // تحديث معلومات الترخيص للمؤسسة
+  static Future<bool> updateOrganizationLicense({
+    required int organizationId,
+    String? newSubscriptionStatus,
+    bool? updateDeviceInfo,
+  }) async {
+    if (!_isEnabled) return false;
+    
+    try {
+      Map<String, dynamic> updateData = {};
+      
+      // تحديث حالة الاشتراك
+      if (newSubscriptionStatus != null) {
+        updateData['subscription_status'] = newSubscriptionStatus;
+        print('🔄 تحديث حالة الاشتراك إلى: $newSubscriptionStatus');
+      }
+      
+      // تحديث معلومات الجهاز إذا طُلب
+      if (updateDeviceInfo == true) {
+        try {
+          final deviceFingerprint = await DeviceInfoService.getDeviceFingerprint();
+          final activationCode = LicenseManager.generateActivationCodeForDevice(deviceFingerprint);
+          
+          updateData['device_fingerprint'] = deviceFingerprint;
+          updateData['activation_code'] = activationCode;
+          updateData['last_device_sync'] = DateTime.now().toIso8601String();
+          
+          print('🔑 تحديث بصمة الجهاز: ${deviceFingerprint.substring(0, 20)}...');
+          print('🗝️ تحديث كود التفعيل');
+        } catch (e) {
+          print('⚠️ خطأ في تحديث معلومات الجهاز: $e');
+        }
+      }
+      
+      if (updateData.isNotEmpty) {
+        await client
+            .from('educational_organizations')
+            .update(updateData)
+            .eq('id', organizationId);
+        
+        print('✅ تم تحديث معلومات الترخيص للمؤسسة');
+        return true;
+      }
+      
+      return false;
+    } catch (e) {
+      print('❌ خطأ في تحديث معلومات الترخيص: $e');
+      return false;
+    }
+  }
+  
+  // الحصول على معلومات المؤسسة ومقارنة الترخيص
+  static Future<Map<String, dynamic>?> getOrganizationLicenseInfo(int organizationId) async {
+    if (!_isEnabled) return null;
+    
+    try {
+      final response = await client
+          .from('educational_organizations')
+          .select('id, name, subscription_status, device_fingerprint, activation_code, trial_expires_at, last_device_sync')
+          .eq('id', organizationId)
+          .single();
+      
+      // الحصول على المعلومات المحلية للمقارنة
+      final currentDeviceFingerprint = await DeviceInfoService.getDeviceFingerprint();
+      final storedDeviceFingerprint = response['device_fingerprint'] as String?;
+      
+      final licenseStatus = await LicenseManager.getLicenseStatus();
+      
+      return {
+        'organization_info': response,
+        'current_device_fingerprint': currentDeviceFingerprint,
+        'device_matches': storedDeviceFingerprint == currentDeviceFingerprint,
+        'local_license_status': licenseStatus,
+        'needs_sync': storedDeviceFingerprint != currentDeviceFingerprint,
+      };
+    } catch (e) {
+      print('❌ خطأ في الحصول على معلومات الترخيص: $e');
       return null;
     }
   }
@@ -472,6 +584,191 @@ class SupabaseService {
       );
     } catch (e) {
       print('Error uploading report: $e');
+      return false;
+    }
+  }
+
+  // دوال إدارة الاشتراكات
+
+  /// إنشاء اشتراك جديد
+  static Future<Map<String, dynamic>?> createSubscription({
+    required int organizationId,
+    required Map<String, dynamic> subscriptionData,
+  }) async {
+    if (!_isEnabled) return null;
+
+    try {
+      final response = await client
+          .from('organization_subscriptions')
+          .insert({
+        'organization_id': organizationId,
+        'feature': subscriptionData['feature'],
+        'activation_date': subscriptionData['activation_date'],
+        'expiry_date': subscriptionData['expiry_date'],
+        'payment_method': subscriptionData['payment_method'],
+        'transaction_id': subscriptionData['transaction_id'],
+        'amount_paid': subscriptionData['amount_paid'],
+        'status': subscriptionData['status'],
+        'payment_details': subscriptionData['payment_details'],
+        'created_at': DateTime.now().toIso8601String(),
+      }).select().single();
+
+      return response;
+    } catch (e) {
+      print('خطأ في إنشاء الاشتراك: $e');
+      rethrow;
+    }
+  }
+
+  /// الحصول على حالة الاشتراك
+  static Future<Map<String, dynamic>?> getSubscriptionStatus({
+    required int organizationId,
+    required String feature,
+  }) async {
+    if (!_isEnabled) return null;
+
+    try {
+      final response = await client
+          .from('organization_subscriptions')
+          .select('*')
+          .eq('organization_id', organizationId)
+          .eq('feature', feature)
+          .eq('status', 'active')
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      if (response == null) {
+        return {
+          'is_active': false,
+          'message': 'لا يوجد اشتراك نشط',
+        };
+      }
+
+      final expiryDate = DateTime.parse(response['expiry_date']);
+      final now = DateTime.now();
+      final isActive = expiryDate.isAfter(now);
+      final daysRemaining = expiryDate.difference(now).inDays;
+
+      return {
+        'is_active': isActive,
+        'expiry_date': response['expiry_date'],
+        'days_remaining': daysRemaining,
+        'message': isActive 
+            ? (daysRemaining > 7 
+                ? 'اشتراك نشط'
+                : 'سينتهي خلال $daysRemaining أيام')
+            : 'انتهى الاشتراك',
+        'subscription_data': response,
+      };
+    } catch (e) {
+      print('خطأ في الحصول على حالة الاشتراك: $e');
+      return null;
+    }
+  }
+
+  /// إلغاء الاشتراك
+  static Future<bool> cancelSubscription({
+    required int organizationId,
+    required String feature,
+  }) async {
+    if (!_isEnabled) return false;
+
+    try {
+      await client
+          .from('organization_subscriptions')
+          .update({
+        'status': 'cancelled',
+        'cancelled_at': DateTime.now().toIso8601String(),
+      }).eq('organization_id', organizationId)
+        .eq('feature', feature)
+        .eq('status', 'active');
+
+      return true;
+    } catch (e) {
+      print('خطأ في إلغاء الاشتراك: $e');
+      return false;
+    }
+  }
+
+  /// الحصول على جميع اشتراكات المؤسسة
+  static Future<List<Map<String, dynamic>>> getOrganizationSubscriptions(
+      int organizationId) async {
+    if (!_isEnabled) return [];
+
+    try {
+      final response = await client
+          .from('organization_subscriptions')
+          .select('*')
+          .eq('organization_id', organizationId)
+          .order('created_at', ascending: false);
+
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('خطأ في الحصول على اشتراكات المؤسسة: $e');
+      return [];
+    }
+  }
+
+  /// الحصول على التقارير من السحابة
+  static Future<List<Map<String, dynamic>>> getOrganizationReports({
+    required int organizationId,
+    String? reportType,
+    DateTime? fromDate,
+    DateTime? toDate,
+  }) async {
+    if (!_isEnabled) return [];
+
+    try {
+      var query = client
+          .from('reports')
+          .select('*')
+          .eq('organization_id', organizationId);
+
+      if (reportType != null) {
+        query = query.eq('report_type', reportType);
+      }
+
+      if (fromDate != null) {
+        query = query.gte('period_start', fromDate.toIso8601String());
+      }
+
+      if (toDate != null) {
+        query = query.lte('period_end', toDate.toIso8601String());
+      }
+
+      final response = await query.order('created_at', ascending: false);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('خطأ في الحصول على التقارير: $e');
+      return [];
+    }
+  }
+
+  /// رفع تقرير للسحابة
+  static Future<bool> uploadReportToCloud({
+    required int organizationId,
+    required Map<String, dynamic> reportData,
+  }) async {
+    if (!_isEnabled) return false;
+
+    try {
+      await client.from('reports').insert({
+        'organization_id': organizationId,
+        'school_id': reportData['school_id'],
+        'report_type': reportData['report_type'],
+        'report_title': reportData['report_title'],
+        'report_data': reportData['report_data'],
+        'report_summary': reportData['report_summary'],
+        'period_start': reportData['period_start'],
+        'period_end': reportData['period_end'],
+        'generated_by': reportData['generated_by'] ?? 'نظام إدارة المدرسة',
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
+      return true;
+    } catch (e) {
+      print('خطأ في رفع التقرير: $e');
       return false;
     }
   }

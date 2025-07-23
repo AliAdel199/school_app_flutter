@@ -28,6 +28,11 @@ class School {
   bool syncedWithSupabase = false;
   DateTime? lastSyncAt;
 
+  // حقول الاشتراك في مزامنة التقارير
+  String? reportsSyncSubscription; // JSON للتفاصيل
+  bool reportsSyncActive = false;
+  DateTime? reportsSyncExpiryDate;
+
   final grades = IsarLinks<Grade>();
   final classes = IsarLinks<SchoolClass>();
 }

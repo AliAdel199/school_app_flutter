@@ -72,23 +72,38 @@ const SchoolSchema = CollectionSchema(
       name: r'phone',
       type: IsarType.string,
     ),
-    r'subscriptionPlan': PropertySchema(
+    r'reportsSyncActive': PropertySchema(
       id: 11,
+      name: r'reportsSyncActive',
+      type: IsarType.bool,
+    ),
+    r'reportsSyncExpiryDate': PropertySchema(
+      id: 12,
+      name: r'reportsSyncExpiryDate',
+      type: IsarType.dateTime,
+    ),
+    r'reportsSyncSubscription': PropertySchema(
+      id: 13,
+      name: r'reportsSyncSubscription',
+      type: IsarType.string,
+    ),
+    r'subscriptionPlan': PropertySchema(
+      id: 14,
       name: r'subscriptionPlan',
       type: IsarType.string,
     ),
     r'subscriptionStatus': PropertySchema(
-      id: 12,
+      id: 15,
       name: r'subscriptionStatus',
       type: IsarType.string,
     ),
     r'supabaseId': PropertySchema(
-      id: 13,
+      id: 16,
       name: r'supabaseId',
       type: IsarType.long,
     ),
     r'syncedWithSupabase': PropertySchema(
-      id: 14,
+      id: 17,
       name: r'syncedWithSupabase',
       type: IsarType.bool,
     )
@@ -164,6 +179,12 @@ int _schoolEstimateSize(
     }
   }
   {
+    final value = object.reportsSyncSubscription;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.subscriptionPlan;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -190,10 +211,13 @@ void _schoolSerialize(
   writer.writeString(offsets[8], object.organizationName);
   writer.writeString(offsets[9], object.organizationType);
   writer.writeString(offsets[10], object.phone);
-  writer.writeString(offsets[11], object.subscriptionPlan);
-  writer.writeString(offsets[12], object.subscriptionStatus);
-  writer.writeLong(offsets[13], object.supabaseId);
-  writer.writeBool(offsets[14], object.syncedWithSupabase);
+  writer.writeBool(offsets[11], object.reportsSyncActive);
+  writer.writeDateTime(offsets[12], object.reportsSyncExpiryDate);
+  writer.writeString(offsets[13], object.reportsSyncSubscription);
+  writer.writeString(offsets[14], object.subscriptionPlan);
+  writer.writeString(offsets[15], object.subscriptionStatus);
+  writer.writeLong(offsets[16], object.supabaseId);
+  writer.writeBool(offsets[17], object.syncedWithSupabase);
 }
 
 School _schoolDeserialize(
@@ -215,10 +239,13 @@ School _schoolDeserialize(
   object.organizationName = reader.readStringOrNull(offsets[8]);
   object.organizationType = reader.readStringOrNull(offsets[9]);
   object.phone = reader.readStringOrNull(offsets[10]);
-  object.subscriptionPlan = reader.readStringOrNull(offsets[11]);
-  object.subscriptionStatus = reader.readString(offsets[12]);
-  object.supabaseId = reader.readLongOrNull(offsets[13]);
-  object.syncedWithSupabase = reader.readBool(offsets[14]);
+  object.reportsSyncActive = reader.readBool(offsets[11]);
+  object.reportsSyncExpiryDate = reader.readDateTimeOrNull(offsets[12]);
+  object.reportsSyncSubscription = reader.readStringOrNull(offsets[13]);
+  object.subscriptionPlan = reader.readStringOrNull(offsets[14]);
+  object.subscriptionStatus = reader.readString(offsets[15]);
+  object.supabaseId = reader.readLongOrNull(offsets[16]);
+  object.syncedWithSupabase = reader.readBool(offsets[17]);
   return object;
 }
 
@@ -252,12 +279,18 @@ P _schoolDeserializeProp<P>(
     case 10:
       return (reader.readStringOrNull(offset)) as P;
     case 11:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 12:
-      return (reader.readString(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 13:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 14:
+      return (reader.readStringOrNull(offset)) as P;
+    case 15:
+      return (reader.readString(offset)) as P;
+    case 16:
+      return (reader.readLongOrNull(offset)) as P;
+    case 17:
       return (reader.readBool(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1683,6 +1716,246 @@ extension SchoolQueryFilter on QueryBuilder<School, School, QFilterCondition> {
     });
   }
 
+  QueryBuilder<School, School, QAfterFilterCondition> reportsSyncActiveEqualTo(
+      bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'reportsSyncActive',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncExpiryDateIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'reportsSyncExpiryDate',
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncExpiryDateIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'reportsSyncExpiryDate',
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncExpiryDateEqualTo(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'reportsSyncExpiryDate',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncExpiryDateGreaterThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'reportsSyncExpiryDate',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncExpiryDateLessThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'reportsSyncExpiryDate',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncExpiryDateBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'reportsSyncExpiryDate',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncSubscriptionIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'reportsSyncSubscription',
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncSubscriptionIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'reportsSyncSubscription',
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncSubscriptionEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'reportsSyncSubscription',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncSubscriptionGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'reportsSyncSubscription',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncSubscriptionLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'reportsSyncSubscription',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncSubscriptionBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'reportsSyncSubscription',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncSubscriptionStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'reportsSyncSubscription',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncSubscriptionEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'reportsSyncSubscription',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncSubscriptionContains(String value,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'reportsSyncSubscription',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncSubscriptionMatches(String pattern,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'reportsSyncSubscription',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncSubscriptionIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'reportsSyncSubscription',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncSubscriptionIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'reportsSyncSubscription',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<School, School, QAfterFilterCondition> subscriptionPlanIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -2298,6 +2571,43 @@ extension SchoolQuerySortBy on QueryBuilder<School, School, QSortBy> {
     });
   }
 
+  QueryBuilder<School, School, QAfterSortBy> sortByReportsSyncActive() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reportsSyncActive', Sort.asc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> sortByReportsSyncActiveDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reportsSyncActive', Sort.desc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> sortByReportsSyncExpiryDate() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reportsSyncExpiryDate', Sort.asc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> sortByReportsSyncExpiryDateDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reportsSyncExpiryDate', Sort.desc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> sortByReportsSyncSubscription() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reportsSyncSubscription', Sort.asc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy>
+      sortByReportsSyncSubscriptionDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reportsSyncSubscription', Sort.desc);
+    });
+  }
+
   QueryBuilder<School, School, QAfterSortBy> sortBySubscriptionPlan() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'subscriptionPlan', Sort.asc);
@@ -2492,6 +2802,43 @@ extension SchoolQuerySortThenBy on QueryBuilder<School, School, QSortThenBy> {
     });
   }
 
+  QueryBuilder<School, School, QAfterSortBy> thenByReportsSyncActive() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reportsSyncActive', Sort.asc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> thenByReportsSyncActiveDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reportsSyncActive', Sort.desc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> thenByReportsSyncExpiryDate() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reportsSyncExpiryDate', Sort.asc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> thenByReportsSyncExpiryDateDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reportsSyncExpiryDate', Sort.desc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> thenByReportsSyncSubscription() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reportsSyncSubscription', Sort.asc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy>
+      thenByReportsSyncSubscriptionDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reportsSyncSubscription', Sort.desc);
+    });
+  }
+
   QueryBuilder<School, School, QAfterSortBy> thenBySubscriptionPlan() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'subscriptionPlan', Sort.asc);
@@ -2617,6 +2964,26 @@ extension SchoolQueryWhereDistinct on QueryBuilder<School, School, QDistinct> {
     });
   }
 
+  QueryBuilder<School, School, QDistinct> distinctByReportsSyncActive() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'reportsSyncActive');
+    });
+  }
+
+  QueryBuilder<School, School, QDistinct> distinctByReportsSyncExpiryDate() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'reportsSyncExpiryDate');
+    });
+  }
+
+  QueryBuilder<School, School, QDistinct> distinctByReportsSyncSubscription(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'reportsSyncSubscription',
+          caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<School, School, QDistinct> distinctBySubscriptionPlan(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -2716,6 +3083,26 @@ extension SchoolQueryProperty on QueryBuilder<School, School, QQueryProperty> {
   QueryBuilder<School, String?, QQueryOperations> phoneProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'phone');
+    });
+  }
+
+  QueryBuilder<School, bool, QQueryOperations> reportsSyncActiveProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'reportsSyncActive');
+    });
+  }
+
+  QueryBuilder<School, DateTime?, QQueryOperations>
+      reportsSyncExpiryDateProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'reportsSyncExpiryDate');
+    });
+  }
+
+  QueryBuilder<School, String?, QQueryOperations>
+      reportsSyncSubscriptionProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'reportsSyncSubscription');
     });
   }
 
