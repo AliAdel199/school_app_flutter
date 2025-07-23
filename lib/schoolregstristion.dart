@@ -13,7 +13,7 @@ import 'auth_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'license_manager.dart';
 import 'services/supabase_service.dart';
-
+     
 class InitialSetupScreen extends StatefulWidget {
   const InitialSetupScreen({super.key});
 
@@ -31,12 +31,16 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
   final schoolEmailController = TextEditingController();
   final schoolPhoneController = TextEditingController();
   final schoolAddressController = TextEditingController();
+  final schoolTypeController = TextEditingController();
+
 
   // User controllers
   final usernameController = TextEditingController();
   final userEmailController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
+  final userPhoneController = TextEditingController();
+  final userPositionController = TextEditingController();
 
   File? selectedLogo;
   bool isLoading = false;
@@ -75,19 +79,73 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
       // إنشاء ملف الفترة التجريبية
       await LicenseManager.createTrialLicenseFile();
 
-      // إضافة المدرسة إلى Supabase أولاً
-      Map<String, dynamic>? supabaseSchool;
+      // إضافة المدرسة مع إنشاء مؤسسة تعليمية في Supabase
+      Map<String, dynamic>? supabaseResult;
       try {
-        supabaseSchool = await SupabaseService.addSchoolToSupabase(
-          name: schoolNameController.text.trim(),
-          email: schoolEmailController.text.trim(),
-          phone: schoolPhoneController.text.trim(),
-          address: schoolAddressController.text.trim(),
-          logoUrl: selectedLogo?.path,
+        // التحقق من صحة البريد الإلكتروني قبل الإرسال
+        final adminEmail = userEmailController.text.trim().toLowerCase();
+        final schoolEmail = schoolEmailController.text.trim().toLowerCase();
+        
+        if (adminEmail.isEmpty) {
+          throw Exception('البريد الإلكتروني للمدير مطلوب للمزامنة مع السحابة');
+        }
+        
+        // تحقق تفصيلي من البريد الإلكتروني
+        if (adminEmail.length < 6) {
+          throw Exception('البريد الإلكتروني قصير جداً. يجب أن يكون 6 أحرف على الأقل');
+        }
+        
+        if (!adminEmail.contains('@') || adminEmail.split('@').length != 2) {
+          throw Exception('البريد الإلكتروني يجب أن يحتوي على @ واحد فقط');
+        }
+        
+        final localPart = adminEmail.split('@')[0];
+        if (localPart.length < 3) {  // زيادة المطلوب إلى 3 أحرف
+          throw Exception('الجزء قبل @ يجب أن يكون 3 أحرف على الأقل. مثال: user123@gmail.com');
+        }
+        
+        if (!_isValidEmail(adminEmail)) {
+          throw Exception('البريد الإلكتروني غير صحيح. استخدم تنسيق مثل: user123@gmail.com');
+        }
+        
+        if (schoolEmail.isNotEmpty && !_isValidEmail(schoolEmail)) {
+          throw Exception('البريد الإلكتروني للمدرسة غير صحيح. يجب أن يكون مثل: school123@domain.com');
+        }
+
+        supabaseResult = await SupabaseService.createOrganizationWithSchool(
+          // بيانات المؤسسة
+          organizationName: '${schoolNameController.text.trim()} التعليمية',
+          organizationEmail: schoolEmail.isNotEmpty ? schoolEmail : adminEmail,
+          organizationPhone: schoolPhoneController.text.trim(),
+          organizationAddress: schoolAddressController.text.trim(),
+          organizationLogo: selectedLogo?.path,
+          
+          // بيانات المدرسة
+          schoolName: schoolNameController.text.trim(),
+          schoolType: schoolTypeController.text.trim().isNotEmpty ? 
+                     schoolTypeController.text.trim() : 'مختلطة',
+          gradeLevels: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], // جميع المراحل
+          schoolEmail: schoolEmail.isNotEmpty ? schoolEmail : adminEmail,
+          schoolPhone: schoolPhoneController.text.trim(),
+          schoolAddress: schoolAddressController.text.trim(),
+          schoolLogo: selectedLogo?.path,
+          
+          // بيانات المدير
+          adminName: usernameController.text.trim(),
+          adminEmail: adminEmail,
+          adminPassword: passwordController.text.trim(),
+          adminPhone: userPhoneController.text.trim(),
         );
       } catch (e) {
         debugPrint('Failed to sync with Supabase: $e');
-        // يمكن المتابعة حتى لو فشل Supabase
+        // إذا كانت مشكلة البريد الإلكتروني، أظهر رسالة واضحة
+        if (e.toString().contains('email_address_invalid') || 
+            e.toString().contains('Email address') ||
+            e.toString().contains('البريد الإلكتروني')) {
+          _showSnackBar('❌ خطأ في البريد الإلكتروني: يجب أن يكون على الأقل حرفين قبل @ مثل: admin123@gmail.com', Colors.red);
+          return;
+        }
+        // للأخطاء الأخرى، يمكن المتابعة
       }
 
       await isar.writeTxn(() async {
@@ -100,9 +158,12 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
           ..subscriptionPlan = 'basic'
           ..subscriptionStatus = 'trial'
           ..createdAt = DateTime.now()
-          ..supabaseId = supabaseSchool?['id']
-          ..syncedWithSupabase = supabaseSchool != null
-          ..lastSyncAt = supabaseSchool != null ? DateTime.now() : null;
+          ..organizationId = supabaseResult?['organization_id']
+          ..organizationType = 'مختلطة'
+          ..organizationName = supabaseResult?['organization_name']
+          ..supabaseId = supabaseResult?['school_id']
+          ..syncedWithSupabase = supabaseResult != null
+          ..lastSyncAt = supabaseResult != null ? DateTime.now() : null;
 
         await isar.schools.put(school);
       });
@@ -119,7 +180,13 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
       // إنشاء فئات المصروفات الافتراضية
       await _createDefaultExpenseCategories();
 
-      _showSuccessDialog(hasOnlineFeatures: supabaseSchool != null);
+      _showSuccessDialog(
+        hasOnlineFeatures: supabaseResult != null,
+        adminCredentials: supabaseResult != null ? {
+          'email': supabaseResult['admin_email'],
+          'organization_name': supabaseResult['organization_name'],
+        } : null,
+      );
     } catch (e) {
       debugPrint('Error: $e');
       _showSnackBar('حدث خطأ: $e', Colors.red);
@@ -209,7 +276,10 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
     );
   }
 
-  void _showSuccessDialog({bool hasOnlineFeatures = false}) {
+  void _showSuccessDialog({
+    bool hasOnlineFeatures = false,
+    Map<String, dynamic>? adminCredentials,
+  }) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -238,10 +308,32 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('🎯 الفترة التجريبية نشطة لمدة 7 أيام'),
                     Text('📚 تم إنشاء الفئات الافتراضية'),
                     Text('👤 تم إنشاء حساب المدير'),
-                    if (hasOnlineFeatures) ...[
+                    if (hasOnlineFeatures && adminCredentials != null) ...[
+                      SizedBox(height: 8),
+                      Container(
+                        padding: EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('🏢 تم إنشاء المؤسسة التعليمية:', 
+                                 style: TextStyle(fontWeight: FontWeight.bold)),
+                            Text('المؤسسة: ${adminCredentials['organization_name']}'),
+                            Text('البريد: ${adminCredentials['email']}'),
+                            SizedBox(height: 4),
+                            Text('📱 يمكن للمدير الآن الوصول لجميع المدارس التابعة للمؤسسة من تطبيق الهاتف',
+                                 style: TextStyle(fontSize: 12, color: Colors.green.shade700)),
+                            Text('☁️ مزامنة التقارير مع السحابة مفعلة',
+                                 style: TextStyle(fontSize: 12, color: Colors.green.shade700)),
+                          ],
+                        ),
+                      ),
+                    ] else if (hasOnlineFeatures) ...[
                       Text('☁️ تم تفعيل المزامنة مع السحابة'),
                       Text('📊 ميزة التقارير الأونلاين متاحة'),
                     ] else ...[
@@ -253,19 +345,21 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
             ],
           ),
           actions: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginScreen()),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
+            SizedBox(width: 200,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                ),
+                child: Text('متابعة إلى تسجيل الدخول'),
               ),
-              child: Text('متابعة إلى تسجيل الدخول'),
             ),
           ],
         );
@@ -280,8 +374,16 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
         _showSnackBar('يرجى إدخال اسم المدرسة', Colors.red);
         return;
       }
+      if (schoolTypeController.text.trim().isEmpty) {
+        _showSnackBar('يرجى إدخال نوع المدرسة', Colors.red);
+        return;
+      }
       if (!_isValidEmail(schoolEmailController.text.trim()) && schoolEmailController.text.trim().isNotEmpty) {
         _showSnackBar('يرجى إدخال بريد إلكتروني صحيح للمدرسة', Colors.red);
+        return;
+      }
+      if (!_isValidPhone(schoolPhoneController.text.trim()) && schoolPhoneController.text.trim().isNotEmpty) {
+        _showSnackBar('يرجى إدخال رقم هاتف صحيح للمدرسة', Colors.red);
         return;
       }
     }
@@ -306,7 +408,37 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
   }
 
   bool _isValidEmail(String email) {
-    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
+    // نمط تحقق متوافق مع Supabase - متطلبات صارمة
+    if (email.isEmpty) return false;
+    email = email.trim().toLowerCase();
+    
+    // التحقق من الطول الأدنى (يجب أن يكون أكثر من 7 أحرف)
+    if (email.length < 8) return false;
+    
+    // التحقق من وجود @ واحد فقط
+    if (email.split('@').length != 2) return false;
+    
+    final parts = email.split('@');
+    final localPart = parts[0];
+    final domainPart = parts[1];
+    
+    // التحقق من الجزء المحلي (قبل @) - يجب أن يكون 3 أحرف على الأقل
+    if (localPart.length < 3) return false;
+    if (localPart.startsWith('.') || localPart.endsWith('.')) return false;
+    if (localPart.contains('..')) return false;
+    
+    // التحقق من النطاق (بعد @)
+    if (domainPart.length < 4) return false; // مثل a.co
+    if (!domainPart.contains('.')) return false;
+    if (domainPart.startsWith('.') || domainPart.endsWith('.')) return false;
+    if (domainPart.contains('..')) return false;
+    
+    // استخدام regex للتحقق النهائي
+    final emailRegex = RegExp(
+      r'^[a-zA-Z0-9][a-zA-Z0-9._%+-]{1,}[a-zA-Z0-9]@[a-zA-Z0-9][a-zA-Z0-9.-]*[a-zA-Z0-9]\.[a-zA-Z]{2,}$'
+    );
+    
+    return emailRegex.hasMatch(email);
   }
 
   bool _isValidPhone(String phone) {
@@ -396,16 +528,18 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                   flex: 2,
                   child: isLoading
                       ? Center(child: CircularProgressIndicator())
-                      : ElevatedButton.icon(
-                          onPressed: currentStep < 1 ? _nextStep : saveInitialData,
-                          icon: Icon(currentStep < 1 ? Icons.arrow_forward : Icons.save),
-                          label: Text(currentStep < 1 ? 'التالي' : 'حفظ وبدء الاستخدام'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue.shade600,
-                            foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(vertical: 12),
+                      : SizedBox(width: 200,
+                        child: ElevatedButton.icon(
+                            onPressed: currentStep < 1 ? _nextStep : saveInitialData,
+                            icon: Icon(currentStep < 1 ? Icons.arrow_forward : Icons.save),
+                            label: Text(currentStep < 1 ? 'التالي' : 'حفظ وبدء الاستخدام'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue.shade600,
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                            ),
                           ),
-                        ),
+                      ),
                 ),
               ],
             ),
@@ -490,16 +624,39 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                 ),
                 SizedBox(height: 16),
                 TextFormField(
+                  controller: schoolTypeController,
+                  decoration: _inputDecoration(
+                    'نوع المدرسة *',
+                    icon: Icons.category,
+                    helperText: 'مثال: مختلطة، بنين، بنات',
+                  ),
+                  validator: (val) {
+                    if (val == null || val.isEmpty) return 'نوع المدرسة مطلوب';
+                    return null;
+                  },
+                ),
+              
+                SizedBox(height: 16),
+                TextFormField(
                   controller: schoolEmailController,
                   decoration: _inputDecoration(
                     'البريد الإلكتروني',
                     icon: Icons.email,
-                    helperText: 'البريد الإلكتروني الرسمي للمدرسة',
+                    helperText: 'البريد الإلكتروني الرسمي للمدرسة (اختياري)',
                   ),
                   keyboardType: TextInputType.emailAddress,
                   validator: (val) {
-                    if (val != null && val.isNotEmpty && !_isValidEmail(val)) {
-                      return 'يرجى إدخال بريد إلكتروني صحيح';
+                    if (val != null && val.isNotEmpty) {
+                      val = val.trim().toLowerCase();
+                      if (val.length < 6) {
+                        return 'البريد الإلكتروني قصير جداً';
+                      }
+                      if (val.split('@')[0].length < 2) {
+                        return 'الجزء قبل @ يجب أن يكون حرفين على الأقل';
+                      }
+                      if (!_isValidEmail(val)) {
+                        return 'بريد إلكتروني غير صحيح. مثال: school@domain.com';
+                      }
                     }
                     return null;
                   },
@@ -554,13 +711,15 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                       SizedBox(height: 12),
                       Row(
                         children: [
-                          ElevatedButton.icon(
-                            onPressed: pickLogoImage,
-                            icon: Icon(Icons.image),
-                            label: Text('اختيار شعار'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue.shade50,
-                              foregroundColor: Colors.blue.shade700,
+                          SizedBox(width: 200,
+                            child: ElevatedButton.icon(
+                              onPressed: pickLogoImage,
+                              icon: Icon(Icons.image),
+                              label: Text('اختيار شعار'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue.shade50,
+                                foregroundColor: Colors.blue.shade700,
+                              ),
                             ),
                           ),
                           SizedBox(width: 16),
@@ -646,17 +805,57 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                   TextFormField(
                     controller: userEmailController,
                     decoration: _inputDecoration(
-                      'البريد الإلكتروني',
+                      'البريد الإلكتروني *',
                       icon: Icons.email_outlined,
-                      helperText: 'البريد الإلكتروني الشخصي للمدير',
+                      helperText: 'مثال: admin123@gmail.com (3 أحرف على الأقل قبل @)',
                     ),
                     keyboardType: TextInputType.emailAddress,
                     validator: (val) {
-                      if (val != null && val.isNotEmpty && !_isValidEmail(val)) {
-                        return 'يرجى إدخال بريد إلكتروني صحيح';
+                      if (val == null || val.isEmpty) {
+                        return 'البريد الإلكتروني مطلوب للمزامنة مع السحابة';
+                      }
+                      val = val.trim().toLowerCase();
+                      if (val.length < 6) {
+                        return 'البريد الإلكتروني قصير جداً (6 أحرف على الأقل)';
+                      }
+                      if (val.split('@')[0].length < 2) {
+                        return 'الجزء قبل @ يجب أن يكون حرفين على الأقل';
+                      }
+                      if (!_isValidEmail(val)) {
+                        return 'بريد إلكتروني غير صحيح. مثال: user123@domain.com';
                       }
                       return null;
                     },
+                  ),
+                  SizedBox(height: 16),
+                  TextFormField(
+                    controller: userPhoneController,
+                    decoration: _inputDecoration(
+                      'رقم الهاتف *',
+                      icon: Icons.phone,
+                      helperText: 'رقم هاتف المدير الشخصي',
+                    ),
+                    keyboardType: TextInputType.phone,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[0-9+\-\s\(\)]')),
+                    ],
+                    validator: (val) {
+                      if (val == null || val.isEmpty) return 'رقم الهاتف مطلوب';
+                      if (!_isValidPhone(val)) {
+                        return 'يرجى إدخال رقم هاتف صحيح';
+                      }
+                      return null;
+                    },
+                  ),
+                  SizedBox(height: 16),
+                  TextFormField(
+                    controller: userPositionController,
+                    decoration: _inputDecoration(
+                      'المنصب/الوظيفة',
+                      icon: Icons.work,
+                      helperText: 'مثال: مدير، نائب المدير، مدير أكاديمي',
+                    ),
+                    validator: (val) => null, // اختياري
                   ),
                   SizedBox(height: 16),
                   TextFormField(
@@ -743,10 +942,13 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
     schoolEmailController.dispose();
     schoolPhoneController.dispose();
     schoolAddressController.dispose();
+    schoolTypeController.dispose();
     usernameController.dispose();
     userEmailController.dispose();
     passwordController.dispose();
     confirmPasswordController.dispose();
+    userPhoneController.dispose();
+    userPositionController.dispose();
     _pageController.dispose();
     super.dispose();
   }

@@ -40,6 +40,7 @@ import 'reports/SalaryReportScreen.dart';
 import 'employee/add_edit_employee.dart';
 import 'employee/monthlysalaryscreen.dart';
 import 'schoolregstristion.dart';
+import 'services/services.dart';
 import 'student/add_student_screen_supabase.dart';
 import 'classes/addclassscreen.dart';
 import 'dashboard_screen.dart';
@@ -102,8 +103,9 @@ Future<void> main() async {
     final dir2 = await getApplicationSupportDirectory();
 print(dir2.path);
   await Supabase.initialize(
-    url: 'https://lhzujcquhgxhsmmjwgdq.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoenVqY3F1aGd4aHNtbWp3Z2RxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU4MjQ4NjQsImV4cCI6MjA2MTQwMDg2NH0.u7qPHRu_TdmNjPQJhMeXMZVI37xJs8IoX5Dcrg7fxV8',
+    url: SupabaseService.supabaseUrl,
+    anonKey: SupabaseService.supabaseAnonKey,
+    debug: true,
   );
 
   final dir = Directory.current;

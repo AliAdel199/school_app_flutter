@@ -18,6 +18,11 @@ class School {
   DateTime? endDate;
   DateTime createdAt = DateTime.now();
 
+  // معلومات المؤسسة التعليمية
+  int? organizationId; // معرف المؤسسة في Supabase
+  String? organizationType; // نوع المدرسة (ابتدائية، متوسطة، ثانوية)
+  String? organizationName; // اسم المؤسسة التابعة لها
+
   // إضافة معرف Supabase
   int? supabaseId;
   bool syncedWithSupabase = false;

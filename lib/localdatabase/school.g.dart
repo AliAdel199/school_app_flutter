@@ -52,28 +52,43 @@ const SchoolSchema = CollectionSchema(
       name: r'name',
       type: IsarType.string,
     ),
-    r'phone': PropertySchema(
+    r'organizationId': PropertySchema(
       id: 7,
+      name: r'organizationId',
+      type: IsarType.long,
+    ),
+    r'organizationName': PropertySchema(
+      id: 8,
+      name: r'organizationName',
+      type: IsarType.string,
+    ),
+    r'organizationType': PropertySchema(
+      id: 9,
+      name: r'organizationType',
+      type: IsarType.string,
+    ),
+    r'phone': PropertySchema(
+      id: 10,
       name: r'phone',
       type: IsarType.string,
     ),
     r'subscriptionPlan': PropertySchema(
-      id: 8,
+      id: 11,
       name: r'subscriptionPlan',
       type: IsarType.string,
     ),
     r'subscriptionStatus': PropertySchema(
-      id: 9,
+      id: 12,
       name: r'subscriptionStatus',
       type: IsarType.string,
     ),
     r'supabaseId': PropertySchema(
-      id: 10,
+      id: 13,
       name: r'supabaseId',
       type: IsarType.long,
     ),
     r'syncedWithSupabase': PropertySchema(
-      id: 11,
+      id: 14,
       name: r'syncedWithSupabase',
       type: IsarType.bool,
     )
@@ -131,6 +146,18 @@ int _schoolEstimateSize(
   }
   bytesCount += 3 + object.name.length * 3;
   {
+    final value = object.organizationName;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.organizationType;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.phone;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -159,11 +186,14 @@ void _schoolSerialize(
   writer.writeDateTime(offsets[4], object.lastSyncAt);
   writer.writeString(offsets[5], object.logoUrl);
   writer.writeString(offsets[6], object.name);
-  writer.writeString(offsets[7], object.phone);
-  writer.writeString(offsets[8], object.subscriptionPlan);
-  writer.writeString(offsets[9], object.subscriptionStatus);
-  writer.writeLong(offsets[10], object.supabaseId);
-  writer.writeBool(offsets[11], object.syncedWithSupabase);
+  writer.writeLong(offsets[7], object.organizationId);
+  writer.writeString(offsets[8], object.organizationName);
+  writer.writeString(offsets[9], object.organizationType);
+  writer.writeString(offsets[10], object.phone);
+  writer.writeString(offsets[11], object.subscriptionPlan);
+  writer.writeString(offsets[12], object.subscriptionStatus);
+  writer.writeLong(offsets[13], object.supabaseId);
+  writer.writeBool(offsets[14], object.syncedWithSupabase);
 }
 
 School _schoolDeserialize(
@@ -181,11 +211,14 @@ School _schoolDeserialize(
   object.lastSyncAt = reader.readDateTimeOrNull(offsets[4]);
   object.logoUrl = reader.readStringOrNull(offsets[5]);
   object.name = reader.readString(offsets[6]);
-  object.phone = reader.readStringOrNull(offsets[7]);
-  object.subscriptionPlan = reader.readStringOrNull(offsets[8]);
-  object.subscriptionStatus = reader.readString(offsets[9]);
-  object.supabaseId = reader.readLongOrNull(offsets[10]);
-  object.syncedWithSupabase = reader.readBool(offsets[11]);
+  object.organizationId = reader.readLongOrNull(offsets[7]);
+  object.organizationName = reader.readStringOrNull(offsets[8]);
+  object.organizationType = reader.readStringOrNull(offsets[9]);
+  object.phone = reader.readStringOrNull(offsets[10]);
+  object.subscriptionPlan = reader.readStringOrNull(offsets[11]);
+  object.subscriptionStatus = reader.readString(offsets[12]);
+  object.supabaseId = reader.readLongOrNull(offsets[13]);
+  object.syncedWithSupabase = reader.readBool(offsets[14]);
   return object;
 }
 
@@ -211,14 +244,20 @@ P _schoolDeserializeProp<P>(
     case 6:
       return (reader.readString(offset)) as P;
     case 7:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 8:
       return (reader.readStringOrNull(offset)) as P;
     case 9:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 10:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 11:
+      return (reader.readStringOrNull(offset)) as P;
+    case 12:
+      return (reader.readString(offset)) as P;
+    case 13:
+      return (reader.readLongOrNull(offset)) as P;
+    case 14:
       return (reader.readBool(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1126,6 +1165,378 @@ extension SchoolQueryFilter on QueryBuilder<School, School, QFilterCondition> {
     });
   }
 
+  QueryBuilder<School, School, QAfterFilterCondition> organizationIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'organizationId',
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      organizationIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'organizationId',
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationIdEqualTo(
+      int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'organizationId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationIdGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'organizationId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationIdLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'organizationId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationIdBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'organizationId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationNameIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'organizationName',
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      organizationNameIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'organizationName',
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationNameEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'organizationName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      organizationNameGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'organizationName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationNameLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'organizationName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationNameBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'organizationName',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      organizationNameStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'organizationName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationNameEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'organizationName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationNameContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'organizationName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationNameMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'organizationName',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      organizationNameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'organizationName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      organizationNameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'organizationName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationTypeIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'organizationType',
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      organizationTypeIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'organizationType',
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationTypeEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'organizationType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      organizationTypeGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'organizationType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationTypeLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'organizationType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationTypeBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'organizationType',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      organizationTypeStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'organizationType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationTypeEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'organizationType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationTypeContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'organizationType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationTypeMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'organizationType',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      organizationTypeIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'organizationType',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      organizationTypeIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'organizationType',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<School, School, QAfterFilterCondition> phoneIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -1839,6 +2250,42 @@ extension SchoolQuerySortBy on QueryBuilder<School, School, QSortBy> {
     });
   }
 
+  QueryBuilder<School, School, QAfterSortBy> sortByOrganizationId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'organizationId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> sortByOrganizationIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'organizationId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> sortByOrganizationName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'organizationName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> sortByOrganizationNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'organizationName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> sortByOrganizationType() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'organizationType', Sort.asc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> sortByOrganizationTypeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'organizationType', Sort.desc);
+    });
+  }
+
   QueryBuilder<School, School, QAfterSortBy> sortByPhone() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'phone', Sort.asc);
@@ -1997,6 +2444,42 @@ extension SchoolQuerySortThenBy on QueryBuilder<School, School, QSortThenBy> {
     });
   }
 
+  QueryBuilder<School, School, QAfterSortBy> thenByOrganizationId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'organizationId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> thenByOrganizationIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'organizationId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> thenByOrganizationName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'organizationName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> thenByOrganizationNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'organizationName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> thenByOrganizationType() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'organizationType', Sort.asc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> thenByOrganizationTypeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'organizationType', Sort.desc);
+    });
+  }
+
   QueryBuilder<School, School, QAfterSortBy> thenByPhone() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'phone', Sort.asc);
@@ -2105,6 +2588,28 @@ extension SchoolQueryWhereDistinct on QueryBuilder<School, School, QDistinct> {
     });
   }
 
+  QueryBuilder<School, School, QDistinct> distinctByOrganizationId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'organizationId');
+    });
+  }
+
+  QueryBuilder<School, School, QDistinct> distinctByOrganizationName(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'organizationName',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<School, School, QDistinct> distinctByOrganizationType(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'organizationType',
+          caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<School, School, QDistinct> distinctByPhone(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -2187,6 +2692,24 @@ extension SchoolQueryProperty on QueryBuilder<School, School, QQueryProperty> {
   QueryBuilder<School, String, QQueryOperations> nameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'name');
+    });
+  }
+
+  QueryBuilder<School, int?, QQueryOperations> organizationIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'organizationId');
+    });
+  }
+
+  QueryBuilder<School, String?, QQueryOperations> organizationNameProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'organizationName');
+    });
+  }
+
+  QueryBuilder<School, String?, QQueryOperations> organizationTypeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'organizationType');
     });
   }
 
