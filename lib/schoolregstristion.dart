@@ -148,6 +148,21 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
         // للأخطاء الأخرى، يمكن المتابعة
       }
 
+      // التحقق من نجاح العملية
+      if (supabaseResult != null && supabaseResult!['success'] == false) {
+        String errorMessage = '❌ فشل في إنشاء المؤسسة: ';
+        if (supabaseResult!['error'].toString().contains('SocketException')) {
+          errorMessage += 'مشكلة في الاتصال بالإنترنت. تحقق من اتصالك وحاول مرة أخرى.';
+        } else if (supabaseResult!['error'].toString().contains('timeout')) {
+          errorMessage += 'انتهت مهلة الاتصال. حاول مرة أخرى.';
+        } else {
+          errorMessage += supabaseResult!['error'].toString();
+        }
+        _showSnackBar(errorMessage, Colors.red);
+        // يمكن المتابعة والحفظ محلياً
+        supabaseResult = null;
+      }
+
       await isar.writeTxn(() async {
         final school = School()
           ..name = schoolNameController.text.trim()

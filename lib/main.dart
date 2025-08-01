@@ -6,6 +6,8 @@ import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:school_app_flutter/localdatabase/subject_mark.dart';
 import 'package:school_app_flutter/localdatabase/attendance.dart';
+import 'package:school_app_flutter/localdatabase/license_status_view.dart';
+import 'package:school_app_flutter/localdatabase/license_stats_view.dart';
 import '/localdatabase/expense.dart';
 import '/localdatabase/expense_category.dart';
 import '/localdatabase/income.dart';
@@ -23,6 +25,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'LicenseCheckScreen.dart';
 import 'LogsScreen.dart';
 import 'UsersScreen.dart';
+import 'screens/database_test_screen.dart';
+import 'screens/system_test_screen.dart';
+import 'tests/quick_system_test.dart';
 import 'income_expeness/ExpenseListScreen.dart';
 import 'income_expeness/addexpenesscreen.dart';
 import 'license_manager.dart';
@@ -105,7 +110,7 @@ print(dir2.path);
   await Supabase.initialize(
     url: SupabaseService.supabaseUrl,
     anonKey: SupabaseService.supabaseAnonKey,
-    debug: true,
+    debug: false, // تعطيل الـ debug في الإنتاج
   );
 
   final dir = Directory.current;
@@ -129,6 +134,8 @@ print(dir2.path);
     DiscountTypeSchema,         // إضافة جديدة
     AutoDiscountSettingsSchema, // إضافة إعدادات الخصومات التلقائية
     AttendanceSchema,           // إضافة نموذج الحضور
+    LicenseStatusViewSchema,    // إضافة نموذج حالة الترخيص
+    LicenseStatsViewSchema,     // إضافة نموذج إحصائيات الترخيص
   ], directory: dir.path, inspector: true, name: 'school_app_flutter');
 
   // تحميل السنة الدراسية من الإعدادات
@@ -247,6 +254,8 @@ class SchoolApp extends StatelessWidget {
         '/subject-marks-advanced': (context) => const SubjectMarksManagementScreen(),
         '/user-screen': (context) => const UsersScreen(),
         '/logs-screen': (context) => const LogsScreen(),
+        '/database-test': (context) => DatabaseTestScreen(),
+        '/system-test': (context) => const SystemTestScreen(),
       },
     );
   }

@@ -3,10 +3,11 @@ import 'package:isar/isar.dart';
 import 'package:school_app_flutter/localdatabase/class.dart';
 import 'package:school_app_flutter/localdatabase/student.dart';
 import 'package:school_app_flutter/localdatabase/user.dart';
-import '../license_manager.dart';
 import 'LicenseCheckScreen.dart';
 import 'main.dart';
 import 'helpers/program_info.dart';
+import 'services/offline_license_service.dart';
+import 'services/license_database_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -23,6 +24,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int userCount = 0; // يمكنك إضافة عداد المستخدمين هنا
   bool isTrial = false;
   bool isLoading = false;
+  bool isOfflineMode = false;
 
   @override
    void initState() {
@@ -42,29 +44,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> fetchStats() async {
     setState(() => isLoading = true);
     try {
-      // TODO: Replace with actual student/class count logic
-    List<Student> students=  await isar.students.where().findAll(); // تأكد من استيراد isar
+      // جلب البيانات المحلية أولاً
+      List<Student> students = await isar.students.where().findAll();
       studentCount = students.length;
 
-      List<SchoolClass> classes = await isar.schoolClass.where().findAll(); // جلب الصفوف
+      List<SchoolClass> classes = await isar.schoolClass.where().findAll();
       classCount = classes.length;
 
       List<User> users = await isar.users.where().findAll();
-      
-      userCount=users.length; // جلب المستخدمين
+      userCount = users.length;
 
-      // جلب حالة الترخيص الشاملة
-      final licenseStatus = await LicenseManager.getLicenseStatus();
+      // فحص الترخيص (أونلاين أو أوفلاين)
+      final licenseStatus = await OfflineLicenseService.checkLicense();
       
-      // استخدام البيانات من حالة الترخيص
+      // تحديث قاعدة البيانات المحلية
+      await LicenseDatabaseService.updateAllLicenseViews();
+      
+      // معالجة حالة الترخيص
       remainingDays = licenseStatus['remainingDays'] ?? 0;
       isTrial = licenseStatus['isTrialActive'] ?? false;
       final isActivated = licenseStatus['isActivated'] ?? false;
+      isOfflineMode = licenseStatus['status'] == 'requires_internet';
       
-      // تحديد رسالة الاشتراك بناء على الحالة
-      if (isActivated) {
+      // تحديد رسالة الاشتراك
+      if (isOfflineMode) {
+        subscriptionAlert = licenseStatus['error'] ?? 'يرجى الاتصال بالإنترنت';
+      } else if (isActivated) {
         subscriptionAlert = 'النسخة مُفعَّلة';
-        isTrial = false; // التأكد من أن isTrial = false للنسخة المُفعَّلة
+        isTrial = false;
       } else if (isTrial && remainingDays > 0) {
         subscriptionAlert = 'تبقى $remainingDays يومًا للفترة التجريبية';
       } else if (remainingDays <= 0) {
@@ -77,17 +84,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
       
       // طباعة معلومات التشخيص
       print('🔍 حالة الترخيص: ${licenseStatus['status']}');
+      print('🔍 وضع عدم الاتصال: $isOfflineMode');
       print('🔍 مُفعَّل: $isActivated');
       print('🔍 فترة تجريبية نشطة: $isTrial');
       print('🔍 أيام متبقية: $remainingDays');
-      print('🔍 رسالة الاشتراك: $subscriptionAlert');
       
     } catch (e) {
       debugPrint('Error fetching dashboard stats: \n$e');
-      // قيم افتراضية في حالة الخطأ
       subscriptionAlert = 'خطأ في جلب البيانات';
       remainingDays = 0;
       isTrial = false;
+      isOfflineMode = true;
     } finally {
       setState(() => isLoading = false);
     }
@@ -259,8 +266,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+
         title:  Row(
           children: [
+            // إضافة مؤشر الوضع (أونلاين/أوفلاين)
+            if (isOfflineMode)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade800,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.cloud_off, color: Colors.white, size: 14),
+                    SizedBox(width: 4),
+                    Text('بدون إنترنت', style: TextStyle(color: Colors.white, fontSize: 10)),
+                  ],
+                ),
+              ),
+            if (isOfflineMode) const SizedBox(width: 8),
             // Text('لوحة التحكم'),
             // const SizedBox(width: 8),
             Text(' ${academicYear==''? 'غير محدد':academicYear} :العام الدراسي', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
@@ -307,6 +333,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
         actions: [
+
+      
+
           ProgramInfo.buildInfoButton(context),
           // عرض زر التفعيل فقط إذا لم يكن مُفعَّلاً
           if (isTrial || subscriptionAlert.contains('يحتاج تفعيل') || subscriptionAlert.contains('انتهت'))
@@ -382,6 +411,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       {'label': 'سجل الفواتير', 'icon': Icons.receipt_long, 'route': '/payment-list'},
       {'label': 'إدارة المستخدمين', 'icon': Icons.admin_panel_settings, 'route': '/user-screen'},
       {'label': 'سجل العمليات', 'icon': Icons.history, 'route': '/logs-screen'},
+      {'label': 'اختبار قاعدة البيانات', 'icon': Icons.bug_report, 'route': '/database-test'},
+      {'label': 'اختبار النظام الشامل', 'icon': Icons.verified_user, 'route': '/system-test'},
       // {'label': 'بيانات تجريبية', 'icon': Icons.science, 'route': '/test-data-generator'}, // جديد
     ];
 

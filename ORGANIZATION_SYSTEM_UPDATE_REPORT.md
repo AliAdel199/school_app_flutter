@@ -61,7 +61,6 @@ CREATE TABLE schools (
   organization_id INTEGER REFERENCES educational_organizations(id) ON DELETE CASCADE,
   name VARCHAR(255) NOT NULL,
   school_type VARCHAR(100),
-  grade_levels JSONB,
   email VARCHAR(255),
   phone VARCHAR(50),
   address TEXT,
