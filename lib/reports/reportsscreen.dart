@@ -7,11 +7,15 @@ import '/localdatabase/income.dart';
 import '/localdatabase/student.dart';
 import '/localdatabase/student_fee_status.dart';
 import '/localdatabase/student_payment.dart';
+import '/localdatabase/school.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'student_payment_status_report.dart';
+import '../services/reports_supabase_service.dart';
+import '../services/supabase_service.dart';
+import 'uploaded_reports_screen.dart';
 
 import '../main.dart';
 
@@ -62,17 +66,36 @@ class _ReportsScreenState extends State<ReportsScreen> {
   double totalExpenses = 0;
   double netBalance = 0;
 
+  int organizationId = 1; // معرف المنظمة
+  int schoolId = 1; // معرف المدرسة (يمكن تركه null لجميع المدارس)
+
   DateTime? startDate;
   DateTime? endDate;
   
   List<String> academicYears = [];
   String? selectedAcademicYear;
 
+  Future<void> getSchoolInfo() async {
+    try {
+      final schools = await isar.schools.where().findAll();
+      if (schools.isNotEmpty) {
+        final school = schools.first;
+        organizationId = school.organizationId ?? 1; // استخدام معرف المنظمة من قاعدة البيانات
+        schoolId = school.supabaseId ?? 1; // استخدام معرف المدرسة من قاعدة البيانات
+      } else {
+        print('❌ لا توجد بيانات مدرسة في قاعدة البيانات');
+      }
+    } catch (e) {
+      print('❌ خطأ في جلب معلومات المدرسة: $e');
+    }
+  }
+
   @override
    void initState() {
     super.initState();
     loadAcademicYear();
     loadAcademicYears();
+    getSchoolInfo(); // جلب معلومات المدرسة عند بدء الشاشة
     // تعيين فترة زمنية افتراضية (العام الحالي) - ستظهر فقط إذا لم يتم اختيار سنة دراسية
     final now = DateTime.now();
     startDate = DateTime(now.year, 1, 1); // بداية السنة الحالية
@@ -240,6 +263,261 @@ debugPrint('الرصيد الصافي: ${netBalance.toStringAsFixed(2)} د.ع');
       if (mounted) setState(() => isLoading = false);
     }
   }
+
+  /// رفع التقرير الحالي إلى Supabase
+  Future<void> uploadReportToSupabase() async {
+    try {
+      // إظهار مؤشر التحميل
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('جاري رفع التقرير...'),
+            ],
+          ),
+        ),
+      );
+
+      // جلب بيانات المدرسة من قاعدة البيانات المحلية
+      final schools = await isar.schools.where().findAll();
+      if (schools.isEmpty) {
+        Navigator.of(context).pop(); // إغلاق مؤشر التحميل
+        _showErrorDialog('لا توجد بيانات مدرسة. يجب إعداد المدرسة أولاً.');
+        return;
+      }
+      final school = schools.first;
+
+      // التحقق من وجود معرفات Supabase - إذا لم تكن موجودة، نقوم بالمزامنة أولاً
+      if (school.supabaseId == null || school.organizationId == null) {
+        Navigator.of(context).pop(); // إغلاق مؤشر التحميل
+        
+        // عرض حوار للمزامنة
+        final shouldSync = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            icon: const Icon(Icons.sync, color: Colors.orange, size: 48),
+            title: const Text('مطلوب ربط بالنظام السحابي'),
+            content: const Text('المدرسة غير مرتبطة بالنظام السحابي. هل تريد ربطها الآن؟'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('إلغاء'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('ربط الآن'),
+              ),
+            ],
+          ),
+        );
+
+        if (shouldSync == true) {
+          await syncSchoolWithSupabase();
+          return; // سيتم استدعاء الدالة مرة أخرى بعد المزامنة
+        } else {
+          return;
+        }
+      }
+
+      final result = await ReportsSupabaseService.uploadGeneralReport(
+        organizationId: school.organizationId!,
+        schoolId: school.supabaseId!,
+        academicYear: selectedAcademicYear,
+        periodStart: startDate,
+        periodEnd: endDate,
+        totalStudents: totalStudents,
+        activeStudents: activeStudents,
+        inactiveStudents: inactiveStudents,
+        graduatedStudents: graduatedStudents,
+        withdrawnStudents: withdrawnStudents,
+        totalAnnualFees: totalAnnualFees,
+        totalPaid: totalPaid,
+        totalDue: totalDue,
+        totalIncomes: totalIncomes,
+        totalExpenses: totalExpenses,
+        netBalance: netBalance,
+        additionalData: {
+          'generated_from': 'flutter_app',
+          'app_version': '1.0.0',
+          'generation_timestamp': DateTime.now().toIso8601String(),
+          'school_name': school.name,
+        },
+      );
+
+      // إغلاق مؤشر التحميل
+      Navigator.of(context).pop();
+
+      if (result != null) {
+        // إظهار رسالة نجاح
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                Text('تم رفع التقرير بنجاح! رقم التقرير: ${result['id']}'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      // إغلاق مؤشر التحميل في حالة الخطأ
+      Navigator.of(context).pop();
+      
+      // إظهار رسالة خطأ
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error, color: Colors.white),
+              const SizedBox(width: 8),
+              Text('فشل في رفع التقرير: $e'),
+            ],
+          ),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+      
+      debugPrint('خطأ في رفع التقرير إلى Supabase: $e');
+    }
+  }
+
+  /// التحقق من حالة المزامنة مع Supabase
+  Future<bool> checkSyncStatus() async {
+    final schools = await isar.schools.where().findAll();
+    if (schools.isEmpty) return false;
+    final school = schools.first;
+    return school.supabaseId != null && school.organizationId != null;
+  }
+
+  /// مزامنة المدرسة مع Supabase
+  Future<void> syncSchoolWithSupabase() async {
+    try {
+      // إظهار مؤشر التحميل
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('جاري ربط المدرسة بالنظام السحابي...'),
+            ],
+          ),
+        ),
+      );
+
+      final school = await isar.schools.where().findFirst();
+      if (school == null) {
+        Navigator.of(context).pop();
+        _showErrorDialog('لا توجد بيانات مدرسة');
+        return;
+      }
+
+      // إنشاء أو تحديث المدرسة في Supabase
+      final result = await SupabaseService.createOrganizationWithSchool(
+        organizationName: '${school.name} التعليمية',
+        organizationEmail: 'admin@${school.name.replaceAll(' ', '').toLowerCase()}.edu',
+        schoolName: school.name,
+        schoolType: school.organizationType ?? 'مختلطة',
+        adminName: 'مدير المدرسة',
+        adminEmail: 'admin@${school.name.replaceAll(' ', '').toLowerCase()}.edu',
+        adminPassword: 'defaultPassword123',
+      );
+
+      // إغلاق مؤشر التحميل
+      Navigator.of(context).pop();
+
+      if (result != null) {
+        // تحديث بيانات المدرسة المحلية
+        await isar.writeTxn(() async {
+          school.supabaseId = result['school']['id'];
+          school.organizationId = result['organization']['id'];
+          await isar.schools.put(school);
+        });
+
+        _showSuccessDialog('تم ربط المدرسة بالنظام السحابي بنجاح');
+        
+        // إعادة تحديث الواجهة
+        setState(() {});
+        
+        // عرض خيار رفع التقرير الآن
+        final shouldUpload = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            icon: const Icon(Icons.cloud_upload, color: Colors.green, size: 48),
+            title: const Text('تم الربط بنجاح'),
+            content: const Text('هل تريد رفع التقرير الآن؟'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('لاحقاً'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('رفع الآن'),
+              ),
+            ],
+          ),
+        );
+
+        if (shouldUpload == true) {
+          uploadReportToSupabase();
+        }
+      } else {
+        _showErrorDialog('فشل في ربط المدرسة بالنظام السحابي');
+      }
+
+    } catch (e) {
+      // إغلاق مؤشر التحميل في حالة الخطأ
+      Navigator.of(context).pop();
+      debugPrint('خطأ في المزامنة: $e');
+      _showErrorDialog('فشل في المزامنة: ${e.toString()}');
+    }
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: const Icon(Icons.error, color: Colors.red, size: 48),
+        title: const Text('خطأ'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('موافق'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSuccessDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: const Icon(Icons.check_circle, color: Colors.green, size: 48),
+        title: const Text('نجح'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('موافق'),
+          ),
+        ],
+      ),
+    );
+  }
  
   Future<void> printReportPdf() async {
     final pdf = pw.Document();
@@ -390,6 +668,26 @@ debugPrint('الرصيد الصافي: ${netBalance.toStringAsFixed(2)} د.ع');
             },
           ),
           IconButton(
+            icon: const Icon(Icons.cloud_download),
+            tooltip: 'عرض التقارير المرفوعة',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => UploadedReportsScreen(
+                    organizationId: organizationId,
+                    schoolId: schoolId,
+                  ),
+                ),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.cloud_upload),
+            tooltip: 'رفع التقرير إلى السحابة',
+            onPressed: uploadReportToSupabase,
+          ),
+          IconButton(
             icon: const Icon(Icons.print),
             tooltip: 'طباعة التقرير',
             onPressed: printReportPdf,
@@ -400,8 +698,7 @@ debugPrint('الرصيد الصافي: ${netBalance.toStringAsFixed(2)} د.ع');
           ? const Center(child: CircularProgressIndicator())
           : Padding(
               padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
+              child: ListView(
                 children: [
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -670,11 +967,13 @@ debugPrint('الرصيد الصافي: ${netBalance.toStringAsFixed(2)} د.ع');
                         ],
                       ),
                     ),
-                  Expanded(
-                    child: Wrap(
-                      spacing: 25,
-                      runSpacing: 30,
-                      children: [
+                  Container(
+                    height: MediaQuery.of(context).size.height * 0.6, // ارتفاع ثابت بدلاً من Expanded
+                    child: SingleChildScrollView(
+                      child: Wrap(
+                        spacing: 25,
+                        runSpacing: 30,
+                        children: [
                         _buildCard('عدد الطلاب الكلي', '$totalStudents', Colors.blue),
                         _buildCard('الطلاب الفعالين', '$activeStudents', Colors.green),
                         _buildCard('غير الفعالين', '$inactiveStudents', Colors.grey),
@@ -688,6 +987,7 @@ debugPrint('الرصيد الصافي: ${netBalance.toStringAsFixed(2)} د.ع');
                         _buildCard('الرصيد الصافي', '${formatter.format(netBalance)} د.ع',
                             netBalance >= 0 ? Colors.green : Colors.red),
                       ],
+                      ),
                     ),
                   ),
                 ],

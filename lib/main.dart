@@ -21,7 +21,9 @@ import '../income_expeness/incomes.dart';
 import 'classes/classes_list_screen.dart';
 import '../reports/reportsscreen.dart';
 import '../reports/student_payment_status_report.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'reports/uploaded_reports_screen.dart';
+import 'reports/reports_diagnostic_screen.dart';
+
 import 'LicenseCheckScreen.dart';
 import 'LogsScreen.dart';
 import 'UsersScreen.dart';
@@ -47,6 +49,7 @@ import 'employee/monthlysalaryscreen.dart';
 import 'schoolregstristion.dart';
 import 'services/services.dart';
 import 'student/add_student_screen_supabase.dart';
+import 'test_fetch_reports.dart';
 import 'classes/addclassscreen.dart';
 import 'dashboard_screen.dart';
 import 'classes/edit_class_screen.dart';
@@ -107,11 +110,8 @@ Future<void> main() async {
   await initializeDateFormatting('ar', null);
     final dir2 = await getApplicationSupportDirectory();
 print(dir2.path);
-  await Supabase.initialize(
-    url: SupabaseService.supabaseUrl,
-    anonKey: SupabaseService.supabaseAnonKey,
-    debug: false, // تعطيل الـ debug في الإنتاج
-  );
+  // تهيئة Supabase سيتم في SupabaseService
+  await SupabaseService.initialize();
 
   final dir = Directory.current;
   isar = await Isar.open([
@@ -256,6 +256,12 @@ class SchoolApp extends StatelessWidget {
         '/logs-screen': (context) => const LogsScreen(),
         '/database-test': (context) => DatabaseTestScreen(),
         '/system-test': (context) => const SystemTestScreen(),
+        '/uploaded-reports': (context) => const UploadedReportsScreen(
+              organizationId: 1, // سيتم تحديثه لاحقاً
+              schoolId: 1, // سيتم تحديثه لاحقاً
+            ),
+        '/test-fetch-reports': (context) => const TestFetchReports(),
+        '/reports-diagnostic': (context) => const ReportsDiagnosticScreen(),
       },
     );
   }

@@ -234,7 +234,7 @@ class _SystemTestScreenState extends State<SystemTestScreen> {
       _testResults.clear();
     });
 
-    _addTestResult('🚀 بدء الاختبار الشامل', '', TestStatus.running);
+    _addTestResult('🚀 بدء الاختبار الشامل', 'بدء سلسلة الاختبارات...', TestStatus.running);
 
     // تشغيل جميع الاختبارات بالتسلسل
     await _testNetwork();
@@ -244,7 +244,16 @@ class _SystemTestScreenState extends State<SystemTestScreen> {
     await _testCreateUser();
     await _testStats();
 
-    _addTestResult('🎉 انتهاء الاختبار الشامل', 'تم تشغيل جميع الاختبارات', TestStatus.success);
+    // حساب الإحصائيات
+    int successCount = _testResults.where((r) => r.status == TestStatus.success).length;
+    int failureCount = _testResults.where((r) => r.status == TestStatus.failure).length;
+    int warningCount = _testResults.where((r) => r.status == TestStatus.warning).length;
+    
+    _addTestResult(
+      '🎉 انتهاء الاختبار الشامل', 
+      'مكتمل: $successCount نجح، $failureCount فشل، $warningCount تحذير', 
+      failureCount == 0 ? TestStatus.success : TestStatus.warning
+    );
 
     setState(() {
       _isRunning = false;
@@ -305,10 +314,22 @@ class _SystemTestScreenState extends State<SystemTestScreen> {
     try {
       _addTestResult('🔗 اختبار Supabase', 'فحص الاتصال مع قاعدة البيانات...', TestStatus.running);
       
+      // أولاً، التحقق من تفعيل الخدمة
+      if (!SupabaseService.isEnabled) {
+        _updateLastTestResult(
+          'اختبار Supabase',
+          'خدمة Supabase غير مفعلة ⚠️',
+          TestStatus.warning,
+          stopwatch.elapsedMilliseconds,
+          'تحقق من إعدادات SupabaseService في الكود',
+        );
+        return;
+      }
+      
       // اختبار الاتصال البسيط
       final response = await SupabaseService.client
           .from('educational_organizations')
-          .select('id')
+          .select('id, name')
           .limit(1);
       
       stopwatch.stop();
@@ -318,7 +339,7 @@ class _SystemTestScreenState extends State<SystemTestScreen> {
         'الاتصال مع قاعدة البيانات يعمل ✅',
         TestStatus.success,
         stopwatch.elapsedMilliseconds,
-        'استجابة: تم جلب ${response.length} سجل',
+        'استجابة: تم جلب ${response.length} سجل\nURL: ${SupabaseService.supabaseUrl}',
       );
     } catch (e) {
       stopwatch.stop();
@@ -327,7 +348,7 @@ class _SystemTestScreenState extends State<SystemTestScreen> {
         'فشل الاتصال مع قاعدة البيانات ❌',
         TestStatus.failure,
         stopwatch.elapsedMilliseconds,
-        'خطأ: $e',
+        'خطأ: $e\n\nتحقق من:\n- صحة URL و AnonKey\n- اتصال الإنترنت\n- إعدادات RLS في Supabase',
       );
     }
   }
@@ -342,22 +363,24 @@ class _SystemTestScreenState extends State<SystemTestScreen> {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final result = await SupabaseService.createEducationalOrganization(
         name: 'مؤسسة تجريبية $timestamp',
-        email: 'test$timestamp@example.com',
-        phone: '01234567890',
+        email: 'test$timestamp@gmail.com',
+        phone: '07712345678',
         address: 'عنوان تجريبي',
         subscriptionPlan: 'basic',
         subscriptionStatus: 'trial',
+        maxSchools: 1,
+        maxStudents: 100,
       );
       
       stopwatch.stop();
       
-      if (result != null) {
+      if (result != null && result.isNotEmpty) {
         _updateLastTestResult(
           'اختبار إنشاء مؤسسة',
           'تم إنشاء المؤسسة بنجاح ✅',
           TestStatus.success,
           stopwatch.elapsedMilliseconds,
-          'ID: ${result['id']}\nاسم: ${result['name']}\nبريد: ${result['email']}',
+          'ID: ${result['id']}\nاسم: ${result['name']}\nبريد: ${result['email']}\nحالة الاشتراك: ${result['subscription_status']}',
         );
       } else {
         _updateLastTestResult(
@@ -365,7 +388,7 @@ class _SystemTestScreenState extends State<SystemTestScreen> {
           'فشل في إنشاء المؤسسة ❌',
           TestStatus.failure,
           stopwatch.elapsedMilliseconds,
-          'لم يتم إرجاع نتيجة من الخادم',
+          'لم يتم إرجاع نتيجة من الخادم - تحقق من:\n- اتصال الإنترنت\n- إعدادات Supabase\n- صحة البيانات المرسلة',
         );
       }
     } catch (e) {
@@ -375,7 +398,7 @@ class _SystemTestScreenState extends State<SystemTestScreen> {
         'خطأ في إنشاء المؤسسة ❌',
         TestStatus.failure,
         stopwatch.elapsedMilliseconds,
-        'خطأ: $e',
+        'خطأ: $e\n\nاحتمالات الخطأ:\n- مشكلة في الشبكة\n- مشكلة في قاعدة البيانات\n- بيانات مكررة (البريد الإلكتروني)',
       );
     }
   }
@@ -404,8 +427,10 @@ class _SystemTestScreenState extends State<SystemTestScreen> {
         schoolType: 'مختلطة',
         gradeLevels: [1, 2, 3, 4, 5, 6],
         email: 'school$timestamp@example.com',
-        phone: '01234567891',
+        phone: '07712345679',
         address: 'عنوان المدرسة التجريبية',
+        maxStudentsCount: 100,
+        establishedYear: 2025,
       );
       
       stopwatch.stop();
