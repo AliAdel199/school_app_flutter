@@ -11,6 +11,7 @@ class User {
   late String email;
 
   late String password; // يفضل لاحقًا تخزينها مشفرة
+  late String schoolId;  // auth.uid() من Supabase
 
   DateTime createdAt = DateTime.now();
 }

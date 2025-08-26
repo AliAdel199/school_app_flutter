@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:isar/isar.dart';
 import 'package:pdf/pdf.dart';
-import '/localdatabase/expense.dart';
-import '/localdatabase/income.dart';
+import 'package:school_app_flutter/localdatabase/expense.dart';
+import 'package:school_app_flutter/localdatabase/income.dart';
+import 'package:school_app_flutter/localdatabase/user.dart';
+import 'package:school_app_flutter/models/reportsmangemant.dart';
+
 import '/localdatabase/student.dart';
 import '/localdatabase/student_fee_status.dart';
 import '/localdatabase/student_payment.dart';
@@ -15,6 +18,7 @@ import 'package:printing/printing.dart';
 import 'student_payment_status_report.dart';
 import '../services/reports_supabase_service.dart';
 import '../services/supabase_service.dart';
+import '../services/premium_features_service.dart';
 import 'uploaded_reports_screen.dart';
 
 import '../main.dart';
@@ -52,6 +56,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   final supabase = Supabase.instance.client;
 
   bool isLoading = true;
+  bool _hasOnlineReports = false;
   int totalStudents = 0;
   int activeStudents = 0;
   int inactiveStudents = 0;
@@ -82,6 +87,19 @@ class _ReportsScreenState extends State<ReportsScreen> {
         final school = schools.first;
         organizationId = school.organizationId ?? 1; // استخدام معرف المنظمة من قاعدة البيانات
         schoolId = school.supabaseId ?? 1; // استخدام معرف المدرسة من قاعدة البيانات
+        
+        // إذا كان معرف المؤسسة 1، حاول الحصول على المؤسسة الافتراضية
+        if (organizationId == 1) {
+          final defaultOrgId = await SupabaseService.getOrCreateDefaultOrganization();
+          if (defaultOrgId != null) {
+            organizationId = defaultOrgId;
+            // تحديث بيانات المدرسة المحلية
+            school.organizationId = defaultOrgId;
+            await isar.writeTxn(() async {
+              await isar.schools.put(school);
+            });
+          }
+        }
       } else {
         print('❌ لا توجد بيانات مدرسة في قاعدة البيانات');
       }
@@ -96,12 +114,24 @@ class _ReportsScreenState extends State<ReportsScreen> {
     loadAcademicYear();
     loadAcademicYears();
     getSchoolInfo(); // جلب معلومات المدرسة عند بدء الشاشة
+    _checkOnlineReportsFeature(); // التحقق من ميزة التقارير الأونلاين
     // تعيين فترة زمنية افتراضية (العام الحالي) - ستظهر فقط إذا لم يتم اختيار سنة دراسية
     final now = DateTime.now();
     startDate = DateTime(now.year, 1, 1); // بداية السنة الحالية
     endDate = DateTime(now.year, 12, 31); // نهاية السنة الحالية
 
     fetchReportData();
+  }
+
+  Future<void> _checkOnlineReportsFeature() async {
+    final featureStatus = await PremiumFeaturesService.checkFeatureStatus(
+      organizationId,
+      'online_reports',
+    );
+    
+    setState(() {
+      _hasOnlineReports = featureStatus['available'] ?? false;
+    });
   }
   
   Future<void> loadAcademicYears() async {
@@ -264,8 +294,206 @@ debugPrint('الرصيد الصافي: ${netBalance.toStringAsFixed(2)} د.ع');
     }
   }
 
-  /// رفع التقرير الحالي إلى Supabase
+  void _showPurchaseDialog() {
+    PremiumFeaturesService.showPurchaseDialog(
+      context,
+      'online_reports',
+      organizationId,
+      () {
+        _checkOnlineReportsFeature();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم تفعيل ميزة التقارير الأونلاين بنجاح!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      },
+    );
+  }
+
+  /// رفع التقرير الحالي إلى Supabase (محدث للميزات المدفوعة)
   Future<void> uploadReportToSupabase() async {
+    try {
+      // إظهار مؤشر التحميل
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('جاري رفع التقرير...'),
+            ],
+          ),
+        ),
+      );
+
+      // إعداد بيانات التقرير
+      final reportData = {
+        'total_students': totalStudents,
+        'active_students': activeStudents,
+        'inactive_students': inactiveStudents,
+        'graduated_students': graduatedStudents,
+        'withdrawn_students': withdrawnStudents,
+        'total_annual_fees': totalAnnualFees,
+        'total_paid': totalPaid,
+        'total_due': totalDue,
+        'total_incomes': totalIncomes,
+        'total_expenses': totalExpenses,
+        'net_balance': netBalance,
+        'academic_year': selectedAcademicYear,
+        'date_range': {
+          'start_date': startDate?.toIso8601String(),
+          'end_date': endDate?.toIso8601String(),
+        },
+        'generated_at': DateTime.now().toIso8601String(),
+      };
+
+      // رفع التقرير مع التحقق من الصلاحيات
+      final result = await SupabaseService.uploadOrganizationReport(
+        organizationId: organizationId,
+        schoolId: schoolId,
+        reportType: 'general_report',
+        reportTitle: 'التقرير العام - ${selectedAcademicYear ?? 'الكل'}',
+        reportData: reportData,
+        period: selectedAcademicYear ?? 'custom',
+        generatedBy: 'admin', // يمكن تطويرها لاحقاً
+      );
+
+      Navigator.of(context).pop(); // إغلاق مؤشر التحميل
+
+      if (result['success']) {
+        _showSuccessDialog('تم رفع التقرير بنجاح!');
+      } else {
+        if (result['error_code'] == 'FEATURE_NOT_AVAILABLE') {
+          // عرض رسالة الترقية
+          _showUpgradeDialog(result['error'], result['current_plan']);
+        } else {
+          _showErrorDialog('فشل رفع التقرير: ${result['error']}');
+        }
+      }
+    } catch (e) {
+      Navigator.of(context).pop(); // إغلاق مؤشر التحميل
+      _showErrorDialog('حدث خطأ: $e');
+    }
+  }
+
+  void _showUpgradeDialog(String error, String? currentPlan) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: const Icon(Icons.lock, color: Colors.orange, size: 48),
+        title: const Text('ميزة مدفوعة'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(error),
+            const SizedBox(height: 16),
+            Text('باقتك الحالية: ${currentPlan ?? 'غير محدد'}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _showPurchaseDialog();
+            },
+            child: const Text('شراء الميزة'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<Map<String, int>> generateReport(Isar isar) async {
+  final students = await isar.students.where().findAll();
+  final expenses = await isar.expenses.where().findAll();
+  
+
+  final totalStudents = students.length;
+  final activeStudents = students.where((s) => s.status=='active').length;
+  final inactiveStudents = students.where((s) => s.status=='inactive').length;
+  // final graduates = students.where((s) => s.isGraduate).length;
+  final withdrawn = students.where((s) => s.status=='withdrawn').length;
+
+  final totalAnnualFees = students.fold(0.0, (sum, s) => sum + (s.annualFee?.toDouble() ?? 0.0));
+  // final totalPaid = students.fold(0.0, (sum, s) => sum + (s.paidAmount?.toDouble() ?? 0.0));
+  final totalRemaining = totalAnnualFees - totalPaid;
+
+  final totalExpenses = expenses.fold(0.0, (sum, e) => sum + e.amount.toDouble());
+  final netBalance = totalPaid - totalExpenses;
+
+  return {
+    'totalStudents': totalStudents,
+    'activeStudents': activeStudents,
+    'inactiveStudents': inactiveStudents,
+    // 'graduates': graduates,
+    'withdrawn': withdrawn,
+    'totalAnnualFees': totalAnnualFees.toInt(),
+    'totalPaid': totalPaid.toInt(),
+    'totalRemaining': totalRemaining.toInt(),
+    'totalIncome': totalPaid.toInt(), // الدخل الفعلي = المدفوع
+    'totalExpenses': totalExpenses.toInt(),
+    'netBalance': netBalance.toInt(),
+  };
+}
+
+
+Future<void> _handleUpload() async {
+  // final isar = await Isar.open([UserSchema, StudentSchema, ExpenseSchema]);
+  final auth = await isar.users.where().findFirst();
+
+  if (auth == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("⚠️ لا توجد بيانات تسجيل محفوظة")),
+    );
+    return;
+  }
+  ReportsManagement reportsManager = ReportsManagement();
+
+  await reportsManager.loginFromIsar(isar);
+
+  final allowed = await reportsManager.canUploadReports(auth.schoolId);
+
+  if (!allowed) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("❌ الاشتراك غير فعال أو منتهي")),
+    );
+    return;
+  }
+
+  // ⬇️ هنا نولد التقرير من Isar بدل الأرقام الثابتة
+  final report = await generateReport(isar);
+
+  await reportsManager.uploadSchoolReport(
+    schoolId: auth.schoolId,
+    totalStudents: report['totalStudents']!,
+    activeStudents: report['activeStudents']!,
+    inactiveStudents: report['inactiveStudents']!,
+    graduates: report['graduates']!,
+    withdrawn: report['withdrawn']!,
+    totalAnnualFees: report['totalAnnualFees']!,
+    totalPaid: report['totalPaid']!,
+    totalRemaining: report['totalRemaining']!,
+    totalIncome: report['totalIncome']!,
+    totalExpenses: report['totalExpenses']!,
+    netBalance: report['netBalance']!,
+  );
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text("✅ تم رفع التقارير بنجاح")),
+  );
+}
+
+
+
+  /// رفع التقرير الحالي إلى Supabase
+  Future<void> uploadReportToSupabaseOld() async {
     try {
       // إظهار مؤشر التحميل
       showDialog(
@@ -683,9 +911,9 @@ debugPrint('الرصيد الصافي: ${netBalance.toStringAsFixed(2)} د.ع');
             },
           ),
           IconButton(
-            icon: const Icon(Icons.cloud_upload),
-            tooltip: 'رفع التقرير إلى السحابة',
-            onPressed: uploadReportToSupabase,
+            icon: Icon(_hasOnlineReports ? Icons.cloud_upload : Icons.lock),
+            tooltip: _hasOnlineReports ? 'رفع التقرير إلى السحابة' : 'رفع التقارير أونلاين (مدفوع)',
+            onPressed: _hasOnlineReports ? uploadReportToSupabase : _showPurchaseDialog,
           ),
           IconButton(
             icon: const Icon(Icons.print),
@@ -967,13 +1195,11 @@ debugPrint('الرصيد الصافي: ${netBalance.toStringAsFixed(2)} د.ع');
                         ],
                       ),
                     ),
-                  Container(
-                    height: MediaQuery.of(context).size.height * 0.6, // ارتفاع ثابت بدلاً من Expanded
-                    child: SingleChildScrollView(
-                      child: Wrap(
-                        spacing: 25,
-                        runSpacing: 30,
-                        children: [
+                  Expanded(
+                    child: Wrap(
+                      spacing: 25,
+                      runSpacing: 30,
+                      children: [
                         _buildCard('عدد الطلاب الكلي', '$totalStudents', Colors.blue),
                         _buildCard('الطلاب الفعالين', '$activeStudents', Colors.green),
                         _buildCard('غير الفعالين', '$inactiveStudents', Colors.grey),
@@ -987,7 +1213,6 @@ debugPrint('الرصيد الصافي: ${netBalance.toStringAsFixed(2)} د.ع');
                         _buildCard('الرصيد الصافي', '${formatter.format(netBalance)} د.ع',
                             netBalance >= 0 ? Colors.green : Colors.red),
                       ],
-                      ),
                     ),
                   ),
                 ],

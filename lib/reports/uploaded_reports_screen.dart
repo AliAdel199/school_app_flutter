@@ -42,6 +42,7 @@ class _UploadedReportsScreenState extends State<UploadedReportsScreen> {
       if (widget.schoolId != null) {
         // تقارير مدرسة واحدة
         print('📊 جلب تقارير المدرسة ${widget.schoolId}...');
+        print(widget.organizationId);
         fetchedReports = await ReportsSupabaseService.getSchoolReports(
           schoolId: widget.schoolId!,
           academicYear: selectedAcademicYear,

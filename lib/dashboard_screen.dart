@@ -397,6 +397,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildActionCards(BuildContext context) {
     final actions = [
+      
       {'label': 'الطلاب', 'icon': Icons.people, 'route': '/students'},
       {'label': 'إضافة طالب', 'icon': Icons.person_add, 'route': '/add-student'},
       {'label': 'المراحل', 'icon': Icons.score, 'route': '/classes'},
@@ -405,17 +406,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
       {'label': 'تقرير درجات الطالب', 'icon': Icons.school, 'route': '/student-grades-report'},
       {'label': 'إدارة الخصومات', 'icon': Icons.percent, 'route': '/discount-management'},
       {'label': 'التقارير العامة', 'icon': Icons.bar_chart, 'route': '/reportsscreen'},
-      {'label': 'التقارير المرفوعة', 'icon': Icons.cloud_upload, 'route': '/uploaded-reports'},
-      {'label': 'تشخيص التقارير', 'icon': Icons.engineering, 'route': '/reports-diagnostic'},
-      {'label': 'اختبار جلب التقارير', 'icon': Icons.bug_report, 'route': '/test-fetch-reports'},
+      // {'label': 'التقارير المرفوعة', 'icon': Icons.cloud_upload, 'route': '/uploaded-reports'},
+      // {'label': 'تشخيص التقارير', 'icon': Icons.engineering, 'route': '/reports-diagnostic'},
+      // {'label': 'اختبار جلب التقارير', 'icon': Icons.bug_report, 'route': '/test-fetch-reports'},
       {'label': 'تقرير حالة الطلاب', 'icon': Icons.assignment, 'route': '/student-payment-status'},
       {'label': 'قائمة المصروفات', 'icon': Icons.money_off, 'route': '/expense-list'},
       {'label': 'قائمة الدخل', 'icon': Icons.account_balance_wallet, 'route': '/income'},
       {'label': 'سجل الفواتير', 'icon': Icons.receipt_long, 'route': '/payment-list'},
       {'label': 'إدارة المستخدمين', 'icon': Icons.admin_panel_settings, 'route': '/user-screen'},
       {'label': 'سجل العمليات', 'icon': Icons.history, 'route': '/logs-screen'},
-      {'label': 'اختبار قاعدة البيانات', 'icon': Icons.bug_report, 'route': '/database-test'},
-      {'label': 'اختبار النظام الشامل', 'icon': Icons.verified_user, 'route': '/system-test'},
+      {'label': 'إدارة الاشتراكات', 'icon': Icons.subscriptions, 'route': '/admin-dashboard'}, // جديد
+      // {'label': 'اختبار قاعدة البيانات', 'icon': Icons.bug_report, 'route': '/database-test'},
+      // {'label': 'اختبار النظام الشامل', 'icon': Icons.verified_user, 'route': '/system-test'},
       // {'label': 'بيانات تجريبية', 'icon': Icons.science, 'route': '/test-data-generator'}, // جديد
     ];
 

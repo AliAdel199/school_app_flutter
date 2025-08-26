@@ -66,14 +66,40 @@ class OnlineReportsService {
         };
       }
       
-      // التحقق من Supabase
+      // التحقق من Supabase - التحديث المطلوب
       if (SupabaseService.isEnabled) {
-        final isActive = await SupabaseService.checkOrganizationSubscriptionStatus(school.organizationId!);
-        if (!isActive) {
+        final subscriptionStatus = await SupabaseService.checkOrganizationSubscriptionStatus(school.organizationId!);
+        
+        if (subscriptionStatus == null) {
+          return {
+            'has_access': false,
+            'reason': 'cloud_check_failed',
+            'message': 'فشل في التحقق من حالة الاشتراك السحابي',
+          };
+        }
+        
+        // التحقق من نشاط الاشتراك السحابي
+        final isCloudActive = subscriptionStatus['is_active'] ?? false;
+        if (!isCloudActive) {
           return {
             'has_access': false,
             'reason': 'cloud_subscription_inactive',
             'message': 'الاشتراك السحابي غير نشط',
+            'cloud_status': subscriptionStatus['subscription_status'],
+            'cloud_plan': subscriptionStatus['subscription_plan'],
+          };
+        }
+        
+        // التحقق من ميزة التقارير الأونلاين تحديداً
+        final hasOnlineReports = subscriptionStatus['has_online_reports'] ?? false;
+        if (!hasOnlineReports) {
+          return {
+            'has_access': false,
+            'reason': 'feature_not_available',
+            'message': 'ميزة التقارير الأونلاين غير مفعلة في اشتراكك السحابي',
+            'upgrade_required': true,
+            'current_plan': subscriptionStatus['subscription_plan'],
+            'feature_purchase_required': true,
           };
         }
       }
@@ -144,6 +170,7 @@ class OnlineReportsService {
         'message': accessCheck['message'],
         'reason': accessCheck['reason'],
         'upgrade_required': accessCheck['upgrade_required'] ?? false,
+        'feature_purchase_required': accessCheck['feature_purchase_required'] ?? false,
         'recommended_plan': accessCheck['recommended_plan'],
       };
     }
@@ -160,7 +187,7 @@ class OnlineReportsService {
       final school = schools.first;
       
       print('📊 رفع التقرير المالي للمدرسة: ${school.name}');
-      final success = await SupabaseService.uploadOrganizationReport(
+      final result = await SupabaseService.uploadOrganizationReport(
         organizationId: school.organizationId ?? 0,
         schoolId: school.supabaseId!,
         reportType: 'financial',
@@ -170,10 +197,21 @@ class OnlineReportsService {
         generatedBy: 'نظام إدارة المدرسة',
       );
       
-      return {
-        'success': success,
-        'message': success ? 'تم رفع التقرير المالي بنجاح' : 'فشل في رفع التقرير المالي',
-      };
+      if (result['success'] == true) {
+        return {
+          'success': true,
+          'message': 'تم رفع التقرير المالي بنجاح',
+          'report_id': result['report_id'],
+        };
+      } else {
+        return {
+          'success': false,
+          'message': result['error'] ?? 'فشل في رفع التقرير المالي',
+          'error_code': result['error_code'],
+          'upgrade_required': result['upgrade_required'] ?? false,
+          'feature_purchase_required': result['upgrade_required'] ?? false,
+        };
+      }
     } catch (e) {
       return {
         'success': false,
@@ -196,6 +234,7 @@ class OnlineReportsService {
         'message': accessCheck['message'],
         'reason': accessCheck['reason'],
         'upgrade_required': accessCheck['upgrade_required'] ?? false,
+        'feature_purchase_required': accessCheck['feature_purchase_required'] ?? false,
         'recommended_plan': accessCheck['recommended_plan'],
       };
     }
@@ -212,7 +251,7 @@ class OnlineReportsService {
       final school = schools.first;
       
       print('👥 رفع تقرير الطلاب للمدرسة: ${school.name}');
-      final success = await SupabaseService.uploadOrganizationReport(
+      final result = await SupabaseService.uploadOrganizationReport(
         organizationId: school.organizationId ?? 0,
         schoolId: school.supabaseId!,
         reportType: 'students',
@@ -222,10 +261,21 @@ class OnlineReportsService {
         generatedBy: 'نظام إدارة المدرسة',
       );
       
-      return {
-        'success': success,
-        'message': success ? 'تم رفع تقرير الطلاب بنجاح' : 'فشل في رفع تقرير الطلاب',
-      };
+      if (result['success'] == true) {
+        return {
+          'success': true,
+          'message': 'تم رفع تقرير الطلاب بنجاح',
+          'report_id': result['report_id'],
+        };
+      } else {
+        return {
+          'success': false,
+          'message': result['error'] ?? 'فشل في رفع تقرير الطلاب',
+          'error_code': result['error_code'],
+          'upgrade_required': result['upgrade_required'] ?? false,
+          'feature_purchase_required': result['upgrade_required'] ?? false,
+        };
+      }
     } catch (e) {
       return {
         'success': false,
@@ -261,8 +311,110 @@ class OnlineReportsService {
     return result['success'] ?? false;
   }
   
-  /// عرض نافذة ترقية الاشتراك
-  static void showUpgradeDialog(BuildContext context) {
+  /// عرض نافذة ترقية الاشتراك أو شراء الميزة
+  static void showUpgradeDialog(BuildContext context, {bool featurePurchaseRequired = false}) {
+    if (featurePurchaseRequired) {
+      _showFeaturePurchaseDialog(context);
+    } else {
+      _showPlanUpgradeDialog(context);
+    }
+  }
+  
+  /// عرض نافذة شراء ميزة التقارير الأونلاين
+  static void _showFeaturePurchaseDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.cloud_upload, color: Colors.blue, size: 28),
+            SizedBox(width: 8),
+            Text('شراء ميزة التقارير الأونلاين'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('يمكنك شراء ميزة التقارير الأونلاين كإضافة منفصلة لباقتك الحالية.'),
+            SizedBox(height: 16),
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.shade200),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('✨ ميزة التقارير الأونلاين:',
+                       style: TextStyle(fontWeight: FontWeight.bold)),
+                  SizedBox(height: 8),
+                  Text('• ☁️ رفع التقارير على السحابة'),
+                  Text('• 🔒 نسخ احتياطي آمن'),
+                  Text('• 📱 الوصول من أي جهاز'),
+                  Text('• 📊 مشاركة التقارير'),
+                  Text('• 💾 تخزين غير محدود'),
+                ],
+              ),
+            ),
+            SizedBox(height: 12),
+            Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.green.shade200),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.price_check, color: Colors.green.shade700, size: 20),
+                      SizedBox(width: 8),
+                      Text('25,000 د.ع شهرياً',
+                           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green.shade800)),
+                    ],
+                  ),
+                  SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.star, color: Colors.amber, size: 20),
+                      SizedBox(width: 8),
+                      Text('250,000 د.ع سنوياً (وفر شهرين!)',
+                           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber.shade800)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('لاحقاً'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              _showContactInfo(context, isPurchase: true);
+            },
+            icon: Icon(Icons.shopping_cart),
+            label: Text('شراء الآن'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue.shade600,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  /// عرض نافذة ترقية الباقة
+  static void _showPlanUpgradeDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -327,8 +479,7 @@ class OnlineReportsService {
           ElevatedButton.icon(
             onPressed: () {
               Navigator.pop(context);
-              // يمكن إضافة رابط للترقية أو رقم التواصل هنا
-              _showContactInfo(context);
+              _showContactInfo(context, isPurchase: false);
             },
             icon: Icon(Icons.upgrade),
             label: Text('ترقية الآن'),
@@ -342,23 +493,28 @@ class OnlineReportsService {
     );
   }
   
-  /// عرض معلومات التواصل للترقية
-  static void _showContactInfo(BuildContext context) {
+  /// عرض معلومات التواصل للترقية أو الشراء
+  static void _showContactInfo(BuildContext context, {bool isPurchase = false}) {
+    final title = isPurchase ? 'شراء الميزة' : 'ترقية الباقة';
+    final message = isPurchase 
+        ? 'لشراء ميزة التقارير الأونلاين، يرجى التواصل معنا:'
+        : 'للترقية أو الاستفسار، يرجى التواصل معنا:';
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('معلومات التواصل'),
+        title: Text('معلومات التواصل - $title'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('للترقية أو الاستفسار، يرجى التواصل معنا:'),
+            Text(message),
             SizedBox(height: 16),
             Row(
               children: [
                 Icon(Icons.phone, color: Colors.green.shade600),
                 SizedBox(width: 8),
-                Text('الهاتف: +966 XX XXX XXXX'),
+                Text('الهاتف: +964 XX XXX XXXX'),
               ],
             ),
             SizedBox(height: 8),
@@ -366,7 +522,7 @@ class OnlineReportsService {
               children: [
                 Icon(Icons.email, color: Colors.blue.shade600),
                 SizedBox(width: 8),
-                Text('البريد: support@schoolapp.com'),
+                Text('البريد: support@schoolapp.iq'),
               ],
             ),
             SizedBox(height: 8),
@@ -374,7 +530,7 @@ class OnlineReportsService {
               children: [
                 Icon(Icons.chat, color: Colors.green.shade600),
                 SizedBox(width: 8),
-                Text('واتساب: +966 XX XXX XXXX'),
+                Text('واتساب: +964 XX XXX XXXX'),
               ],
             ),
           ],

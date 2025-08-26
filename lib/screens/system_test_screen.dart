@@ -564,7 +564,7 @@ class _SystemTestScreenState extends State<SystemTestScreen> {
         'تم جلب الإحصائيات بنجاح ✅',
         TestStatus.success,
         stopwatch.elapsedMilliseconds,
-        'حالة الاشتراك للمؤسسة $orgId: ${subscriptionStatus ? "نشط" : "غير نشط"}',
+        'حالة الاشتراك للمؤسسة $orgId: ${subscriptionStatus != null ? "نشط" : "غير نشط"}',
       );
     } catch (e) {
       stopwatch.stop();

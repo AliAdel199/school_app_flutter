@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:school_app_flutter/localdatabase/subject_mark.dart';
-import 'package:school_app_flutter/localdatabase/attendance.dart';
-import 'package:school_app_flutter/localdatabase/license_status_view.dart';
-import 'package:school_app_flutter/localdatabase/license_stats_view.dart';
+import '/localdatabase/subject_mark.dart';
+import '/localdatabase/attendance.dart';
+import '/localdatabase/license_status_view.dart';
+import '/localdatabase/license_stats_view.dart';
 import '/localdatabase/expense.dart';
 import '/localdatabase/expense_category.dart';
 import '/localdatabase/income.dart';
@@ -18,6 +18,7 @@ import '/localdatabase/user.dart';
 import '/student/PaymentsListScreen.dart';
 import '../employee/employee_list_screen.dart';
 import '../income_expeness/incomes.dart';
+import 'admin/admin_dashboard_screen.dart';
 import 'classes/classes_list_screen.dart';
 import '../reports/reportsscreen.dart';
 import '../reports/student_payment_status_report.dart';
@@ -29,7 +30,6 @@ import 'LogsScreen.dart';
 import 'UsersScreen.dart';
 import 'screens/database_test_screen.dart';
 import 'screens/system_test_screen.dart';
-import 'tests/quick_system_test.dart';
 import 'income_expeness/ExpenseListScreen.dart';
 import 'income_expeness/addexpenesscreen.dart';
 import 'license_manager.dart';
@@ -49,7 +49,7 @@ import 'employee/monthlysalaryscreen.dart';
 import 'schoolregstristion.dart';
 import 'services/services.dart';
 import 'student/add_student_screen_supabase.dart';
-import 'test_fetch_reports.dart';
+// import 'test_fetch_reports.dart';
 import 'classes/addclassscreen.dart';
 import 'dashboard_screen.dart';
 import 'classes/edit_class_screen.dart';
@@ -260,8 +260,9 @@ class SchoolApp extends StatelessWidget {
               organizationId: 1, // سيتم تحديثه لاحقاً
               schoolId: 1, // سيتم تحديثه لاحقاً
             ),
-        '/test-fetch-reports': (context) => const TestFetchReports(),
+        // '/test-fetch-reports': (context) => const TestFetchReports(),
         '/reports-diagnostic': (context) => const ReportsDiagnosticScreen(),
+        '/admin-dashboard': (context) => const AdminDashboardScreen(),
       },
     );
   }
