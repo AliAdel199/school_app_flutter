@@ -9,6 +9,8 @@ class User {
   late String username;
 
   late String email;
+  late String schoolId;
+  late String supabaseUserId;
 
   late String password; // يفضل لاحقًا تخزينها مشفرة
 

@@ -1,8 +1,11 @@
 
 import 'package:flutter/material.dart';
+import 'package:isar/isar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../auth_service.dart';
+import '../localdatabase/user.dart';
+import '../main.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -60,9 +63,22 @@ Future<void> loginIsar() async {
     }
   }
 
+  Future<void> getuserdata() async {
+    User? user = await isar.users.where().findFirst();
+    if (user != null) {
+      print('User found: ${user.email}');
+      print('User found: ${user.password}');
+
+    } else {
+      print('No user found');
+    }
+
+  }
+
   @override
   void initState() {
     super.initState();
+    getuserdata();
     _loadSavedCredentials();
   }
 

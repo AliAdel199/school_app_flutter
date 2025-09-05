@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:isar/isar.dart';
 import 'package:pdf/pdf.dart';
+import 'package:school_app_flutter/localdatabase/user.dart';
 import '/localdatabase/expense.dart';
 import '/localdatabase/income.dart';
 import '/localdatabase/student.dart';
@@ -68,8 +69,99 @@ class _ReportsScreenState extends State<ReportsScreen> {
   List<String> academicYears = [];
   String? selectedAcademicYear;
 
+  // مثال: جلب بيانات المستخدم المحلي من Isar (يجب أن يكون لديك جدول localUsers في Isar)
+  Future<Map<String, dynamic>?> getLocalUser() async {
+    try {
+      // غيّر هذا حسب اسم collection لديك
+      final user = await isar.users.where().findFirst();
+      if (user == null) return null;
+      return {
+        'email': user.email,
+        'password': user.password,
+        'school_id': user.schoolId,
+      };
+    } catch (e) {
+      debugPrint('خطأ في جلب بيانات المستخدم المحلي: $e');
+      return null;
+    }
+  }
+
+  Future<void> uploadReportToSupabase() async {
+    setState(() => isLoading = true);
+    try {
+      // 1. جلب بيانات المستخدم من Isar
+      final localUser = await getLocalUser();
+      if (localUser == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('يرجى تسجيل الدخول أولاً')),
+        );
+        return;
+      }
+
+      // 2. تسجيل الدخول إلى Supabase
+      final response = await supabase.auth.signInWithPassword(
+        email: localUser['email'],
+        password: localUser['password'],
+      );
+      if (response.user == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('فشل تسجيل الدخول إلى السحابة')),
+        );
+        return;
+      }
+
+      // 3. فحص حالة الاشتراك
+      final schoolId = localUser['school_id'];
+      final schoolRes = await supabase
+          .from('schools')
+          .select('subscription_status, subscription_end')
+          .eq('id', schoolId)
+          .maybeSingle();
+      if (schoolRes == null ||
+          schoolRes['subscription_status'] != 'active' ||
+          (schoolRes['subscription_end'] != null && DateTime.parse(schoolRes['subscription_end']).isBefore(DateTime.now()))) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('الاشتراك غير فعال. يرجى التجديد')),
+        );
+        return;
+      }
+
+      // 4. تجهيز بيانات التقرير
+      final reportData = {
+        'total_students': totalStudents,
+        'active_students': activeStudents,
+        'inactive_students': inactiveStudents,
+        'graduates': graduatedStudents,
+        'withdrawn': withdrawnStudents,
+        'total_annual_fees': totalAnnualFees,
+        'total_paid': totalPaid,
+        'total_remaining': totalDue,
+        'total_income': totalIncomes,
+        'total_expenses': totalExpenses,
+        'net_balance': netBalance,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      // 5. رفع التقرير إلى جدول school_reports
+      await supabase.from('school_reports').insert({
+        'school_id': schoolId,
+        ...reportData,
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم رفع التقرير بنجاح!')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('خطأ أثناء رفع التقرير: $e')),
+      );
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+
   @override
-   void initState() {
+  void initState() {
     super.initState();
     loadAcademicYear();
     loadAcademicYears();
@@ -393,6 +485,11 @@ debugPrint('الرصيد الصافي: ${netBalance.toStringAsFixed(2)} د.ع');
             icon: const Icon(Icons.print),
             tooltip: 'طباعة التقرير',
             onPressed: printReportPdf,
+          ),
+          IconButton(
+            icon: const Icon(Icons.cloud_upload),
+            tooltip: 'رفع التقرير إلى السحابة',
+            onPressed: uploadReportToSupabase,
           ),
         ],
       ),

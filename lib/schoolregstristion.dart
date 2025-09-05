@@ -3,14 +3,17 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:isar/isar.dart';
 import 'package:school_app_flutter/localdatabase/income_category.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '/LogsScreen.dart';
 import '/localdatabase/school.dart';
-import '/localdatabase/user.dart';
+import '/localdatabase/user.dart' as localdb;
 import '/reports/login_screen.dart';
 import '../main.dart';
 import 'auth_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'license_manager.dart';
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 
 class InitialSetupScreen extends StatefulWidget {
   const InitialSetupScreen({super.key});
@@ -51,6 +54,13 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
     }
   }
 
+  
+
+
+String hashPassword(String password) {
+  return sha256.convert(utf8.encode(password)).toString();
+}
+
   Future<void> saveInitialData() async {
     if (!formKey.currentState!.validate()) return;
 
@@ -62,47 +72,98 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('تم تسجيل المدرسة سابقًا.')),
         );
+        setState(() => isLoading = false);
         return;
       }
 
       // 🧪 إنشاء ملف الفترة التجريبية
       await LicenseManager.createTrialLicenseFile();
 
+      // 1. إنشاء حساب في Supabase
+      final supabase = Supabase.instance.client;
+      final email = userEmailController.text.trim();
+      final password = passwordController.text.trim();
+      final username = usernameController.text.trim();
+
+      final signUpRes = await supabase.auth.signUp(
+        email: email,
+        password: password,
+        data: {
+          'username': username,
+          'school_name': schoolNameController.text.trim(),
+        },
+      );
+
+      if (signUpRes.user == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('فشل إنشاء حساب السحابة')),
+        );
+        setState(() => isLoading = false);
+        return;
+      }
+
+
+      final supabaseUserId = signUpRes.user!.id;
+
+      // 2. إضافة بيانات المدرسة إلى Supabase
+        final now = DateTime.now();
+        final subscriptionEnd = now.add(const Duration(days: 30));
+        await supabase.from('schools').insert({
+          'id': supabaseUserId,
+          'name': schoolNameController.text.trim(),
+          'phone': schoolPhoneController.text.trim(),
+          'address': schoolAddressController.text.trim(),
+          'subscription_status': 'trial',
+          'subscription_start': now.toIso8601String(),
+          'subscription_end': subscriptionEnd.toIso8601String(),
+          'created_at': now.toIso8601String(),
+          'email': schoolEmailController.text.trim(),
+        });
+      // 3. حفظ بيانات المدرسة والمستخدم في Isar
       await isar.writeTxn(() async {
         final school = School()
           ..name = schoolNameController.text.trim()
-          ..email = schoolEmailController.text.trim()
+          // ..email = schoolEmailController.text.trim()
           ..phone = schoolPhoneController.text.trim()
           ..address = schoolAddressController.text.trim()
           ..logoUrl = selectedLogo?.path
-          ..subscriptionPlan = 'basic'
+
+          // ..subscriptionPlan = 'basic'
           ..subscriptionStatus = 'trial'
           ..createdAt = DateTime.now();
 
-        await isar.schools.put(school);
+        final schoolId = await isar.schools.put(school);
+
+  final hashedPassword = hashPassword(password);
+
+        // حفظ بيانات المستخدم في Isar
+        final user = localdb.User()
+          ..username = username
+          ..email = email
+          ..password = hashedPassword
+          ..schoolId = supabaseUserId // ربط المستخدم بمدرسة السوبابيس
+          ..supabaseUserId = supabaseUserId
+          ..createdAt = DateTime.now();
+
+        await isar.users.put(user);
       });
 
-      await registerUser(
-        usernameController.text.trim(),
-        userEmailController.text.trim(),
-        passwordController.text.trim(),
-      );
-         final identifier = "قسط طالب".toLowerCase().replaceAll(' ', '_');
+      // ...باقي الكود كما هو...
+      final identifier = "قسط طالب".toLowerCase().replaceAll(' ', '_');
+      final exists = await isar.incomeCategorys
+          .filter()
+          .identifierEqualTo(identifier)
+          .findFirst();
 
-            final exists = await isar.incomeCategorys
-                .filter()
-                .identifierEqualTo(identifier)
-                .findFirst();
+      if (exists == null) {
+        final category = IncomeCategory()
+          ..name = "قسط طالب"
+          ..identifier = identifier;
 
-            if (exists == null) {
-              final category = IncomeCategory()
-                ..name = "قسط طالب"
-                ..identifier = identifier;
-
-              await isar.writeTxn(() async {
-                await isar.incomeCategorys.put(category);
-              });
-            }
+        await isar.writeTxn(() async {
+          await isar.incomeCategorys.put(category);
+        });
+      }
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const LoginScreen()),

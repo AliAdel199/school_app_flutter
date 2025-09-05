@@ -8,14 +8,18 @@ part 'school.g.dart';
 class School {
   Id id = Isar.autoIncrement;
 
+  /// معرف المدرسة في Supabase (uuid)
+  String? supabaseId;
+
   late String name;
   String? email;
   String? phone;
   String? address;
   String? logoUrl;
   String? subscriptionPlan;
-  String subscriptionStatus = 'active';
-  DateTime? endDate;
+  String subscriptionStatus = 'inactive'; // نفس الافتراضي في Supabase
+  DateTime? subscriptionStart;
+  DateTime? subscriptionEnd;
   DateTime createdAt = DateTime.now();
 
   final grades = IsarLinks<Grade>();
