@@ -13,6 +13,7 @@ import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'student_payment_status_report.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../main.dart';
 
@@ -78,7 +79,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
       return {
         'email': user.email,
         'password': user.password,
-        'school_id': user.schoolId,
+        'school_id': user.supabaseUserId, // استخدم معرف السوبابيس
+        'username': user.username,
       };
     } catch (e) {
       debugPrint('خطأ في جلب بيانات المستخدم المحلي: $e');
@@ -111,6 +113,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       }
 
       // 3. فحص حالة الاشتراك
+
       final schoolId = localUser['school_id'];
       final schoolRes = await supabase
           .from('schools')
@@ -120,41 +123,119 @@ class _ReportsScreenState extends State<ReportsScreen> {
       if (schoolRes == null ||
           schoolRes['subscription_status'] != 'active' ||
           (schoolRes['subscription_end'] != null && DateTime.parse(schoolRes['subscription_end']).isBefore(DateTime.now()))) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('الاشتراك غير فعال. يرجى التجديد')),
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('تفعيل الاشتراك'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('للتفعيل يرجى دفع:'),
+                const SizedBox(height: 8),
+                const Text('شهري: 10,000 د.ع\nسنوي: 100,000 د.ع', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                const Text('رقم المحفظة:'),
+                Row(
+                  children: [
+                    const SelectableText('07814491474', style: TextStyle(fontWeight: FontWeight.bold)),
+                    IconButton(
+                      icon: const Icon(Icons.copy, size: 18),
+                      onPressed: () {
+                        Clipboard.setData(const ClipboardData(text: '07814491474'));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('تم نسخ رقم المحفظة!')),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Text('بعد الدفع، أرسل صورة الدفع على واتساب:'),
+                TextButton.icon(
+                  icon: const Icon(Icons.chat, color: Colors.green),
+                  label: const Text('إرسال رسالة واتساب'),
+                  onPressed: () async {
+                    final url = Uri.encodeFull(
+                      'https://wa.me/9647838449147?text=دفعت اشتراك المدرسة، هذا السكرين',
+                    );
+                    // ignore: deprecated_member_use
+                    await launchUrl(Uri.parse(url));
+                  },
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('إغلاق'),
+              ),
+            ],
+          ),
         );
+        setState(() => isLoading = false);
         return;
       }
 
-      // 4. تجهيز بيانات التقرير
+      // تجهيز الفترة
+      String period = '';
+      if (selectedAcademicYear != null) {
+        period = selectedAcademicYear!;
+      } else if (startDate != null && endDate != null) {
+        period = '${DateFormat('yyyy-MM-dd').format(startDate!)} - ${DateFormat('yyyy-MM-dd').format(endDate!)}';
+      }
+
+      // تجهيز بيانات التقرير
       final reportData = {
         'total_students': totalStudents,
         'active_students': activeStudents,
         'inactive_students': inactiveStudents,
         'graduates': graduatedStudents,
         'withdrawn': withdrawnStudents,
-        'total_annual_fees': totalAnnualFees,
-        'total_paid': totalPaid,
-        'total_remaining': totalDue,
-        'total_income': totalIncomes,
-        'total_expenses': totalExpenses,
-        'net_balance': netBalance,
+        'total_annual_fees': totalAnnualFees.round(),
+        'total_paid': totalPaid.round(),
+        'total_remaining': totalDue.round(),
+        'total_income': totalIncomes.round(),
+        'total_expenses': totalExpenses.round(),
+        'net_balance': netBalance.round(),
+        'period': period,
+        'generated_by': localUser['username'],
+        'generated_at': DateTime.now().toIso8601String(),
         'updated_at': DateTime.now().toIso8601String(),
       };
 
-      // 5. رفع التقرير إلى جدول school_reports
-      await supabase.from('school_reports').insert({
-        'school_id': schoolId,
-        ...reportData,
-      });
+      // تحقق إذا كان هناك تقرير سابق لنفس المدرسة ولنفس الفترة
+      final existingReport = await supabase
+          .from('school_reports')
+          .select('id')
+          .eq('school_id', schoolId)
+          .eq('period', period)
+          .maybeSingle();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم رفع التقرير بنجاح!')),
-      );
+      if (existingReport != null && existingReport['id'] != null) {
+        // تحديث التقرير القديم
+        await supabase
+            .from('school_reports')
+            .update(reportData)
+            .eq('id', existingReport['id']);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم تحديث التقرير بنجاح!')),
+        );
+      } else {
+        // إنشاء تقرير جديد
+        await supabase.from('school_reports').insert({
+          'school_id': schoolId,
+          ...reportData,
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم رفع التقرير بنجاح!')),
+        );
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('خطأ أثناء رفع التقرير: $e')),
       );
+      debugPrint('خطأ أثناء رفع التقرير: $e');
     } finally {
       setState(() => isLoading = false);
     }

@@ -84,10 +84,12 @@ String hashPassword(String password) {
       final email = userEmailController.text.trim();
       final password = passwordController.text.trim();
       final username = usernameController.text.trim();
+  final hashedPassword = hashPassword(password);
+
 
       final signUpRes = await supabase.auth.signUp(
         email: email,
-        password: password,
+        password: hashedPassword,
         data: {
           'username': username,
           'school_name': schoolNameController.text.trim(),
@@ -134,7 +136,6 @@ String hashPassword(String password) {
 
         final schoolId = await isar.schools.put(school);
 
-  final hashedPassword = hashPassword(password);
 
         // حفظ بيانات المستخدم في Isar
         final user = localdb.User()
