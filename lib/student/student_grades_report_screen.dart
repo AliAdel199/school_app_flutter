@@ -28,7 +28,7 @@ class _StudentGradesReportScreenState extends State<StudentGradesReportScreen> {
   
   Student? selectedStudent;
   String selectedEvaluationType = 'نهائي';
-  String selectedAcademicYear = DateTime.now().year.toString();
+  String selectedAcademicYear = academicYear;
   String searchQuery = '';
   
   final List<String> evaluationTypes = ['نصف سنة', 'نهائي', 'شفوي', 'عملي', 'مشاركة'];

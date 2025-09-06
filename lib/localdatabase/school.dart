@@ -22,6 +22,20 @@ class School {
   DateTime? subscriptionEnd;
   DateTime createdAt = DateTime.now();
 
+  // معلومات المؤسسة التعليمية
+  int? organizationId; // معرف المؤسسة في Supabase
+  String? organizationType; // نوع المدرسة (ابتدائية، متوسطة، ثانوية)
+  String? organizationName; // اسم المؤسسة التابعة لها
+
+
+  bool syncedWithSupabase = false;
+  DateTime? lastSyncAt;
+
+  // حقول الاشتراك في مزامنة التقارير
+  String? reportsSyncSubscription; // JSON للتفاصيل
+  bool reportsSyncActive = false;
+  DateTime? reportsSyncExpiryDate;
+
   final grades = IsarLinks<Grade>();
   final classes = IsarLinks<SchoolClass>();
 }

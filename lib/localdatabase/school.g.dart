@@ -32,45 +32,85 @@ const SchoolSchema = CollectionSchema(
       name: r'email',
       type: IsarType.string,
     ),
-    r'logoUrl': PropertySchema(
+    r'lastSyncAt': PropertySchema(
       id: 3,
+      name: r'lastSyncAt',
+      type: IsarType.dateTime,
+    ),
+    r'logoUrl': PropertySchema(
+      id: 4,
       name: r'logoUrl',
       type: IsarType.string,
     ),
     r'name': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'name',
       type: IsarType.string,
     ),
+    r'organizationId': PropertySchema(
+      id: 6,
+      name: r'organizationId',
+      type: IsarType.long,
+    ),
+    r'organizationName': PropertySchema(
+      id: 7,
+      name: r'organizationName',
+      type: IsarType.string,
+    ),
+    r'organizationType': PropertySchema(
+      id: 8,
+      name: r'organizationType',
+      type: IsarType.string,
+    ),
     r'phone': PropertySchema(
-      id: 5,
+      id: 9,
       name: r'phone',
       type: IsarType.string,
     ),
+    r'reportsSyncActive': PropertySchema(
+      id: 10,
+      name: r'reportsSyncActive',
+      type: IsarType.bool,
+    ),
+    r'reportsSyncExpiryDate': PropertySchema(
+      id: 11,
+      name: r'reportsSyncExpiryDate',
+      type: IsarType.dateTime,
+    ),
+    r'reportsSyncSubscription': PropertySchema(
+      id: 12,
+      name: r'reportsSyncSubscription',
+      type: IsarType.string,
+    ),
     r'subscriptionEnd': PropertySchema(
-      id: 6,
+      id: 13,
       name: r'subscriptionEnd',
       type: IsarType.dateTime,
     ),
     r'subscriptionPlan': PropertySchema(
-      id: 7,
+      id: 14,
       name: r'subscriptionPlan',
       type: IsarType.string,
     ),
     r'subscriptionStart': PropertySchema(
-      id: 8,
+      id: 15,
       name: r'subscriptionStart',
       type: IsarType.dateTime,
     ),
     r'subscriptionStatus': PropertySchema(
-      id: 9,
+      id: 16,
       name: r'subscriptionStatus',
       type: IsarType.string,
     ),
     r'supabaseId': PropertySchema(
-      id: 10,
+      id: 17,
       name: r'supabaseId',
       type: IsarType.string,
+    ),
+    r'syncedWithSupabase': PropertySchema(
+      id: 18,
+      name: r'syncedWithSupabase',
+      type: IsarType.bool,
     )
   },
   estimateSize: _schoolEstimateSize,
@@ -126,7 +166,25 @@ int _schoolEstimateSize(
   }
   bytesCount += 3 + object.name.length * 3;
   {
+    final value = object.organizationName;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.organizationType;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.phone;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.reportsSyncSubscription;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -156,14 +214,22 @@ void _schoolSerialize(
   writer.writeString(offsets[0], object.address);
   writer.writeDateTime(offsets[1], object.createdAt);
   writer.writeString(offsets[2], object.email);
-  writer.writeString(offsets[3], object.logoUrl);
-  writer.writeString(offsets[4], object.name);
-  writer.writeString(offsets[5], object.phone);
-  writer.writeDateTime(offsets[6], object.subscriptionEnd);
-  writer.writeString(offsets[7], object.subscriptionPlan);
-  writer.writeDateTime(offsets[8], object.subscriptionStart);
-  writer.writeString(offsets[9], object.subscriptionStatus);
-  writer.writeString(offsets[10], object.supabaseId);
+  writer.writeDateTime(offsets[3], object.lastSyncAt);
+  writer.writeString(offsets[4], object.logoUrl);
+  writer.writeString(offsets[5], object.name);
+  writer.writeLong(offsets[6], object.organizationId);
+  writer.writeString(offsets[7], object.organizationName);
+  writer.writeString(offsets[8], object.organizationType);
+  writer.writeString(offsets[9], object.phone);
+  writer.writeBool(offsets[10], object.reportsSyncActive);
+  writer.writeDateTime(offsets[11], object.reportsSyncExpiryDate);
+  writer.writeString(offsets[12], object.reportsSyncSubscription);
+  writer.writeDateTime(offsets[13], object.subscriptionEnd);
+  writer.writeString(offsets[14], object.subscriptionPlan);
+  writer.writeDateTime(offsets[15], object.subscriptionStart);
+  writer.writeString(offsets[16], object.subscriptionStatus);
+  writer.writeString(offsets[17], object.supabaseId);
+  writer.writeBool(offsets[18], object.syncedWithSupabase);
 }
 
 School _schoolDeserialize(
@@ -177,14 +243,22 @@ School _schoolDeserialize(
   object.createdAt = reader.readDateTime(offsets[1]);
   object.email = reader.readStringOrNull(offsets[2]);
   object.id = id;
-  object.logoUrl = reader.readStringOrNull(offsets[3]);
-  object.name = reader.readString(offsets[4]);
-  object.phone = reader.readStringOrNull(offsets[5]);
-  object.subscriptionEnd = reader.readDateTimeOrNull(offsets[6]);
-  object.subscriptionPlan = reader.readStringOrNull(offsets[7]);
-  object.subscriptionStart = reader.readDateTimeOrNull(offsets[8]);
-  object.subscriptionStatus = reader.readString(offsets[9]);
-  object.supabaseId = reader.readStringOrNull(offsets[10]);
+  object.lastSyncAt = reader.readDateTimeOrNull(offsets[3]);
+  object.logoUrl = reader.readStringOrNull(offsets[4]);
+  object.name = reader.readString(offsets[5]);
+  object.organizationId = reader.readLongOrNull(offsets[6]);
+  object.organizationName = reader.readStringOrNull(offsets[7]);
+  object.organizationType = reader.readStringOrNull(offsets[8]);
+  object.phone = reader.readStringOrNull(offsets[9]);
+  object.reportsSyncActive = reader.readBool(offsets[10]);
+  object.reportsSyncExpiryDate = reader.readDateTimeOrNull(offsets[11]);
+  object.reportsSyncSubscription = reader.readStringOrNull(offsets[12]);
+  object.subscriptionEnd = reader.readDateTimeOrNull(offsets[13]);
+  object.subscriptionPlan = reader.readStringOrNull(offsets[14]);
+  object.subscriptionStart = reader.readDateTimeOrNull(offsets[15]);
+  object.subscriptionStatus = reader.readString(offsets[16]);
+  object.supabaseId = reader.readStringOrNull(offsets[17]);
+  object.syncedWithSupabase = reader.readBool(offsets[18]);
   return object;
 }
 
@@ -202,21 +276,37 @@ P _schoolDeserializeProp<P>(
     case 2:
       return (reader.readStringOrNull(offset)) as P;
     case 3:
-      return (reader.readStringOrNull(offset)) as P;
-    case 4:
-      return (reader.readString(offset)) as P;
-    case 5:
-      return (reader.readStringOrNull(offset)) as P;
-    case 6:
       return (reader.readDateTimeOrNull(offset)) as P;
+    case 4:
+      return (reader.readStringOrNull(offset)) as P;
+    case 5:
+      return (reader.readString(offset)) as P;
+    case 6:
+      return (reader.readLongOrNull(offset)) as P;
     case 7:
       return (reader.readStringOrNull(offset)) as P;
     case 8:
-      return (reader.readDateTimeOrNull(offset)) as P;
-    case 9:
-      return (reader.readString(offset)) as P;
-    case 10:
       return (reader.readStringOrNull(offset)) as P;
+    case 9:
+      return (reader.readStringOrNull(offset)) as P;
+    case 10:
+      return (reader.readBool(offset)) as P;
+    case 11:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 12:
+      return (reader.readStringOrNull(offset)) as P;
+    case 13:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 14:
+      return (reader.readStringOrNull(offset)) as P;
+    case 15:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 16:
+      return (reader.readString(offset)) as P;
+    case 17:
+      return (reader.readStringOrNull(offset)) as P;
+    case 18:
+      return (reader.readBool(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -710,6 +800,75 @@ extension SchoolQueryFilter on QueryBuilder<School, School, QFilterCondition> {
     });
   }
 
+  QueryBuilder<School, School, QAfterFilterCondition> lastSyncAtIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'lastSyncAt',
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> lastSyncAtIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'lastSyncAt',
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> lastSyncAtEqualTo(
+      DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'lastSyncAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> lastSyncAtGreaterThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'lastSyncAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> lastSyncAtLessThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'lastSyncAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> lastSyncAtBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'lastSyncAt',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
   QueryBuilder<School, School, QAfterFilterCondition> logoUrlIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -985,6 +1144,378 @@ extension SchoolQueryFilter on QueryBuilder<School, School, QFilterCondition> {
     });
   }
 
+  QueryBuilder<School, School, QAfterFilterCondition> organizationIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'organizationId',
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      organizationIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'organizationId',
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationIdEqualTo(
+      int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'organizationId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationIdGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'organizationId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationIdLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'organizationId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationIdBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'organizationId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationNameIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'organizationName',
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      organizationNameIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'organizationName',
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationNameEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'organizationName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      organizationNameGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'organizationName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationNameLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'organizationName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationNameBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'organizationName',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      organizationNameStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'organizationName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationNameEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'organizationName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationNameContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'organizationName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationNameMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'organizationName',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      organizationNameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'organizationName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      organizationNameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'organizationName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationTypeIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'organizationType',
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      organizationTypeIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'organizationType',
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationTypeEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'organizationType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      organizationTypeGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'organizationType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationTypeLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'organizationType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationTypeBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'organizationType',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      organizationTypeStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'organizationType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationTypeEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'organizationType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationTypeContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'organizationType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> organizationTypeMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'organizationType',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      organizationTypeIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'organizationType',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      organizationTypeIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'organizationType',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<School, School, QAfterFilterCondition> phoneIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -1126,6 +1657,246 @@ extension SchoolQueryFilter on QueryBuilder<School, School, QFilterCondition> {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'phone',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition> reportsSyncActiveEqualTo(
+      bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'reportsSyncActive',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncExpiryDateIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'reportsSyncExpiryDate',
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncExpiryDateIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'reportsSyncExpiryDate',
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncExpiryDateEqualTo(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'reportsSyncExpiryDate',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncExpiryDateGreaterThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'reportsSyncExpiryDate',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncExpiryDateLessThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'reportsSyncExpiryDate',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncExpiryDateBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'reportsSyncExpiryDate',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncSubscriptionIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'reportsSyncSubscription',
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncSubscriptionIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'reportsSyncSubscription',
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncSubscriptionEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'reportsSyncSubscription',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncSubscriptionGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'reportsSyncSubscription',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncSubscriptionLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'reportsSyncSubscription',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncSubscriptionBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'reportsSyncSubscription',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncSubscriptionStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'reportsSyncSubscription',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncSubscriptionEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'reportsSyncSubscription',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncSubscriptionContains(String value,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'reportsSyncSubscription',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncSubscriptionMatches(String pattern,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'reportsSyncSubscription',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncSubscriptionIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'reportsSyncSubscription',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<School, School, QAfterFilterCondition>
+      reportsSyncSubscriptionIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'reportsSyncSubscription',
         value: '',
       ));
     });
@@ -1705,6 +2476,16 @@ extension SchoolQueryFilter on QueryBuilder<School, School, QFilterCondition> {
       ));
     });
   }
+
+  QueryBuilder<School, School, QAfterFilterCondition> syncedWithSupabaseEqualTo(
+      bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'syncedWithSupabase',
+        value: value,
+      ));
+    });
+  }
 }
 
 extension SchoolQueryObject on QueryBuilder<School, School, QFilterCondition> {}
@@ -1860,6 +2641,18 @@ extension SchoolQuerySortBy on QueryBuilder<School, School, QSortBy> {
     });
   }
 
+  QueryBuilder<School, School, QAfterSortBy> sortByLastSyncAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastSyncAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> sortByLastSyncAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastSyncAt', Sort.desc);
+    });
+  }
+
   QueryBuilder<School, School, QAfterSortBy> sortByLogoUrl() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'logoUrl', Sort.asc);
@@ -1884,6 +2677,42 @@ extension SchoolQuerySortBy on QueryBuilder<School, School, QSortBy> {
     });
   }
 
+  QueryBuilder<School, School, QAfterSortBy> sortByOrganizationId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'organizationId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> sortByOrganizationIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'organizationId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> sortByOrganizationName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'organizationName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> sortByOrganizationNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'organizationName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> sortByOrganizationType() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'organizationType', Sort.asc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> sortByOrganizationTypeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'organizationType', Sort.desc);
+    });
+  }
+
   QueryBuilder<School, School, QAfterSortBy> sortByPhone() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'phone', Sort.asc);
@@ -1893,6 +2722,43 @@ extension SchoolQuerySortBy on QueryBuilder<School, School, QSortBy> {
   QueryBuilder<School, School, QAfterSortBy> sortByPhoneDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'phone', Sort.desc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> sortByReportsSyncActive() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reportsSyncActive', Sort.asc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> sortByReportsSyncActiveDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reportsSyncActive', Sort.desc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> sortByReportsSyncExpiryDate() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reportsSyncExpiryDate', Sort.asc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> sortByReportsSyncExpiryDateDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reportsSyncExpiryDate', Sort.desc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> sortByReportsSyncSubscription() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reportsSyncSubscription', Sort.asc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy>
+      sortByReportsSyncSubscriptionDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reportsSyncSubscription', Sort.desc);
     });
   }
 
@@ -1955,6 +2821,18 @@ extension SchoolQuerySortBy on QueryBuilder<School, School, QSortBy> {
       return query.addSortBy(r'supabaseId', Sort.desc);
     });
   }
+
+  QueryBuilder<School, School, QAfterSortBy> sortBySyncedWithSupabase() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'syncedWithSupabase', Sort.asc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> sortBySyncedWithSupabaseDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'syncedWithSupabase', Sort.desc);
+    });
+  }
 }
 
 extension SchoolQuerySortThenBy on QueryBuilder<School, School, QSortThenBy> {
@@ -2006,6 +2884,18 @@ extension SchoolQuerySortThenBy on QueryBuilder<School, School, QSortThenBy> {
     });
   }
 
+  QueryBuilder<School, School, QAfterSortBy> thenByLastSyncAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastSyncAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> thenByLastSyncAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastSyncAt', Sort.desc);
+    });
+  }
+
   QueryBuilder<School, School, QAfterSortBy> thenByLogoUrl() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'logoUrl', Sort.asc);
@@ -2030,6 +2920,42 @@ extension SchoolQuerySortThenBy on QueryBuilder<School, School, QSortThenBy> {
     });
   }
 
+  QueryBuilder<School, School, QAfterSortBy> thenByOrganizationId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'organizationId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> thenByOrganizationIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'organizationId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> thenByOrganizationName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'organizationName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> thenByOrganizationNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'organizationName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> thenByOrganizationType() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'organizationType', Sort.asc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> thenByOrganizationTypeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'organizationType', Sort.desc);
+    });
+  }
+
   QueryBuilder<School, School, QAfterSortBy> thenByPhone() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'phone', Sort.asc);
@@ -2039,6 +2965,43 @@ extension SchoolQuerySortThenBy on QueryBuilder<School, School, QSortThenBy> {
   QueryBuilder<School, School, QAfterSortBy> thenByPhoneDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'phone', Sort.desc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> thenByReportsSyncActive() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reportsSyncActive', Sort.asc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> thenByReportsSyncActiveDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reportsSyncActive', Sort.desc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> thenByReportsSyncExpiryDate() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reportsSyncExpiryDate', Sort.asc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> thenByReportsSyncExpiryDateDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reportsSyncExpiryDate', Sort.desc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> thenByReportsSyncSubscription() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reportsSyncSubscription', Sort.asc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy>
+      thenByReportsSyncSubscriptionDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reportsSyncSubscription', Sort.desc);
     });
   }
 
@@ -2101,6 +3064,18 @@ extension SchoolQuerySortThenBy on QueryBuilder<School, School, QSortThenBy> {
       return query.addSortBy(r'supabaseId', Sort.desc);
     });
   }
+
+  QueryBuilder<School, School, QAfterSortBy> thenBySyncedWithSupabase() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'syncedWithSupabase', Sort.asc);
+    });
+  }
+
+  QueryBuilder<School, School, QAfterSortBy> thenBySyncedWithSupabaseDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'syncedWithSupabase', Sort.desc);
+    });
+  }
 }
 
 extension SchoolQueryWhereDistinct on QueryBuilder<School, School, QDistinct> {
@@ -2124,6 +3099,12 @@ extension SchoolQueryWhereDistinct on QueryBuilder<School, School, QDistinct> {
     });
   }
 
+  QueryBuilder<School, School, QDistinct> distinctByLastSyncAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'lastSyncAt');
+    });
+  }
+
   QueryBuilder<School, School, QDistinct> distinctByLogoUrl(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -2138,10 +3119,52 @@ extension SchoolQueryWhereDistinct on QueryBuilder<School, School, QDistinct> {
     });
   }
 
+  QueryBuilder<School, School, QDistinct> distinctByOrganizationId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'organizationId');
+    });
+  }
+
+  QueryBuilder<School, School, QDistinct> distinctByOrganizationName(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'organizationName',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<School, School, QDistinct> distinctByOrganizationType(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'organizationType',
+          caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<School, School, QDistinct> distinctByPhone(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'phone', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<School, School, QDistinct> distinctByReportsSyncActive() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'reportsSyncActive');
+    });
+  }
+
+  QueryBuilder<School, School, QDistinct> distinctByReportsSyncExpiryDate() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'reportsSyncExpiryDate');
+    });
+  }
+
+  QueryBuilder<School, School, QDistinct> distinctByReportsSyncSubscription(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'reportsSyncSubscription',
+          caseSensitive: caseSensitive);
     });
   }
 
@@ -2179,6 +3202,12 @@ extension SchoolQueryWhereDistinct on QueryBuilder<School, School, QDistinct> {
       return query.addDistinctBy(r'supabaseId', caseSensitive: caseSensitive);
     });
   }
+
+  QueryBuilder<School, School, QDistinct> distinctBySyncedWithSupabase() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'syncedWithSupabase');
+    });
+  }
 }
 
 extension SchoolQueryProperty on QueryBuilder<School, School, QQueryProperty> {
@@ -2206,6 +3235,12 @@ extension SchoolQueryProperty on QueryBuilder<School, School, QQueryProperty> {
     });
   }
 
+  QueryBuilder<School, DateTime?, QQueryOperations> lastSyncAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'lastSyncAt');
+    });
+  }
+
   QueryBuilder<School, String?, QQueryOperations> logoUrlProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'logoUrl');
@@ -2218,9 +3253,47 @@ extension SchoolQueryProperty on QueryBuilder<School, School, QQueryProperty> {
     });
   }
 
+  QueryBuilder<School, int?, QQueryOperations> organizationIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'organizationId');
+    });
+  }
+
+  QueryBuilder<School, String?, QQueryOperations> organizationNameProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'organizationName');
+    });
+  }
+
+  QueryBuilder<School, String?, QQueryOperations> organizationTypeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'organizationType');
+    });
+  }
+
   QueryBuilder<School, String?, QQueryOperations> phoneProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'phone');
+    });
+  }
+
+  QueryBuilder<School, bool, QQueryOperations> reportsSyncActiveProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'reportsSyncActive');
+    });
+  }
+
+  QueryBuilder<School, DateTime?, QQueryOperations>
+      reportsSyncExpiryDateProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'reportsSyncExpiryDate');
+    });
+  }
+
+  QueryBuilder<School, String?, QQueryOperations>
+      reportsSyncSubscriptionProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'reportsSyncSubscription');
     });
   }
 
@@ -2252,6 +3325,12 @@ extension SchoolQueryProperty on QueryBuilder<School, School, QQueryProperty> {
   QueryBuilder<School, String?, QQueryOperations> supabaseIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'supabaseId');
+    });
+  }
+
+  QueryBuilder<School, bool, QQueryOperations> syncedWithSupabaseProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'syncedWithSupabase');
     });
   }
 }
